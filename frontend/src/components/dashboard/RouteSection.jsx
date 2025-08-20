@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import LocationList from "./LocationList";
+import InlineAddLocationForm from "./InlineAddLocationForm";
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
 import CardContent from '@mui/material/CardContent';
@@ -106,6 +107,13 @@ export default function RouteSection({ route, locations, routes, onEditRoute, on
             route={route}
             routes={routes}
             {...childHandlers}
+          />
+          
+          {/* Inline Add Location Form */}
+          <InlineAddLocationForm 
+            onAdd={childHandlers.onAddLocation}
+            routeId={route ? route.id : null}
+            routeName={route ? route.name : null}
           />
         </CardContent>
       )}

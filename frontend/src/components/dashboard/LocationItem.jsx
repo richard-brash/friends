@@ -70,21 +70,25 @@ export default function LocationItem({ location, route, routes, onEditLocation, 
           <option key={`route-option-${r.id}`} value={r.id}>{r.name}</option>
         ))}
       </select>
-      {/* Reorder up/down */}
-      <button onClick={() => {
-        if (canMoveUp) {
-          const newOrder = [...locations];
-          [newOrder[idx - 1], newOrder[idx]] = [newOrder[idx], newOrder[idx - 1]];
-          onReorderLocations(route ? route.id : null, newOrder.map(l => l.id));
-        }
-      }} disabled={!canMoveUp}>↑</button>
-      <button onClick={() => {
-        if (canMoveDown) {
-          const newOrder = [...locations];
-          [newOrder[idx], newOrder[idx + 1]] = [newOrder[idx + 1], newOrder[idx]];
-          onReorderLocations(route ? route.id : null, newOrder.map(l => l.id));
-        }
-      }} disabled={!canMoveDown}>↓</button>
+      {/* Reorder up/down - only show when location is part of a route */}
+      {route && (
+        <>
+          <button onClick={() => {
+            if (canMoveUp) {
+              const newOrder = [...locations];
+              [newOrder[idx - 1], newOrder[idx]] = [newOrder[idx], newOrder[idx - 1]];
+              onReorderLocations(route.id, newOrder.map(l => l.id));
+            }
+          }} disabled={!canMoveUp}>↑</button>
+          <button onClick={() => {
+            if (canMoveDown) {
+              const newOrder = [...locations];
+              [newOrder[idx], newOrder[idx + 1]] = [newOrder[idx + 1], newOrder[idx]];
+              onReorderLocations(route.id, newOrder.map(l => l.id));
+            }
+          }} disabled={!canMoveDown}>↓</button>
+        </>
+      )}
     </li>
   );
 }

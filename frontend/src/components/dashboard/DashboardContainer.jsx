@@ -333,6 +333,7 @@ export default function DashboardContainer({ showToast, setError }) {
         setEditingRoute={setEditingRoute}
         onEditRoute={handleEditRoute}
         onDeleteRoute={handleDeleteRoute}
+        onAddLocation={handleAddLocation}
         onEditLocation={handleEditLocation}
         onDeleteLocation={handleDeleteLocation}
         onMoveLocation={handleMoveLocation}

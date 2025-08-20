@@ -1,4 +1,6 @@
 import React from 'react';
+import FriendsContainer from './friends/FriendsContainer';
+
 export default function FriendSection() {
-  return <div>Friend management coming soon.</div>;
+  return <FriendsContainer />;
 }
