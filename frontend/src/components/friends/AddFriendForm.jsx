@@ -8,6 +8,8 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -87,94 +89,120 @@ export default function AddFriendForm({ onAdd, locations, routes }) {
         </div>
         
         {isOpen && (
-          <form onSubmit={handleSubmit} style={{ marginTop: 16 }}>
-            {/* Basic Info Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 1fr', gap: 16, marginBottom: 16 }}>
-              <TextField
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="Friend's name"
-                label="Name"
-                variant="outlined"
-                size="small"
-                required
-              />
-              <TextField
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder="Phone number"
-                label="Phone"
-                variant="outlined"
-                size="small"
-              />
-              <TextField
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="Email address"
-                label="Email"
-                variant="outlined"
-                size="small"
-                type="email"
-              />
-              <Button 
-                type="submit" 
-                variant="contained" 
-                startIcon={<PersonAddIcon />}
-                style={{ height: 40 }}
-              >
-                Add
-              </Button>
-            </div>
-            
-            {/* Location Selection Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-              <FormControl size="small">
-                <InputLabel>Route (Optional)</InputLabel>
-                <Select
-                  value={selectedRouteId}
-                  onChange={e => handleRouteChange(e.target.value)}
-                  label="Route (Optional)"
-                >
-                  <MenuItem value="">No Route / Unassigned</MenuItem>
-                  {routes.map(route => (
-                    <MenuItem key={route.id} value={route.id}>
-                      {route.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+          <Box sx={{ mt: 2 }}>
+            <form onSubmit={handleSubmit}>
+              {/* Basic Info */}
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="Friend's name"
+                    label="Name"
+                    variant="outlined"
+                    size="small"
+                    required
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="Phone number"
+                    label="Phone"
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="Email address"
+                    label="Email"
+                    variant="outlined"
+                    size="small"
+                    type="email"
+                    fullWidth
+                  />
+                </Grid>
+              </Grid>
               
-              <FormControl size="small">
-                <InputLabel>Initial Location (Optional)</InputLabel>
-                <Select
-                  value={selectedLocationId}
-                  onChange={e => setSelectedLocationId(e.target.value)}
-                  label="Initial Location (Optional)"
-                  disabled={!selectedRouteId && locations.filter(loc => !loc.routeId).length === 0}
-                >
-                  <MenuItem value="">No Location</MenuItem>
-                  {filteredLocations.map(location => (
-                    <MenuItem key={location.id} value={location.id}>
-                      {location.description}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </div>
+              {/* Location Selection */}
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={12} sm={6}>
+                  <FormControl size="small" fullWidth>
+                    <InputLabel>Route (Optional)</InputLabel>
+                    <Select
+                      value={selectedRouteId}
+                      onChange={e => handleRouteChange(e.target.value)}
+                      label="Route (Optional)"
+                    >
+                      <MenuItem value="">No Route / Unassigned</MenuItem>
+                      {routes.map(route => (
+                        <MenuItem key={route.id} value={route.id}>
+                          {route.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <FormControl size="small" fullWidth>
+                    <InputLabel>Initial Location (Optional)</InputLabel>
+                    <Select
+                      value={selectedLocationId}
+                      onChange={e => setSelectedLocationId(e.target.value)}
+                      label="Initial Location (Optional)"
+                      disabled={!selectedRouteId && locations.filter(loc => !loc.routeId).length === 0}
+                    >
+                      <MenuItem value="">No Location</MenuItem>
+                      {filteredLocations.map(location => (
+                        <MenuItem key={location.id} value={location.id}>
+                          {location.description}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
 
-            {/* Notes Row */}
-            <TextField
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="Notes about this friend..."
-              label="Notes"
-              variant="outlined"
-              size="small"
-              multiline
-              rows={2}
-              fullWidth
-            />
-          </form>
+              {/* Notes */}
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={12}>
+                  <TextField
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    placeholder="Notes about this friend..."
+                    label="Notes"
+                    variant="outlined"
+                    size="small"
+                    multiline
+                    rows={2}
+                    fullWidth
+                  />
+                </Grid>
+              </Grid>
+
+              {/* Submit Button */}
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Button 
+                    type="submit" 
+                    variant="contained" 
+                    startIcon={<PersonAddIcon />}
+                    sx={{ height: 40 }}
+                    fullWidth
+                  >
+                    Add Friend
+                  </Button>
+                </Grid>
+              </Grid>
+            </form>
+          </Box>
         )}
       </CardContent>
     </Card>

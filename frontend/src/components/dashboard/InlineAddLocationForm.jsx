@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
+import Grid from '@mui/material/Grid';
 import AddLocationIcon from '@mui/icons-material/AddLocation';
 
 export default function InlineAddLocationForm({ onAdd, routeId, routeName }) {
@@ -25,42 +26,51 @@ export default function InlineAddLocationForm({ onAdd, routeId, routeName }) {
 
   return (
     <Box 
-      style={{ 
-        marginTop: 12, 
-        padding: 12, 
+      sx={{ 
+        mt: 1.5, 
+        p: 1.5, 
         backgroundColor: '#fafafa', 
         border: '1px dashed #ccc',
-        borderRadius: 8 
+        borderRadius: 1
       }}
     >
       <form onSubmit={handleSubmit}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr auto', gap: 12, alignItems: 'flex-end' }}>
-          <TextField
-            value={desc}
-            onChange={e => setDesc(e.target.value)}
-            placeholder="Location description"
-            label="Description"
-            variant="outlined"
-            size="small"
-            required
-          />
-          <TextField
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            placeholder="Notes"
-            label="Notes"
-            variant="outlined"
-            size="small"
-          />
-          <Button 
-            type="submit" 
-            variant="contained" 
-            size="small"
-            startIcon={<AddLocationIcon />}
-          >
-            {buttonText}
-          </Button>
-        </div>
+        <Grid container spacing={1.5} alignItems="flex-end">
+          <Grid item xs={12} sm={6} md={5}>
+            <TextField
+              value={desc}
+              onChange={e => setDesc(e.target.value)}
+              placeholder="Location description"
+              label="Description"
+              variant="outlined"
+              size="small"
+              required
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <TextField
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Notes"
+              label="Notes"
+              variant="outlined"
+              size="small"
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              size="small"
+              startIcon={<AddLocationIcon />}
+              fullWidth
+            >
+              {buttonText}
+            </Button>
+          </Grid>
+        </Grid>
       </form>
     </Box>
   );

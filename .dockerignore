@@ -1,0 +1,9 @@
+# Ignore subdirectory package.json files during detection
+frontend/package.json.bak
+backend/package.json.bak
+frontend/node_modules
+backend/node_modules
+**/node_modules
+**/dist
+**/build
+**/.git

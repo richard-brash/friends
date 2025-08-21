@@ -4,6 +4,8 @@ import CardContent from '@mui/material/CardContent';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -50,26 +52,35 @@ export default function AddRouteForm({ onAdd }) {
         </div>
         
         {isOpen && (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 16, alignItems: 'flex-end', marginTop: 16 }}>
-            <TextField
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="New route name"
-              label="Route Name"
-              variant="outlined"
-              size="small"
-              required
-              style={{ flex: 1 }}
-            />
-            <Button 
-              type="submit" 
-              variant="contained" 
-              startIcon={<AddIcon />}
-              style={{ height: 40 }}
-            >
-              Add Route
-            </Button>
-          </form>
+          <Box sx={{ mt: 2 }}>
+            <form onSubmit={handleSubmit}>
+              <Grid container spacing={2} alignItems="flex-end">
+                <Grid item xs={12} sm={8} md={9}>
+                  <TextField
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="New route name"
+                    label="Route Name"
+                    variant="outlined"
+                    size="small"
+                    required
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4} md={3}>
+                  <Button 
+                    type="submit" 
+                    variant="contained" 
+                    startIcon={<AddIcon />}
+                    sx={{ height: 40 }}
+                    fullWidth
+                  >
+                    Add Route
+                  </Button>
+                </Grid>
+              </Grid>
+            </form>
+          </Box>
         )}
       </CardContent>
     </Card>

@@ -8,6 +8,8 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
 import AddLocationIcon from '@mui/icons-material/AddLocation';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -60,50 +62,63 @@ export default function AddLocationForm({ onAdd, routes }) {
         </div>
         
         {isOpen && (
-          <form onSubmit={handleSubmit} style={{ marginTop: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr auto', gap: 16, alignItems: 'flex-end' }}>
-              <TextField
-                value={desc}
-                onChange={e => setDesc(e.target.value)}
-                placeholder="Description"
-                label="Description"
-                variant="outlined"
-                size="small"
-                required
-              />
-              <TextField
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="Notes"
-                label="Notes"
-                variant="outlined"
-                size="small"
-              />
-              <FormControl size="small">
-                <InputLabel>Route</InputLabel>
-                <Select
-                  value={routeId}
-                  onChange={e => setRouteId(e.target.value)}
-                  label="Route"
-                >
-                  <MenuItem value="">No Route</MenuItem>
-                  {routes.map(r => (
-                    <MenuItem key={`add-form-route-${r.id}`} value={r.id}>
-                      {r.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Button 
-                type="submit" 
-                variant="contained" 
-                startIcon={<AddLocationIcon />}
-                style={{ height: 40 }}
-              >
-                Add
-              </Button>
-            </div>
-          </form>
+          <Box sx={{ mt: 2 }}>
+            <form onSubmit={handleSubmit}>
+              <Grid container spacing={2} alignItems="flex-end">
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    value={desc}
+                    onChange={e => setDesc(e.target.value)}
+                    placeholder="Description"
+                    label="Description"
+                    variant="outlined"
+                    size="small"
+                    required
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    placeholder="Notes"
+                    label="Notes"
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <FormControl size="small" fullWidth>
+                    <InputLabel>Route</InputLabel>
+                    <Select
+                      value={routeId}
+                      onChange={e => setRouteId(e.target.value)}
+                      label="Route"
+                    >
+                      <MenuItem value="">No Route</MenuItem>
+                      {routes.map(r => (
+                        <MenuItem key={`add-form-route-${r.id}`} value={r.id}>
+                          {r.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6} md={2}>
+                  <Button 
+                    type="submit" 
+                    variant="contained" 
+                    startIcon={<AddLocationIcon />}
+                    sx={{ height: 40 }}
+                    fullWidth
+                  >
+                    Add
+                  </Button>
+                </Grid>
+              </Grid>
+            </form>
+          </Box>
         )}
       </CardContent>
     </Card>
