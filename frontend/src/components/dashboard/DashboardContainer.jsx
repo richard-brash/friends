@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import RouteList from "./RouteList";
 import AddRouteForm from "./AddRouteForm";
-import AddLocationForm from "./AddLocationForm";
 
 export default function DashboardContainer({ showToast, setError }) {
   const [routes, setRoutes] = useState([]);
@@ -323,7 +322,6 @@ export default function DashboardContainer({ showToast, setError }) {
     <div>
       <h2>Routes & Locations</h2>
       <AddRouteForm onAdd={handleAddRoute} />
-      <AddLocationForm onAdd={handleAddLocation} routes={routes || []} />
       <RouteList
         routes={routes || []}
         locations={locations || []}

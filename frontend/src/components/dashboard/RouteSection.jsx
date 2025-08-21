@@ -109,12 +109,14 @@ export default function RouteSection({ route, locations, routes, onEditRoute, on
             {...childHandlers}
           />
           
-          {/* Inline Add Location Form */}
-          <InlineAddLocationForm 
-            onAdd={childHandlers.onAddLocation}
-            routeId={route ? route.id : null}
-            routeName={route ? route.name : null}
-          />
+          {/* Inline Add Location Form - only show for actual routes, not "No Route" */}
+          {!isNoRoute && (
+            <InlineAddLocationForm 
+              onAdd={childHandlers.onAddLocation}
+              routeId={route ? route.id : null}
+              routeName={route ? route.name : null}
+            />
+          )}
         </CardContent>
       )}
     </Card>
