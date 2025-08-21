@@ -63,3 +63,24 @@ export function deleteLocation(id, routesRef) {
   }
   locations = locations.filter(l => l.id !== id);
 }
+
+// Seeding functions for sample data
+export function seedLocations(sampleLocations) {
+  locations.push(...sampleLocations.map(location => ({
+    id: parseInt(location.id),
+    description: location.name,
+    notes: location.notes,
+    address: location.address,
+    type: location.type,
+    createdAt: location.createdAt
+  })));
+  
+  // Update nextId to avoid conflicts
+  const maxId = Math.max(...locations.map(l => l.id), 0);
+  nextId = maxId + 1;
+}
+
+export function clearAllLocations() {
+  locations.length = 0;
+  nextId = 1;
+}

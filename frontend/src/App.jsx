@@ -6,6 +6,7 @@ import OutreachDashboard from './components/OutreachDashboard';
 import RouteLocationDashboard from './components/RouteLocationDashboard';
 import RunSection from './components/RunSection';
 import RequestSection from './components/RequestSection';
+import DeveloperTools from './components/DeveloperTools';
 
 
 const sections = [
@@ -36,6 +37,7 @@ export default function App() {
         <Paper sx={{ p: 2 }} elevation={2}>
           <Section RouteLocationDashboard={RouteLocationDashboard} />
         </Paper>
+        <DeveloperTools />
       </Box>
     </Box>
   );

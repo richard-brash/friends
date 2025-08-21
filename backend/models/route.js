@@ -54,3 +54,24 @@ export function updateRoute(id, name, locationIds) {
 export function deleteRoute(id) {
   routes = routes.filter(r => r.id !== id);
 }
+
+// Seeding functions for sample data
+export function seedRoutes(sampleRoutes) {
+  routes.push(...sampleRoutes.map(route => ({
+    id: parseInt(route.id),
+    name: route.name,
+    description: route.description,
+    locationIds: route.locationIds.map(id => parseInt(id)),
+    estimatedDuration: route.estimatedDuration,
+    createdAt: route.createdAt
+  })));
+  
+  // Update nextId to avoid conflicts
+  const maxId = Math.max(...routes.map(r => r.id), 0);
+  nextId = maxId + 1;
+}
+
+export function clearAllRoutes() {
+  routes.length = 0;
+  nextId = 1;
+}

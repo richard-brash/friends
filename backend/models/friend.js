@@ -119,3 +119,26 @@ export function getFriendsLastSeenAt(locationId) {
     return lastEntry && lastEntry.locationId === locationId;
   });
 }
+
+// Seeding functions for sample data
+export function seedFriends(sampleFriends) {
+  friends.push(...sampleFriends.map(friend => ({
+    ...friend,
+    id: parseInt(friend.id), // Ensure numeric ID
+    locationHistory: friend.locationId ? [{
+      id: Date.now() + parseInt(friend.id),
+      locationId: parseInt(friend.locationId),
+      dateRecorded: friend.lastContact || friend.createdAt,
+      notes: `Initial location: ${friend.notes || 'First contact'}`
+    }] : []
+  })));
+  
+  // Update nextId to avoid conflicts
+  const maxId = Math.max(...friends.map(f => f.id), 0);
+  nextId = maxId + 1;
+}
+
+export function clearAllFriends() {
+  friends.length = 0;
+  nextId = 1;
+}
