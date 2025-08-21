@@ -7,6 +7,7 @@ import RouteLocationDashboard from './components/RouteLocationDashboard';
 import RunSection from './components/RunSection';
 import RequestSection from './components/RequestSection';
 import DeveloperTools from './components/DeveloperTools';
+import AppFooter from './components/AppFooter';
 
 
 const sections = [
@@ -39,6 +40,7 @@ export default function App() {
         </Paper>
         <DeveloperTools />
       </Box>
+      <AppFooter />
     </Box>
   );
 }
