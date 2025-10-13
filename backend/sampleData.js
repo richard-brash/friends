@@ -8,6 +8,7 @@ export const sampleUsers = [
     email: 'alex@example.com',
     phone: '555-0101',
     role: 'Team Lead',
+    permissions: ['coordinate_runs', 'lead_runs', 'assign_users', 'view_reports'],
     createdAt: new Date('2024-01-15').toISOString()
   },
   {
@@ -16,7 +17,26 @@ export const sampleUsers = [
     email: 'sarah@example.com',
     phone: '555-0102',
     role: 'Outreach Coordinator',
+    permissions: ['coordinate_runs', 'lead_runs', 'assign_users', 'manage_routes'],
     createdAt: new Date('2024-02-01').toISOString()
+  },
+  {
+    id: '3',
+    name: 'Mike Torres',
+    email: 'mike.t@example.com', 
+    phone: '555-0103',
+    role: 'Volunteer',
+    permissions: ['participate_runs', 'view_assignments'],
+    createdAt: new Date('2024-02-10').toISOString()
+  },
+  {
+    id: '4',
+    name: 'Jessica Park',
+    email: 'jessica.p@example.com',
+    phone: '555-0104', 
+    role: 'Team Member',
+    permissions: ['lead_runs', 'participate_runs', 'view_assignments'],
+    createdAt: new Date('2024-02-15').toISOString()
   }
 ];
 
@@ -144,32 +164,89 @@ export const sampleRuns = [
   {
     id: '1',
     routeId: '1',
-    userId: '1',
-    date: new Date('2024-03-15').toISOString(),
-    duration: 125,
-    notes: 'Great response at Central Perk, met 3 new people. Tech Hub was busy.',
-    contactsMade: 3,
+    leadId: '1', // Lead user
+    coordinatorId: '2', // Coordinator who created the run
+    assignedUserIds: ['1', '3'], // Team members assigned to this run
+    scheduledDate: new Date('2024-03-20T09:00:00').toISOString(), // Upcoming run
+    mealsCount: 25,
+    coordinatorNotes: 'Focus on business professionals during morning rush. Bring extra flyers.',
+    status: 'scheduled', // scheduled, in_progress, completed, cancelled
+    currentLocationIndex: 0, // For tracking progress through route
+    // Post-run data (null for scheduled runs)
+    actualDuration: null,
+    leadNotes: null,
+    contactsMade: null,
+    completedAt: null,
     createdAt: new Date('2024-03-15').toISOString()
   },
   {
     id: '2',
     routeId: '2', 
-    userId: '2',
-    date: new Date('2024-03-12').toISOString(),
-    duration: 95,
-    notes: 'Good turnout at campus lunch hour. Emma very helpful with introductions.',
-    contactsMade: 5,
+    leadId: '4',
+    coordinatorId: '2',
+    assignedUserIds: ['4', '3'],
+    scheduledDate: new Date('2024-03-18T12:00:00').toISOString(), // Upcoming run
+    mealsCount: 15,
+    coordinatorNotes: 'University lunch hour outreach. Connect with student groups.',
+    status: 'scheduled',
+    currentLocationIndex: 0,
+    actualDuration: null,
+    leadNotes: null,
+    contactsMade: null,
+    completedAt: null,
     createdAt: new Date('2024-03-12').toISOString()
   },
   {
     id: '3',
     routeId: '3',
-    userId: '1',
-    date: new Date('2024-03-10').toISOString(),
-    duration: 160,
-    notes: 'Peaceful morning at the park. David introduced me to his running group.',
+    leadId: '1',
+    coordinatorId: '1', // Alex coordinated his own run
+    assignedUserIds: ['1', '4'],
+    scheduledDate: new Date('2024-03-10T10:00:00').toISOString(),
+    mealsCount: 20,
+    coordinatorNotes: 'Weekend park outreach. Family-friendly approach.',
+    status: 'completed',
+    currentLocationIndex: 1, // Completed all locations
+    // Post-run data
+    actualDuration: 160,
+    leadNotes: 'Great response from families. David introduced us to his running group.',
     contactsMade: 2,
-    createdAt: new Date('2024-03-10').toISOString()
+    completedAt: new Date('2024-03-10T13:00:00').toISOString(),
+    createdAt: new Date('2024-03-08').toISOString()
+  },
+  {
+    id: '4',
+    routeId: '1',
+    leadId: '4',
+    coordinatorId: '2',
+    assignedUserIds: ['4', '1'],
+    scheduledDate: new Date('2024-03-22T09:30:00').toISOString(), // Future run
+    mealsCount: 30,
+    coordinatorNotes: 'Follow-up run to downtown area. Build on previous connections.',
+    status: 'scheduled',
+    currentLocationIndex: 0,
+    actualDuration: null,
+    leadNotes: null,
+    contactsMade: null,
+    completedAt: null,
+    createdAt: new Date('2024-03-16').toISOString()
+  },
+  {
+    id: '5',
+    routeId: '2',
+    leadId: '1',
+    coordinatorId: '2',
+    assignedUserIds: ['1', '3', '4'],
+    scheduledDate: new Date('2025-10-13T14:00:00').toISOString(), // Today - in progress
+    mealsCount: 20,
+    coordinatorNotes: 'Active run happening now. Test the location navigation!',
+    status: 'in_progress',
+    currentLocationIndex: 0, // Currently at first location
+    actualDuration: null,
+    leadNotes: null,
+    contactsMade: null,
+    completedAt: null,
+    createdAt: new Date('2025-10-12').toISOString()
   }
 ];
 
