@@ -23,7 +23,6 @@ import {
   DirectionsRun, 
   Assignment, 
   Route, 
-  SupervisedUserCircle,
   AccountCircle,
   Settings,
   Logout
@@ -31,7 +30,6 @@ import {
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import FriendSection from './components/FriendSection';
-import UserSection from './components/UserSection';
 import OutreachDashboard from './components/OutreachDashboard';
 import RunSection from './components/RunSection';
 import RequestsSection from './components/RequestsSection';
@@ -63,12 +61,6 @@ const getSectionsForUser = (user) => {
     baseSections.push(
       { label: 'Requests', Component: RequestsSection, icon: Assignment, requiredRoles: ['admin', 'coordinator'] },
       { label: 'Friends', Component: FriendSection, icon: People, requiredRoles: ['admin', 'coordinator'] }
-    );
-  }
-
-  if (user?.role === 'admin') {
-    baseSections.push(
-      { label: 'Users', Component: UserSection, icon: SupervisedUserCircle, requiredRoles: ['admin'] }
     );
   }
 
