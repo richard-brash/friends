@@ -1,11 +1,12 @@
 import express from 'express';
+import { authenticateToken, authorizeRoles } from '../src/middleware/auth.js';
 const router = express.Router();
 
 // In-memory storage for runs
 export let runs = [];
 
 // Get all runs
-router.get('/', (req, res) => res.json({ runs }));
+router.get('/', authenticateToken, (req, res) => res.json({ runs }));
 
 // Get a specific run by ID
 router.get('/:id', (req, res) => {
@@ -15,7 +16,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create a new run
-router.post('/', (req, res) => {
+router.post('/', authenticateToken, authorizeRoles('admin', 'coordinator'), (req, res) => {
   const run = {
     id: Date.now().toString(),
     status: 'scheduled',

@@ -35,9 +35,9 @@ import UserSection from './components/UserSection';
 import OutreachDashboard from './components/OutreachDashboard';
 import RunSection from './components/RunSection';
 import RequestsSection from './components/RequestsSection';
-import DeveloperTools from './components/DeveloperTools';
 import AppFooter from './components/AppFooter';
 import UserProfile from './components/auth/UserProfile';
+import SettingsPage from './components/SettingsPage';
 
 
 // Component wrapper for role-based sections
@@ -69,6 +69,13 @@ const getSectionsForUser = (user) => {
   if (user?.role === 'admin') {
     baseSections.push(
       { label: 'Users', Component: UserSection, icon: SupervisedUserCircle, requiredRoles: ['admin'] }
+    );
+  }
+
+  // Add Settings for admins and coordinators
+  if (user?.role === 'admin' || user?.role === 'coordinator') {
+    baseSections.push(
+      { label: 'Settings', Component: SettingsPage, icon: Settings, requiredRoles: ['admin', 'coordinator'] }
     );
   }
 
@@ -205,7 +212,6 @@ function AuthenticatedApp() {
             />
           )}
         </Paper>
-        {!isMobile && user?.role === 'admin' && <DeveloperTools />}
       </Box>
       
       {!isMobile && <AppFooter />}

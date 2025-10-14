@@ -1,14 +1,15 @@
 import express from 'express';
+import { authenticateToken, authorizeRoles } from '../src/middleware/auth.js';
 const router = express.Router();
 
 // In-memory storage for users
 export let users = [];
 
-// Get all users
-router.get('/', (req, res) => res.json({ users }));
+// Get all users (Admin only)
+router.get('/', authenticateToken, authorizeRoles('admin'), (req, res) => res.json({ users }));
 
-// Create a new user
-router.post('/', (req, res) => {
+// Create a new user (Admin only)
+router.post('/', authenticateToken, authorizeRoles('admin'), (req, res) => {
   const user = {
     id: Date.now().toString(),
     ...req.body,
@@ -18,8 +19,8 @@ router.post('/', (req, res) => {
   res.status(201).json(user);
 });
 
-// Update a user
-router.put('/:id', (req, res) => {
+// Update a user (Admin only)
+router.put('/:id', authenticateToken, authorizeRoles('admin'), (req, res) => {
   const index = users.findIndex(u => u.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'User not found' });
   
@@ -27,8 +28,8 @@ router.put('/:id', (req, res) => {
   res.json(users[index]);
 });
 
-// Delete a user
-router.delete('/:id', (req, res) => {
+// Delete a user (Admin only)
+router.delete('/:id', authenticateToken, authorizeRoles('admin'), (req, res) => {
   const index = users.findIndex(u => u.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'User not found' });
   

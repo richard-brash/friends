@@ -1,12 +1,13 @@
 import express from 'express';
+import { authenticateToken, authorizeRoles } from '../src/middleware/auth.js';
 const router = express.Router();
 
 // In-memory storage for requests and delivery attempts
 export let requests = [];
 export let deliveryAttempts = [];
 
-// Get all requests with optional filtering
-router.get('/', (req, res) => {
+// Get all requests with optional filtering (Authenticated users)
+router.get('/', authenticateToken, (req, res) => {
   let filteredRequests = [...requests];
   
   // Filter by status
@@ -46,7 +47,7 @@ router.get('/', (req, res) => {
 });
 
 // Get a single request by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', authenticateToken, (req, res) => {
   const request = requests.find(r => r.id === req.params.id);
   if (!request) return res.status(404).json({ error: 'Request not found' });
   
@@ -60,7 +61,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create a new request
-router.post('/', (req, res) => {
+router.post('/', authenticateToken, authorizeRoles('admin', 'coordinator'), (req, res) => {
   const request = {
     id: Date.now().toString(),
     friendId: req.body.friendId,
@@ -82,7 +83,7 @@ router.post('/', (req, res) => {
 });
 
 // Update a request
-router.put('/:id', (req, res) => {
+router.put('/:id', authenticateToken, (req, res) => {
   const index = requests.findIndex(r => r.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'Request not found' });
   
@@ -96,7 +97,7 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete a request
-router.delete('/:id', (req, res) => {
+router.delete('/:id', authenticateToken, authorizeRoles('admin', 'coordinator'), (req, res) => {
   const index = requests.findIndex(r => r.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'Request not found' });
   
@@ -135,13 +136,13 @@ router.post('/bulk', (req, res) => {
 // ===== DELIVERY ATTEMPTS ROUTES =====
 
 // Get delivery attempts for a request
-router.get('/:requestId/delivery-attempts', (req, res) => {
+router.get('/:requestId/delivery-attempts', authenticateToken, (req, res) => {
   const attempts = deliveryAttempts.filter(da => da.requestId === req.params.requestId);
   res.json({ deliveryAttempts: attempts });
 });
 
 // Create a delivery attempt
-router.post('/:requestId/delivery-attempts', (req, res) => {
+router.post('/:requestId/delivery-attempts', authenticateToken, (req, res) => {
   const request = requests.find(r => r.id === req.params.requestId);
   if (!request) return res.status(404).json({ error: 'Request not found' });
   
