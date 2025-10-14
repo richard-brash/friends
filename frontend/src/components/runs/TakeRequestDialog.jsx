@@ -29,6 +29,7 @@ import {
   Flag
 } from '@mui/icons-material';
 import { format } from 'date-fns';
+import axios from 'axios';
 
 const API_BASE = 'http://localhost:4000/api';
 
@@ -104,14 +105,14 @@ export default function TakeRequestDialog({
     setLoading(true);
     try {
       const [friendsRes, locationsRes, routesRes] = await Promise.all([
-        fetch(`${API_BASE}/friends`),
-        fetch(`${API_BASE}/locations`),
-        fetch(`${API_BASE}/routes`)
+        axios.get(`${API_BASE}/friends`),
+        axios.get(`${API_BASE}/locations`),
+        axios.get(`${API_BASE}/routes`)
       ]);
       
-      const friendsData = await friendsRes.json();
-      const locationsData = await locationsRes.json();
-      const routesData = await routesRes.json();
+      const friendsData = friendsRes.data;
+      const locationsData = locationsRes.data;
+      const routesData = routesRes.data;
       
       setFriends(friendsData.friends || []);
       setLocations(locationsData.locations || []);
@@ -148,14 +149,10 @@ export default function TakeRequestDialog({
 
   const updateFriendLocation = async (friend, newLocationId) => {
     try {
-      await fetch(`${API_BASE}/friends/${friend.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...friend,
-          locationId: newLocationId,
-          lastSeenAt: new Date().toISOString()
-        })
+      await axios.put(`${API_BASE}/friends/${friend.id}`, {
+        ...friend,
+        locationId: newLocationId,
+        lastSeenAt: new Date().toISOString()
       });
     } catch (err) {
       console.warn('Failed to update friend location:', err);

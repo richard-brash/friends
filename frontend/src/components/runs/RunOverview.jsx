@@ -49,6 +49,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import ManageTeamDialog from './ManageTeamDialog';
+import axios from 'axios';
 import TakeRequestDialog from './TakeRequestDialog';
 
 const API_BASE = 'http://localhost:4000/api';
@@ -81,20 +82,20 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     try {
       setLoading(true);
       const [runRes, routesRes, locationsRes, usersRes, requestsRes, friendsRes] = await Promise.all([
-        fetch(`${API_BASE}/runs/${runId}`),
-        fetch(`${API_BASE}/routes`),
-        fetch(`${API_BASE}/locations`),
-        fetch(`${API_BASE}/users`),
-        fetch(`${API_BASE}/requests`),
-        fetch(`${API_BASE}/friends`)
+        axios.get(`${API_BASE}/runs/${runId}`),
+        axios.get(`${API_BASE}/routes`),
+        axios.get(`${API_BASE}/locations`),
+        axios.get(`${API_BASE}/users`),
+        axios.get(`${API_BASE}/requests`),
+        axios.get(`${API_BASE}/friends`)
       ]);
 
-      const runData = await runRes.json();
-      const routesData = await routesRes.json();
-      const locationsData = await locationsRes.json();
-      const usersData = await usersRes.json();
-      const requestsData = await requestsRes.json();
-      const friendsData = await friendsRes.json();
+      const runData = runRes.data;
+      const routesData = routesRes.data;
+      const locationsData = locationsRes.data;
+      const usersData = usersRes.data;
+      const requestsData = requestsRes.data;
+      const friendsData = friendsRes.data;
 
       if (runData.run) {
         setRun(runData.run);
@@ -157,10 +158,8 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     if (newIndex < 0 || newIndex >= locations.length) return;
 
     try {
-      await fetch(`${API_BASE}/runs/${runId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentLocationIndex: newIndex })
+      await axios.put(`${API_BASE}/runs/${runId}`, {
+        currentLocationIndex: newIndex
       });
       await fetchRunDetails();
     } catch (err) {
@@ -180,15 +179,7 @@ export default function RunOverview({ runId, onEdit, onBack }) {
         updates.currentLocationIndex = 0;
       }
 
-      const response = await fetch(`${API_BASE}/runs/${runId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const response = await axios.put(`${API_BASE}/runs/${runId}`, updates);
       
       console.log('Status update successful');
       await fetchRunDetails();
@@ -218,10 +209,8 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     try {
       if (deliveryOutcome === 'delivered') {
         // Mark as delivered
-        await fetch(`${API_BASE}/requests/${selectedRequest.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'delivered' })
+        await axios.put(`${API_BASE}/requests/${selectedRequest.id}`, {
+          status: 'delivered'
         });
 
         // Create delivery attempt record

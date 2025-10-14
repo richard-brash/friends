@@ -38,6 +38,7 @@ import {
   Menu,
   Badge
 } from '@mui/material';
+import axios from 'axios';
 import {
   Search,
   FilterList,
@@ -98,18 +99,18 @@ export default function RequestsSection() {
     try {
       setLoading(true);
       const [requestsRes, friendsRes, usersRes, locationsRes, routesRes] = await Promise.all([
-        fetch(`${API_BASE}/requests?include=deliveryAttempts`),
-        fetch(`${API_BASE}/friends`),
-        fetch(`${API_BASE}/users`),
-        fetch(`${API_BASE}/locations`),
-        fetch(`${API_BASE}/routes`)
+        axios.get(`${API_BASE}/requests?include=deliveryAttempts`),
+        axios.get(`${API_BASE}/friends`),
+        axios.get(`${API_BASE}/users`),
+        axios.get(`${API_BASE}/locations`),
+        axios.get(`${API_BASE}/routes`)
       ]);
       
-      const requestsData = await requestsRes.json();
-      const friendsData = await friendsRes.json();
-      const usersData = await usersRes.json();
-      const locationsData = await locationsRes.json();
-      const routesData = await routesRes.json();
+      const requestsData = requestsRes.data;
+      const friendsData = friendsRes.data;
+      const usersData = usersRes.data;
+      const locationsData = locationsRes.data;
+      const routesData = routesRes.data;
       
       setRequests(requestsData.requests || []);
       setFriends(friendsData.friends || []);
@@ -131,9 +132,8 @@ export default function RequestsSection() {
     useEffect(() => {
       const fetchAttempts = async () => {
         try {
-          const response = await fetch(`${API_BASE}/requests/${requestId}/delivery-attempts`);
-          if (!response.ok) throw new Error('Failed to fetch delivery attempts');
-          const data = await response.json();
+          const response = await axios.get(`${API_BASE}/requests/${requestId}/delivery-attempts`);
+          const data = response.data;
           setAttempts(data.deliveryAttempts || []);
         } catch (error) {
           console.error('Error fetching delivery attempts:', error);
@@ -198,9 +198,8 @@ export default function RequestsSection() {
     useEffect(() => {
       const fetchAttempts = async () => {
         try {
-          const response = await fetch(`${API_BASE}/requests/${requestId}/delivery-attempts`);
-          if (!response.ok) throw new Error('Failed to fetch delivery attempts');
-          const data = await response.json();
+          const response = await axios.get(`${API_BASE}/requests/${requestId}/delivery-attempts`);
+          const data = response.data;
           setAttempts(data.deliveryAttempts || []);
         } catch (error) {
           console.error('Error fetching delivery attempts:', error);
@@ -424,10 +423,8 @@ export default function RequestsSection() {
 
   const handleStatusUpdate = async (requestId, newStatus) => {
     try {
-      await fetch(`${API_BASE}/requests/${requestId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+      await axios.put(`${API_BASE}/requests/${requestId}`, {
+        status: newStatus
       });
       await fetchData();
       setAnchorEl(null);

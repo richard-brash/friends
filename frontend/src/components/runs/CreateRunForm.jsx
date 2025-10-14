@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { 
   Box, 
   Typography, 
@@ -40,12 +41,12 @@ export default function CreateRunForm({ onRunCreated, onCancel }) {
   const fetchData = async () => {
     try {
       const [routesRes, usersRes] = await Promise.all([
-        fetch(`${API_BASE}/routes`),
-        fetch(`${API_BASE}/users`)
+        axios.get(`${API_BASE}/routes`),
+        axios.get(`${API_BASE}/users`)
       ]);
       
-      const routesData = await routesRes.json();
-      const usersData = await usersRes.json();
+      const routesData = routesRes.data;
+      const usersData = usersRes.data;
       
       setRoutes(routesData.routes || []);
       setUsers(usersData.users || []);
@@ -65,25 +66,16 @@ export default function CreateRunForm({ onRunCreated, onCancel }) {
     setError('');
 
     try {
-      const response = await fetch(`${API_BASE}/runs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          coordinatorId: '2', // TODO: Get from current user context
-          assignedUserIds: [formData.leadId], // Lead is initially assigned
-          mealsCount: parseInt(formData.mealsCount),
-          scheduledDate: formData.scheduledDate.toISOString()
-        })
+      const response = await axios.post(`${API_BASE}/runs`, {
+        ...formData,
+        coordinatorId: '2', // TODO: Get from current user context
+        assignedUserIds: [formData.leadId], // Lead is initially assigned
+        mealsCount: parseInt(formData.mealsCount),
+        scheduledDate: formData.scheduledDate.toISOString()
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        onRunCreated(result);
-      } else {
-        const error = await response.json();
-        setError(error.error || 'Failed to create run');
-      }
+      // Axios automatically throws on error status codes
+      onRunCreated(response.data);
     } catch (err) {
       setError('Network error: ' + err.message);
     } finally {

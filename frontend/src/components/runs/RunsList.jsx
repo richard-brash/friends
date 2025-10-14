@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Box,
   Typography,
@@ -55,18 +56,14 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
     try {
       setLoading(true);
       const [runsRes, routesRes, usersRes] = await Promise.all([
-        fetch(`${API_BASE}/runs`),
-        fetch(`${API_BASE}/routes`),
-        fetch(`${API_BASE}/users`)
+        axios.get(`${API_BASE}/runs`),
+        axios.get(`${API_BASE}/routes`),
+        axios.get(`${API_BASE}/users`)
       ]);
 
-      const runsData = await runsRes.json();
-      const routesData = await routesRes.json();
-      const usersData = await usersRes.json();
-
-      setRuns(runsData.runs || []);
-      setRoutes(routesData.routes || []);
-      setUsers(usersData.users || []);
+      setRuns(runsRes.data.runs || []);
+      setRoutes(routesRes.data.routes || []);
+      setUsers(usersRes.data.users || []);
     } catch (err) {
       setError('Failed to load runs: ' + err.message);
     } finally {
@@ -119,7 +116,7 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
     if (!selectedRun) return;
     
     try {
-      await fetch(`${API_BASE}/runs/${selectedRun.id}`, { method: 'DELETE' });
+      await axios.delete(`${API_BASE}/runs/${selectedRun.id}`);
       setRuns(runs.filter(r => r.id !== selectedRun.id));
       handleMenuClose();
     } catch (err) {
