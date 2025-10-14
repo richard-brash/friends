@@ -16,7 +16,14 @@ import {
   Divider,
   Grid,
   Alert,
-  LinearProgress
+  LinearProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Tooltip,
+  Badge
 } from '@mui/material';
 import {
   Person,
@@ -33,10 +40,14 @@ import {
   Flag,
   PersonAdd,
   Start,
-  Stop
+  Stop,
+  LocalShipping,
+  ThumbDown,
+  Handshake
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import ManageTeamDialog from './ManageTeamDialog';
+import TakeRequestDialog from './TakeRequestDialog';
 
 const API_BASE = 'http://localhost:4000/api';
 
@@ -45,9 +56,16 @@ export default function RunOverview({ runId, onEdit, onBack }) {
   const [route, setRoute] = useState(null);
   const [locations, setLocations] = useState([]);
   const [users, setUsers] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showManageTeam, setShowManageTeam] = useState(false);
+  const [showTakeRequest, setShowTakeRequest] = useState(false);
+  const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [deliveryOutcome, setDeliveryOutcome] = useState('delivered'); // 'delivered' or 'not_available'
+  const [deliveryNotes, setDeliveryNotes] = useState('');
 
   useEffect(() => {
     if (runId) {
@@ -58,17 +76,21 @@ export default function RunOverview({ runId, onEdit, onBack }) {
   const fetchRunDetails = async () => {
     try {
       setLoading(true);
-      const [runRes, routesRes, locationsRes, usersRes] = await Promise.all([
+      const [runRes, routesRes, locationsRes, usersRes, requestsRes, friendsRes] = await Promise.all([
         fetch(`${API_BASE}/runs/${runId}`),
         fetch(`${API_BASE}/routes`),
         fetch(`${API_BASE}/locations`),
-        fetch(`${API_BASE}/users`)
+        fetch(`${API_BASE}/users`),
+        fetch(`${API_BASE}/requests`),
+        fetch(`${API_BASE}/friends`)
       ]);
 
       const runData = await runRes.json();
       const routesData = await routesRes.json();
       const locationsData = await locationsRes.json();
       const usersData = await usersRes.json();
+      const requestsData = await requestsRes.json();
+      const friendsData = await friendsRes.json();
 
       if (runData.run) {
         setRun(runData.run);
@@ -84,6 +106,8 @@ export default function RunOverview({ runId, onEdit, onBack }) {
         }
         
         setUsers(usersData.users || []);
+        setRequests(requestsData.requests || []);
+        setFriends(friendsData.friends || []);
       } else {
         setError('Run not found');
       }
@@ -170,6 +194,224 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     }
   };
 
+  const handleRequestTaken = (request, friend) => {
+    // Could show a success message or refresh data here
+    console.log('Request taken successfully:', request, 'for friend:', friend);
+    // Refresh the data to show the new request
+    fetchRunDetails();
+  };
+
+  const handleDeliveryClick = (request, outcome) => {
+    setSelectedRequest(request);
+    setDeliveryOutcome(outcome);
+    setDeliveryNotes('');
+    setShowDeliveryDialog(true);
+  };
+
+  const handleDeliveryConfirm = async () => {
+    if (!selectedRequest) return;
+    
+    try {
+      if (deliveryOutcome === 'delivered') {
+        // Mark as delivered
+        await fetch(`${API_BASE}/requests/${selectedRequest.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'delivered' })
+        });
+
+        // Create delivery attempt record
+        await fetch(`${API_BASE}/requests/${selectedRequest.id}/delivery-attempts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            attemptDate: new Date().toISOString().split('T')[0],
+            outcome: 'delivered',
+            notes: deliveryNotes || 'Successfully delivered during run',
+            deliveredBy: run?.leadId || 'Unknown'
+          })
+        });
+      } else {
+        // Increment delivery attempts count and keep status as ready_for_delivery
+        const newAttemptCount = (selectedRequest.deliveryAttempts || 0) + 1;
+        await fetch(`${API_BASE}/requests/${selectedRequest.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            deliveryAttempts: newAttemptCount,
+            status: 'ready_for_delivery' // Keep it ready for next attempt
+          })
+        });
+
+        // Create failed delivery attempt
+        await fetch(`${API_BASE}/requests/${selectedRequest.id}/delivery-attempts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            attemptDate: new Date().toISOString().split('T')[0],
+            outcome: 'not_available',
+            notes: deliveryNotes || 'Person not available during run',
+            deliveredBy: run?.leadId || 'Unknown'
+          })
+        });
+      }
+      
+      // Close dialog and refresh data
+      setShowDeliveryDialog(false);
+      setSelectedRequest(null);
+      setDeliveryNotes('');
+      await fetchRunDetails();
+    } catch (err) {
+      console.error('Failed to update delivery status:', err);
+      setError('Failed to update delivery status: ' + err.message);
+    }
+  };
+
+  // Helper functions for request data
+  const getFriendById = (id) => {
+    if (!id) return null;
+    return friends.find(f => f?.id?.toString() === id.toString());
+  };
+  const getLocationById = (id) => {
+    if (!id) return null;
+    return locations.find(l => l?.id?.toString() === id.toString());
+  };
+
+  // Delivery Attempt Chip with Tooltip Component
+  const DeliveryAttemptChipWithTooltip = ({ request }) => {
+    const [attempts, setAttempts] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchAttempts = async () => {
+        try {
+          const response = await fetch(`${API_BASE}/requests/${request.id}/delivery-attempts`);
+          if (!response.ok) throw new Error('Failed to fetch delivery attempts');
+          const data = await response.json();
+          setAttempts(data.deliveryAttempts || []);
+        } catch (error) {
+          console.error('Error fetching delivery attempts:', error);
+          setAttempts([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchAttempts();
+    }, [request.id]);
+
+    if (request.deliveryAttempts === 0 || !request.deliveryAttempts) {
+      return null;
+    }
+
+    if (loading) {
+      return (
+        <Chip 
+          size="small" 
+          label="Loading..."
+          color="default"
+          variant="outlined"
+        />
+      );
+    }
+
+    const tooltipContent = (
+      <Box sx={{ maxWidth: 320, p: 1 }}>
+        <Typography 
+          variant="subtitle2" 
+          sx={{ 
+            fontWeight: 'bold', 
+            mb: 1.5, 
+            color: 'common.white',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+            pb: 0.5
+          }}
+        >
+          Delivery History ({attempts.length} attempt{attempts.length !== 1 ? 's' : ''})
+        </Typography>
+        {attempts.map((attempt, index) => (
+          <Box 
+            key={attempt.id} 
+            sx={{ 
+              mb: index < attempts.length - 1 ? 1.5 : 0,
+              p: 1,
+              borderRadius: 1,
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.12)'
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: attempt.outcome === 'delivered' ? '#4caf50' : '#ff9800',
+                  mr: 1,
+                  flexShrink: 0
+                }}
+              />
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontWeight: 'medium',
+                  color: 'common.white',
+                  fontSize: '0.75rem'
+                }}
+              >
+                {format(new Date(attempt.attemptDate), 'MMM dd, yyyy h:mm a')}
+              </Typography>
+            </Box>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: attempt.outcome === 'delivered' ? '#81c784' : '#ffb74d',
+                fontWeight: 'medium',
+                fontSize: '0.7rem'
+              }}
+            >
+              {attempt.outcome === 'delivered' ? 'Delivered Successfully' : 'Delivery Attempted'}
+            </Typography>
+            {attempt.notes && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  display: 'block',
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  fontStyle: 'italic',
+                  mt: 0.5,
+                  fontSize: '0.65rem'
+                }}
+              >
+                "{attempt.notes}"
+              </Typography>
+            )}
+          </Box>
+        ))}
+      </Box>
+    );
+
+    return (
+      <Tooltip title={tooltipContent} placement="top" arrow>
+        <Chip 
+          size="small" 
+          label={`${request.deliveryAttempts} attempt${request.deliveryAttempts > 1 ? 's' : ''}`}
+          color="warning"
+          variant="outlined"
+          sx={{ cursor: 'pointer' }}
+        />
+      </Tooltip>
+    );
+  };
+
+  // Get ready for delivery requests (status: ready_for_delivery)
+  const readyForDeliveryRequests = requests.filter(r => r.status === 'ready_for_delivery' && r.friendId);
+
+  // Get requests for current location
+  const currentLocationRequests = nextLocation 
+    ? requests.filter(r => r.locationId === nextLocation.id && r.status !== 'delivered' && r.friendId)
+    : [];
+
   if (loading) {
     return (
       <Box sx={{ p: 3 }}>
@@ -237,55 +479,111 @@ export default function RunOverview({ runId, onEdit, onBack }) {
       </Box>
 
       <Grid container spacing={3}>
-        {/* Left Column - Team and Run Details */}
+        {/* Left Column - Run Details and Requests */}
         <Grid item xs={12} md={6}>
-          {/* Team Information */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Group /> Team Members
-              </Typography>
-              
-              <List>
-                <ListItem>
-                  <ListItemAvatar>
-                    <Avatar><Flag /></Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={lead?.name || 'No Lead Assigned'}
-                    secondary="Run Lead"
-                  />
-                </ListItem>
+          {/* Ready for Delivery Requests */}
+          {readyForDeliveryRequests.length > 0 && (
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <RestaurantMenu /> Ready for Delivery ({readyForDeliveryRequests.length})
+                </Typography>
                 
-                <ListItem>
-                  <ListItemAvatar>
-                    <Avatar><Person /></Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={coordinator?.name || 'Unknown'}
-                    secondary="Coordinator"
-                  />
-                </ListItem>
-                
-                <Divider />
-                
-                {assignedUsers.map((user, index) => (
-                  <ListItem key={user?.id || index}>
-                    <ListItemAvatar>
-                      <Avatar>{user?.name?.[0] || '?'}</Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={user?.name || 'Unknown User'}
-                      secondary={user?.role || 'Team Member'}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
+                <List dense>
+                  {readyForDeliveryRequests.map((request) => {
+                    const friend = getFriendById(request.friendId);
+                    const location = getLocationById(request.locationId);
+                    if (!friend && !request.friendId) return null; // Skip if no friend data
+                    
+                    return (
+                      <ListItem 
+                        key={request.id}
+                        sx={{ 
+                          bgcolor: 'success.50',
+                          borderRadius: 1,
+                          mb: 1,
+                          border: '1px solid',
+                          borderColor: 'success.200'
+                        }}
+                      >
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: 'success.main' }}>
+                            <CheckCircle />
+                          </Avatar>
+                        </ListItemAvatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                            {request.itemRequested} (x{request.quantity || 1})
+                          </Typography>
+                          <Typography variant="caption" display="block">
+                            for {friend?.name || 'Unknown Friend'}
+                          </Typography>
+                          <Typography variant="caption" display="block" color="text.secondary">
+                            {request.itemCategory || 'Unknown Category'}
+                            {request.itemCategory === 'clothing' && request.clothingGender && request.clothingSize && 
+                              ` • ${request.clothingGender} • Size ${request.clothingSize}`
+                            }
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <Chip 
+                              size="small" 
+                              icon={<LocationOn />} 
+                              label={location?.description || 'Unknown Location'} 
+                              variant="outlined"
+                            />
+                            {request.urgency && request.urgency !== 'medium' && (
+                              <Chip 
+                                size="small" 
+                                label={request.urgency?.toUpperCase() || 'MEDIUM'} 
+                                color={request.urgency === 'high' ? 'error' : 'default'}
+                                variant="outlined"
+                              />
+                            )}
+                            {/* Show delivery attempt count if > 0 */}
+                            <DeliveryAttemptChipWithTooltip request={request} />
+                            {/* Delivery Action Buttons for Active Runs */}
+                            {(run.status === 'in_progress' || run.status === 'scheduled') && (
+                              <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto' }}>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="success"
+                                  startIcon={<CheckCircle />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeliveryClick(request, 'delivered');
+                                  }}
+                                  sx={{ minWidth: 'auto', px: 1 }}
+                                >
+                                  Delivered
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="warning"
+                                  startIcon={<ThumbDown />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeliveryClick(request, 'not_available');
+                                  }}
+                                  sx={{ minWidth: 'auto', px: 1 }}
+                                >
+                                  Not Available
+                                </Button>
+                              </Box>
+                            )}
+                          </Box>
+                        </Box>
+                      </ListItem>
+                    );
+                  })}
+                </List>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Run Details */}
-          <Card>
+          <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <RestaurantMenu /> Run Details
@@ -305,6 +603,30 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                     <strong>{route?.estimatedDuration || 'Unknown'}</strong> minutes estimated
                   </Typography>
                 </Box>
+
+                {/* Take Request Button - Prominent */}
+                {(run.status === 'scheduled' || run.status === 'in_progress') && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      size="large"
+                      startIcon={<PersonAdd />}
+                      onClick={() => setShowTakeRequest(true)}
+                      sx={{ 
+                        py: 1.5,
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold',
+                        boxShadow: 2,
+                        '&:hover': {
+                          boxShadow: 4
+                        }
+                      }}
+                    >
+                      Take Request from Friend
+                    </Button>
+                  </Box>
+                )}
 
                 {/* Status Controls */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
@@ -376,6 +698,51 @@ export default function RunOverview({ runId, onEdit, onBack }) {
               </Box>
             </CardContent>
           </Card>
+
+          {/* Team Information */}
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Group /> Team Members
+              </Typography>
+              
+              <List>
+                <ListItem>
+                  <ListItemAvatar>
+                    <Avatar><Flag /></Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={lead?.name || 'No Lead Assigned'}
+                    secondary="Run Lead"
+                  />
+                </ListItem>
+                
+                <ListItem>
+                  <ListItemAvatar>
+                    <Avatar><Person /></Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={coordinator?.name || 'Unknown'}
+                    secondary="Coordinator"
+                  />
+                </ListItem>
+                
+                <Divider />
+                
+                {assignedUsers.map((user, index) => (
+                  <ListItem key={user?.id || index}>
+                    <ListItemAvatar>
+                      <Avatar>{user?.name?.[0] || '?'}</Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={user?.name || 'Unknown User'}
+                      secondary={user?.role || 'Team Member'}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
         </Grid>
 
         {/* Right Column - Location Navigation */}
@@ -442,6 +809,112 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                       {nextLocation.address}
                     </Typography>
                   )}
+                </Paper>
+              )}
+
+              {/* Current Location Requests */}
+              {currentLocationRequests.length > 0 && (
+                <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: 'warning.50' }}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Person /> Requests at This Location ({currentLocationRequests.length})
+                  </Typography>
+                  
+                  <List dense>
+                    {currentLocationRequests.map((request) => {
+                      const friend = getFriendById(request.friendId);
+                      if (!friend && !request.friendId) return null; // Skip if no friend data
+                      
+                      return (
+                        <ListItem 
+                          key={request.id}
+                          sx={{ 
+                            bgcolor: 'background.paper',
+                            borderRadius: 1,
+                            mb: 1,
+                            border: '1px solid',
+                            borderColor: 'divider'
+                          }}
+                        >
+                          <ListItemAvatar>
+                            <Avatar sx={{ 
+                              bgcolor: request.urgency === 'high' ? 'error.main' : 
+                                      request.urgency === 'low' ? 'info.main' : 'warning.main'
+                            }}>
+                              <RestaurantMenu />
+                            </Avatar>
+                          </ListItemAvatar>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                              {request.itemRequested} (x{request.quantity || 1})
+                            </Typography>
+                            <Typography variant="caption" display="block">
+                              for {friend?.name || 'Unknown Friend'}
+                            </Typography>
+                            <Typography variant="caption" display="block" color="text.secondary">
+                              {request.itemCategory || 'Unknown Category'}
+                              {request.itemCategory === 'clothing' && request.clothingGender && request.clothingSize && 
+                                ` • ${request.clothingGender} • Size ${request.clothingSize}`
+                              }
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, mt: 0.5, mb: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                              <Chip 
+                                size="small" 
+                                label={request.status?.replace('_', ' ')?.toUpperCase() || 'PENDING'} 
+                                color={request.status === 'ready_for_delivery' ? 'success' : 'default'}
+                                variant="outlined"
+                              />
+                              {request.urgency && request.urgency !== 'medium' && (
+                                <Chip 
+                                  size="small" 
+                                  label={request.urgency?.toUpperCase() || 'MEDIUM'} 
+                                  color={request.urgency === 'high' ? 'error' : 'info'}
+                                  variant="outlined"
+                                />
+                              )}
+                              {/* Show delivery attempt count if > 0 */}
+                              <DeliveryAttemptChipWithTooltip request={request} />
+                              {/* Delivery Action Buttons - Only for ready_for_delivery status during active runs */}
+                              {request.status === 'ready_for_delivery' && (run.status === 'in_progress' || run.status === 'scheduled') && (
+                                <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto' }}>
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    color="success"
+                                    startIcon={<Handshake />}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeliveryClick(request, 'delivered');
+                                    }}
+                                    sx={{ minWidth: 'auto', px: 1, fontSize: '0.75rem' }}
+                                  >
+                                    Delivered
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="warning"
+                                    startIcon={<ThumbDown />}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeliveryClick(request, 'not_available');
+                                    }}
+                                    sx={{ minWidth: 'auto', px: 1, fontSize: '0.75rem' }}
+                                  >
+                                    Not Available
+                                  </Button>
+                                </Box>
+                              )}
+                            </Box>
+                            {request.specialInstructions && (
+                              <Typography variant="caption" display="block" sx={{ fontStyle: 'italic' }}>
+                                {request.specialInstructions}
+                              </Typography>
+                            )}
+                          </Box>
+                        </ListItem>
+                      );
+                    })}
+                  </List>
                 </Paper>
               )}
               
@@ -528,6 +1001,77 @@ export default function RunOverview({ runId, onEdit, onBack }) {
         run={run}
         onTeamUpdated={fetchRunDetails}
       />
+
+      {/* Take Request Dialog */}
+      <TakeRequestDialog
+        open={showTakeRequest}
+        onClose={() => setShowTakeRequest(false)}
+        run={run}
+        route={route}
+        currentLocation={nextLocation}
+        onRequestTaken={handleRequestTaken}
+      />
+
+      {/* Delivery Confirmation Dialog */}
+      <Dialog open={showDeliveryDialog} onClose={() => setShowDeliveryDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {deliveryOutcome === 'delivered' ? <CheckCircle color="success" /> : <ThumbDown color="warning" />}
+            {deliveryOutcome === 'delivered' ? 'Confirm Delivery' : 'Record Delivery Attempt'}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {selectedRequest && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                {selectedRequest.itemRequested} (x{selectedRequest.quantity || 1})
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                for {getFriendById(selectedRequest.friendId)?.name || 'Unknown Friend'}
+              </Typography>
+              {selectedRequest.itemCategory === 'clothing' && selectedRequest.clothingGender && selectedRequest.clothingSize && (
+                <Typography variant="caption" display="block" color="text.secondary">
+                  {selectedRequest.clothingGender} • Size {selectedRequest.clothingSize}
+                </Typography>
+              )}
+            </Box>
+          )}
+          
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label={deliveryOutcome === 'delivered' ? 'Delivery Notes (Optional)' : 'Why was delivery unsuccessful?'}
+            placeholder={deliveryOutcome === 'delivered' 
+              ? 'Any additional notes about the delivery...'
+              : 'e.g., Person not at location, refused delivery, will try again later...'
+            }
+            value={deliveryNotes}
+            onChange={(e) => setDeliveryNotes(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+          
+          <Alert severity={deliveryOutcome === 'delivered' ? 'success' : 'info'} sx={{ mt: 2 }}>
+            {deliveryOutcome === 'delivered' 
+              ? 'This will mark the request as successfully delivered and update the friend\'s record.'
+              : 'This will record an unsuccessful delivery attempt. The request will remain active for future delivery.'
+            }
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowDeliveryDialog(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeliveryConfirm}
+            variant="contained"
+            color={deliveryOutcome === 'delivered' ? 'success' : 'warning'}
+            startIcon={deliveryOutcome === 'delivered' ? <CheckCircle /> : <ThumbDown />}
+          >
+            {deliveryOutcome === 'delivered' ? 'Confirm Delivery' : 'Record Attempt'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

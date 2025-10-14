@@ -14,11 +14,12 @@ import {
   sampleRoutes, 
   sampleFriends, 
   sampleRuns, 
-  sampleRequests 
+  sampleRequests,
+  sampleDeliveryAttempts 
 } from './sampleData.js';
 import { users } from './routes/users.js';
 import { runs } from './routes/runs.js';
-import { requests } from './routes/requests.js';
+import { requests, deliveryAttempts } from './routes/requests.js';
 import { seedFriends, clearAllFriends } from './models/friend.js';
 import { seedLocations, clearAllLocations } from './models/location.js';
 import { seedRoutes, clearAllRoutes } from './models/route.js';
@@ -45,6 +46,7 @@ app.post('/api/seed', (req, res) => {
     users.length = 0;
     runs.length = 0;
     requests.length = 0;
+    deliveryAttempts.length = 0;
     clearAllFriends();
     clearAllLocations();
     clearAllRoutes();
@@ -56,6 +58,7 @@ app.post('/api/seed', (req, res) => {
     users.push(...sampleUsers);
     runs.push(...sampleRuns);
     requests.push(...sampleRequests);
+    deliveryAttempts.push(...sampleDeliveryAttempts);
     
     res.json({ 
       message: 'Sample data loaded successfully',
@@ -65,7 +68,8 @@ app.post('/api/seed', (req, res) => {
         locations: sampleLocations.length,
         routes: sampleRoutes.length,
         runs: sampleRuns.length,
-        requests: sampleRequests.length
+        requests: sampleRequests.length,
+        deliveryAttempts: sampleDeliveryAttempts.length
       }
     });
   } catch (error) {
@@ -79,6 +83,7 @@ app.delete('/api/seed', (req, res) => {
     users.length = 0;
     runs.length = 0;
     requests.length = 0;
+    deliveryAttempts.length = 0;
     clearAllFriends();
     clearAllLocations();
     clearAllRoutes();

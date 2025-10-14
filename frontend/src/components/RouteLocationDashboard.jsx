@@ -12,7 +12,7 @@ export default function RouteLocationDashboard({ locations, routes, refreshAll, 
 	// Group locations by routeId
 	// ...existing code...
 	// Always include all routes, even if no locations
-	const routeOrder = [...routes.map(r => r.id), 'noroute'];
+	const routeOrder = [...routes.map(r => r.id.toString()), 'noroute'];
 	// Add Route handler (restored)
 	const handleAddRoute = async (e) => {
 		e.preventDefault();
@@ -160,7 +160,7 @@ export default function RouteLocationDashboard({ locations, routes, refreshAll, 
 			{routeOrder.map(routeId => {
 				// Always show all routes, even if no locations
 				const locs = locationsByRoute[routeId] || [];
-				const route = routeId === 'noroute' ? null : routes.find(r => r.id === routeId);
+				const route = routeId === 'noroute' ? null : routes.find(r => r.id.toString() === routeId);
 				// Hide 'No Route' if there are no unassigned locations
 				if (routeId === 'noroute' && locs.length === 0) return null;
 				const label = route ? route.name : 'No Route';

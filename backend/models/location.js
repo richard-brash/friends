@@ -72,6 +72,7 @@ export function seedLocations(sampleLocations) {
     notes: location.notes,
     address: location.address,
     type: location.type,
+    routeId: location.routeId, // Include routeId from sample data
     createdAt: location.createdAt
   })));
   

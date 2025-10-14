@@ -5,7 +5,7 @@ import UserSection from './components/UserSection';
 import OutreachDashboard from './components/OutreachDashboard';
 import RouteLocationDashboard from './components/RouteLocationDashboard';
 import RunSection from './components/RunSection';
-import RequestSection from './components/RequestSection';
+import RequestsSection from './components/RequestsSection';
 import DeveloperTools from './components/DeveloperTools';
 import AppFooter from './components/AppFooter';
 
@@ -15,7 +15,7 @@ const sections = [
   { label: 'Users', Component: UserSection },
   { label: 'Outreach Dashboard', Component: OutreachDashboard },
   { label: 'Runs', Component: RunSection },
-  { label: 'Requests', Component: RequestSection },
+  { label: 'Requests', Component: RequestsSection },
 ];
 
 export default function App() {

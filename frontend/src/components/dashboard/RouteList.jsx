@@ -16,7 +16,7 @@ export default function RouteList({ routes, locations, ...handlers }) {
           <RouteSection
             key={routeData.id || `route-${index}`}
             route={route}
-            locations={locations.filter(l => (isNoRoute ? !l.routeId : l.routeId === routeId))}
+            locations={locations.filter(l => (isNoRoute ? !l.routeId : l.routeId === routeId?.toString()))}
             routes={routes}
             {...handlers}
           />
