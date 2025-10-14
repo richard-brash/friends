@@ -14,8 +14,16 @@ export function getAllLocations(routesRef) {
   });
 }
 
-export function addLocation(description, notes = "", routeId, routesRef) {
-  const location = { id: nextId++, description, notes };
+export function addLocation(description, notes = "", routeId, routesRef, address = "", latitude = "", longitude = "") {
+  const location = { 
+    id: nextId++, 
+    description, 
+    notes,
+    address,
+    latitude: latitude ? parseFloat(latitude) : undefined,
+    longitude: longitude ? parseFloat(longitude) : undefined,
+    createdAt: new Date().toISOString()
+  };
   if (routeId) {
     location.routeId = routeId;
     // Add to route's locationIds
@@ -26,11 +34,14 @@ export function addLocation(description, notes = "", routeId, routesRef) {
   return location;
 }
 
-export function updateLocation(id, description, notes, routeId, routesRef) {
+export function updateLocation(id, description, notes, routeId, routesRef, address, latitude, longitude) {
   const loc = locations.find(l => l.id === id);
   if (!loc) return null;
   if (description !== undefined) loc.description = description;
   if (notes !== undefined) loc.notes = notes;
+  if (address !== undefined) loc.address = address;
+  if (latitude !== undefined) loc.latitude = latitude ? parseFloat(latitude) : undefined;
+  if (longitude !== undefined) loc.longitude = longitude ? parseFloat(longitude) : undefined;
   if (routeId !== undefined) {
     // If routeId is falsy ("" or undefined or null), disassociate from any route
     if (!routeId) {

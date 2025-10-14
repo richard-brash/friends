@@ -26,7 +26,8 @@ import {
   LocationOn,
   Route as RouteIcon,
   CalendarToday,
-  Flag
+  Flag,
+  AddLocation
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import axios from 'axios';
@@ -60,6 +61,16 @@ export default function TakeRequestDialog({
     phone: '',
     address: '',
     notes: ''
+  });
+  
+  // Location creation
+  const [showNewLocationForm, setShowNewLocationForm] = useState(false);
+  const [newLocation, setNewLocation] = useState({
+    description: '',
+    address: '',
+    notes: '',
+    latitude: '',
+    longitude: ''
   });
   
   // Request details
@@ -97,6 +108,14 @@ export default function TakeRequestDialog({
       setSelectedFriend(null);
       setFriendSearchText('');
       setShowNewFriendForm(false);
+      setShowNewLocationForm(false);
+      setNewLocation({
+        description: '',
+        address: '',
+        notes: '',
+        latitude: '',
+        longitude: ''
+      });
       setError('');
     }
   }, [open, run, currentLocation]);
@@ -171,27 +190,82 @@ export default function TakeRequestDialog({
     });
   };
 
+  const handleCreateNewLocation = () => {
+    setShowNewLocationForm(true);
+    setNewLocation({
+      description: '',
+      address: '',
+      notes: '',
+      latitude: '',
+      longitude: ''
+    });
+  };
+
+  const createLocationAndAddToRoute = async () => {
+    if (!newLocation.description.trim()) {
+      setError('Location description is required');
+      return;
+    }
+
+    setSubmitting(true);
+    setError('');
+    
+    try {
+      // 1. Create the new location
+      const locationResponse = await axios.post(`${API_BASE}/locations`, {
+        ...newLocation,
+        routeId: requestData.routeId || run?.routeId
+      });
+
+      const createdLocation = locationResponse.data.location;
+      
+      // 2. Add location to the current route's locationIds array
+      if (run?.routeId) {
+        const currentRoute = routes.find(r => r.id.toString() === run.routeId.toString());
+        if (currentRoute) {
+          const updatedLocationIds = [...(currentRoute.locationIds || []), createdLocation.id];
+          
+          await axios.put(`${API_BASE}/routes/${run.routeId}`, {
+            ...currentRoute,
+            locationIds: updatedLocationIds
+          });
+        }
+      }
+      
+      // 3. Update local state
+      setLocations(prev => [...prev, createdLocation]);
+      setRequestData(prev => ({ ...prev, locationId: createdLocation.id }));
+      setShowNewLocationForm(false);
+      
+      // 4. Reset form
+      setNewLocation({
+        description: '',
+        address: '',
+        notes: '',
+        latitude: '',
+        longitude: ''
+      });
+      
+    } catch (err) {
+      setError('Failed to create location: ' + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const createFriendAndRequest = async () => {
     setSubmitting(true);
     setError('');
     
     try {
       // First create the new friend
-      const friendResponse = await fetch(`${API_BASE}/friends`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...newFriend,
-          locationId: requestData.locationId,
-          lastSeenAt: new Date().toISOString()
-        })
+      const friendResponse = await axios.post(`${API_BASE}/friends`, {
+        ...newFriend,
+        locationId: requestData.locationId,
+        lastSeenAt: new Date().toISOString()
       });
       
-      if (!friendResponse.ok) {
-        throw new Error('Failed to create friend');
-      }
-      
-      const createdFriend = await friendResponse.json();
+      const createdFriend = friendResponse.data;
       
       // Then create the request with the new friend
       await createRequest(createdFriend);
@@ -206,21 +280,17 @@ export default function TakeRequestDialog({
     if (!submitting) setSubmitting(true);
     
     try {
-      const response = await fetch(`${API_BASE}/requests`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...requestData,
-          friendId: friend.id,
-          runId: run.id
-        })
+      const response = await axios.post(`${API_BASE}/requests`, {
+        ...requestData,
+        friendId: friend.id,
+        runId: run.id
       });
       
       if (!response.ok) {
         throw new Error('Failed to create request');
       }
       
-      const request = await response.json();
+      const request = response.data;
       
       // Notify parent component
       if (onRequestTaken) {
@@ -589,23 +659,126 @@ export default function TakeRequestDialog({
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Location</InputLabel>
-                    <Select
-                      value={requestData.locationId}
-                      label="Location"
-                      onChange={(e) => setRequestData({ ...requestData, locationId: e.target.value })}
-                    >
-                      {locations.map(location => (
-                        <MenuItem key={location.id} value={location.id}>
-                          {location.description}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  {!showNewLocationForm ? (
+                    <Box>
+                      <FormControl fullWidth>
+                        <InputLabel>Location</InputLabel>
+                        <Select
+                          value={requestData.locationId}
+                          label="Location"
+                          onChange={(e) => setRequestData({ ...requestData, locationId: e.target.value })}
+                        >
+                          {locations.map(location => (
+                            <MenuItem key={location.id} value={location.id}>
+                              {location.description}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        startIcon={<AddLocation />}
+                        onClick={handleCreateNewLocation}
+                        sx={{ mt: 1 }}
+                        size="small"
+                      >
+                        Add New Location to Route
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Adding new location to current route:
+                      </Typography>
+                      <TextField
+                        label="Location Description *"
+                        value={newLocation.description}
+                        onChange={(e) => setNewLocation({ ...newLocation, description: e.target.value })}
+                        fullWidth
+                        required
+                        size="small"
+                        sx={{ mb: 1 }}
+                        placeholder="e.g., Central Park East Entrance, Downtown Library Steps..."
+                      />
+                      <TextField
+                        label="Address"
+                        value={newLocation.address}
+                        onChange={(e) => setNewLocation({ ...newLocation, address: e.target.value })}
+                        fullWidth
+                        size="small"
+                        sx={{ mb: 1 }}
+                        placeholder="Street address or nearby landmark"
+                      />
+                      <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                        <Button
+                          size="small"
+                          onClick={() => setShowNewLocationForm(false)}
+                          disabled={submitting}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={createLocationAndAddToRoute}
+                          disabled={!newLocation.description.trim() || submitting}
+                          startIcon={submitting ? <CircularProgress size={16} /> : <AddLocation />}
+                        >
+                          {submitting ? 'Adding...' : 'Add Location'}
+                        </Button>
+                      </Box>
+                    </Box>
+                  )}
                 </Grid>
               </Grid>
             </Box>
+
+            {/* New Location Details (when creating location) */}
+            {showNewLocationForm && (
+              <Box>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  New Location Details
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="Location Notes"
+                      value={newLocation.notes}
+                      onChange={(e) => setNewLocation({ ...newLocation, notes: e.target.value })}
+                      fullWidth
+                      multiline
+                      rows={2}
+                      placeholder="Additional details about this location: accessibility, best approach, safety notes, typical gathering times..."
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                      label="Latitude (Optional)"
+                      value={newLocation.latitude}
+                      onChange={(e) => setNewLocation({ ...newLocation, latitude: e.target.value })}
+                      fullWidth
+                      placeholder="e.g., 40.7829"
+                      helperText="GPS coordinates if available"
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                      label="Longitude (Optional)"
+                      value={newLocation.longitude}
+                      onChange={(e) => setNewLocation({ ...newLocation, longitude: e.target.value })}
+                      fullWidth
+                      placeholder="e.g., -73.9654"
+                      helperText="GPS coordinates if available"
+                    />
+                  </Grid>
+                </Grid>
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  This location will be added to the current route "<strong>{route?.name}</strong>" and will be available for future runs.
+                </Alert>
+              </Box>
+            )}
           </Box>
         )}
       </DialogContent>
