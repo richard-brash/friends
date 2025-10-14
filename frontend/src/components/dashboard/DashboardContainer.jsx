@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import RouteList from "./RouteList";
 import AddRouteForm from "./AddRouteForm";
+import axios from 'axios';
 
 export default function DashboardContainer({ showToast, setError }) {
   const [routes, setRoutes] = useState([]);
@@ -15,11 +16,11 @@ export default function DashboardContainer({ showToast, setError }) {
     setLoading(true);
     try {
       const [routesRes, locsRes] = await Promise.all([
-        fetch("/api/routes"),
-        fetch("/api/locations")
+        axios.get("http://localhost:4000/api/routes"),
+        axios.get("http://localhost:4000/api/locations")
       ]);
-      const routesData = await routesRes.json();
-      const locsData = await locsRes.json();
+      const routesData = routesRes.data;
+      const locsData = locsRes.data;
       // Support both array and {routes: []} shapes
       const newRoutes = Array.isArray(routesData) ? routesData : routesData.routes || [];
       setRoutes(newRoutes);
@@ -47,15 +48,8 @@ export default function DashboardContainer({ showToast, setError }) {
     setRoutes(prevRoutes => [...prevRoutes, tempRoute]);
     
     try {
-      const res = await fetch("/api/routes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name })
-      });
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`);
-      }
-      const response = await res.json();
+      const res = await axios.post("http://localhost:4000/api/routes", { name });
+      const response = res.data;
       
       // Handle both response formats: {route: {...}} or {...}
       const newRoute = response.route || response;
@@ -91,16 +85,8 @@ export default function DashboardContainer({ showToast, setError }) {
     }
     
     try {
-      const res = await fetch("/api/locations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loc)
-      });
-      if (!res.ok) {
-        console.error("Server response not ok:", res.status, res.statusText);
-        throw new Error(`Server error: ${res.status}`);
-      }
-      const response = await res.json();
+      const res = await axios.post("http://localhost:4000/api/locations", loc);
+      const response = res.data;
       
       // Handle both response formats: {location: {...}} or {...}
       const newLocation = response.location || response;
@@ -144,12 +130,7 @@ export default function DashboardContainer({ showToast, setError }) {
     ));
     
     try {
-      const res = await fetch(`/api/routes/${routeId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name })
-      });
-      if (!res.ok) throw new Error();
+      const res = await axios.patch(`http://localhost:4000/api/routes/${routeId}`, { name });
       showToast && showToast("Route updated");
     } catch {
       // Rollback on error
@@ -173,15 +154,10 @@ export default function DashboardContainer({ showToast, setError }) {
     try {
       // Disassociate all locations from this route
       for (const loc of routeLocations) {
-        await fetch(`/api/locations/${loc.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ routeId: null })
-        });
+        await axios.patch(`http://localhost:4000/api/locations/${loc.id}`, { routeId: null });
       }
       // Now delete the route
-      const res = await fetch(`/api/routes/${routeId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
+      const res = await axios.delete(`http://localhost:4000/api/routes/${routeId}`);
       showToast && showToast("Route deleted");
     } catch {
       // Rollback on error
@@ -206,12 +182,7 @@ export default function DashboardContainer({ showToast, setError }) {
       if ('routeId' in payload) {
         payload.routeId = payload.routeId === "" || payload.routeId === undefined ? null : Number(payload.routeId);
       }
-      const res = await fetch(`/api/locations/${locId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error();
+      const res = await axios.patch(`http://localhost:4000/api/locations/${locId}`, payload);
       showToast && showToast("Location updated");
     } catch {
       // Rollback on error
@@ -233,8 +204,7 @@ export default function DashboardContainer({ showToast, setError }) {
     })));
 
     try {
-      const res = await fetch(`/api/locations/${locId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
+      const res = await axios.delete(`http://localhost:4000/api/locations/${locId}`);
       showToast && showToast("Location deleted");
     } catch {
       // Rollback on error
@@ -271,16 +241,11 @@ export default function DashboardContainer({ showToast, setError }) {
     }));
 
     try {
-      const res = await fetch(`/api/locations/${locId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: loc.description,
-          notes: loc.notes,
-          routeId: newRouteId === "" || newRouteId === undefined ? null : Number(newRouteId)
-        })
+      const res = await axios.patch(`http://localhost:4000/api/locations/${locId}`, {
+        description: loc.description,
+        notes: loc.notes,
+        routeId: newRouteId === "" || newRouteId === undefined ? null : Number(newRouteId)
       });
-      if (!res.ok) throw new Error();
       showToast && showToast("Location moved");
     } catch {
       // Rollback on error
@@ -301,12 +266,10 @@ export default function DashboardContainer({ showToast, setError }) {
     try {
       const route = routes.find(r => r.id === routeId);
       if (!route) return;
-      const res = await fetch(`/api/routes/${routeId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: route.name, locationIds: newLocOrder })
+      const res = await axios.patch(`http://localhost:4000/api/routes/${routeId}`, { 
+        name: route.name, 
+        locationIds: newLocOrder 
       });
-      if (!res.ok) throw new Error();
       showToast && showToast("Order saved");
     } catch {
       // Rollback on error
