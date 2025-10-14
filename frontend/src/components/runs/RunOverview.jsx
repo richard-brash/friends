@@ -45,7 +45,8 @@ import {
   Stop,
   LocalShipping,
   ThumbDown,
-  Handshake
+  Handshake,
+  AddLocation
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import ManageTeamDialog from './ManageTeamDialog';
@@ -68,9 +69,19 @@ export default function RunOverview({ runId, onEdit, onBack }) {
   const [showManageTeam, setShowManageTeam] = useState(false);
   const [showTakeRequest, setShowTakeRequest] = useState(false);
   const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
+  const [showAddLocationDialog, setShowAddLocationDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [deliveryOutcome, setDeliveryOutcome] = useState('delivered'); // 'delivered' or 'not_available'
   const [deliveryNotes, setDeliveryNotes] = useState('');
+  
+  // New location form state
+  const [newLocationForm, setNewLocationForm] = useState({
+    description: '',
+    address: '',
+    notes: '',
+    latitude: '',
+    longitude: ''
+  });
 
   useEffect(() => {
     if (runId) {
@@ -194,6 +205,49 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     console.log('Request taken successfully:', request, 'for friend:', friend);
     // Refresh the data to show the new request
     fetchRunDetails();
+  };
+
+  const handleAddLocation = async () => {
+    if (!newLocationForm.description.trim()) {
+      setError('Location description is required');
+      return;
+    }
+
+    try {
+      // 1. Create the new location
+      const locationResponse = await axios.post(`${API_BASE}/locations`, {
+        ...newLocationForm,
+        routeId: run?.routeId
+      });
+
+      const createdLocation = locationResponse.data.location;
+      
+      // 2. Add location to the current route's locationIds array
+      if (run?.routeId && route) {
+        const updatedLocationIds = [...(route.locationIds || []), createdLocation.id];
+        
+        await axios.put(`${API_BASE}/routes/${run.routeId}`, {
+          ...route,
+          locationIds: updatedLocationIds
+        });
+      }
+      
+      // 3. Close dialog and refresh data
+      setShowAddLocationDialog(false);
+      setNewLocationForm({
+        description: '',
+        address: '',
+        notes: '',
+        latitude: '',
+        longitude: ''
+      });
+      
+      // Refresh run details to show the new location
+      await fetchRunDetails();
+      
+    } catch (err) {
+      setError('Failed to add location: ' + err.message);
+    }
   };
 
   const handleDeliveryClick = (request, outcome) => {
@@ -947,6 +1001,19 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                   value={locations.length > 0 ? (nextLocationIndex / locations.length) * 100 : 0}
                   sx={{ height: 10, borderRadius: 5 }}
                 />
+                
+                {/* Add Location Button */}
+                {(run.status === 'scheduled' || run.status === 'in_progress') && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddLocation />}
+                    onClick={() => setShowAddLocationDialog(true)}
+                    sx={{ mt: 2 }}
+                    size="small"
+                  >
+                    Add Location to Route
+                  </Button>
+                )}
               </Box>
 
               {/* All Locations List */}
@@ -1088,6 +1155,93 @@ export default function RunOverview({ runId, onEdit, onBack }) {
             startIcon={deliveryOutcome === 'delivered' ? <CheckCircle /> : <ThumbDown />}
           >
             {deliveryOutcome === 'delivered' ? 'Confirm Delivery' : 'Record Attempt'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Location Dialog */}
+      <Dialog open={showAddLocationDialog} onClose={() => setShowAddLocationDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AddLocation color="primary" />
+            Add New Location to Route
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <Alert severity="info">
+              Adding a new location to route "<strong>{route?.name}</strong>". This location will be available for future runs on this route.
+            </Alert>
+            
+            <TextField
+              label="Location Description *"
+              value={newLocationForm.description}
+              onChange={(e) => setNewLocationForm({ ...newLocationForm, description: e.target.value })}
+              fullWidth
+              required
+              placeholder="e.g., Central Park East Entrance, Downtown Library Steps..."
+              helperText="A clear, descriptive name for this location"
+            />
+            
+            <TextField
+              label="Address"
+              value={newLocationForm.address}
+              onChange={(e) => setNewLocationForm({ ...newLocationForm, address: e.target.value })}
+              fullWidth
+              placeholder="Street address or nearby landmark"
+              helperText="Physical address or recognizable landmark"
+            />
+            
+            <TextField
+              label="Location Notes"
+              value={newLocationForm.notes}
+              onChange={(e) => setNewLocationForm({ ...newLocationForm, notes: e.target.value })}
+              fullWidth
+              multiline
+              rows={3}
+              placeholder="Additional details: accessibility, best approach, safety notes, typical gathering times..."
+            />
+            
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                label="Latitude (Optional)"
+                value={newLocationForm.latitude}
+                onChange={(e) => setNewLocationForm({ ...newLocationForm, latitude: e.target.value })}
+                fullWidth
+                placeholder="e.g., 40.7829"
+                helperText="GPS coordinates if available"
+              />
+              <TextField
+                label="Longitude (Optional)"
+                value={newLocationForm.longitude}
+                onChange={(e) => setNewLocationForm({ ...newLocationForm, longitude: e.target.value })}
+                fullWidth
+                placeholder="e.g., -73.9654"
+                helperText="GPS coordinates if available"
+              />
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setShowAddLocationDialog(false);
+            setNewLocationForm({
+              description: '',
+              address: '',
+              notes: '',
+              latitude: '',
+              longitude: ''
+            });
+          }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAddLocation}
+            variant="contained"
+            disabled={!newLocationForm.description.trim()}
+            startIcon={<AddLocation />}
+          >
+            Add Location
           </Button>
         </DialogActions>
       </Dialog>
