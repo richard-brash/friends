@@ -23,7 +23,9 @@ import {
   DialogActions,
   TextField,
   Tooltip,
-  Badge
+  Badge,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import {
   Person,
@@ -52,6 +54,8 @@ import TakeRequestDialog from './TakeRequestDialog';
 const API_BASE = 'http://localhost:4000/api';
 
 export default function RunOverview({ runId, onEdit, onBack }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [run, setRun] = useState(null);
   const [route, setRoute] = useState(null);
   const [locations, setLocations] = useState([]);
@@ -440,14 +444,21 @@ export default function RunOverview({ runId, onEdit, onBack }) {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: isMobile ? 2 : 3 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: isMobile ? 'flex-start' : 'center', 
+        justifyContent: 'space-between', 
+        mb: 3,
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? 2 : 0
+      }}>
         <Box>
-          <Typography variant="h4" gutterBottom>
+          <Typography variant={isMobile ? "h5" : "h4"} gutterBottom>
             {route?.name || 'Run Overview'}
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Chip
               icon={getStatusIcon(run.status)}
               label={run.status?.toUpperCase()}
@@ -543,9 +554,15 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                             <DeliveryAttemptChipWithTooltip request={request} />
                             {/* Delivery Action Buttons for Active Runs */}
                             {(run.status === 'in_progress' || run.status === 'scheduled') && (
-                              <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto' }}>
+                              <Box sx={{ 
+                                display: 'flex', 
+                                gap: isMobile ? 1 : 0.5, 
+                                ml: 'auto',
+                                flexDirection: isMobile ? 'column' : 'row',
+                                width: isMobile ? '100%' : 'auto'
+                              }}>
                                 <Button
-                                  size="small"
+                                  size={isMobile ? "medium" : "small"}
                                   variant="contained"
                                   color="success"
                                   startIcon={<CheckCircle />}
@@ -553,12 +570,17 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                                     e.stopPropagation();
                                     handleDeliveryClick(request, 'delivered');
                                   }}
-                                  sx={{ minWidth: 'auto', px: 1 }}
+                                  sx={{ 
+                                    minWidth: isMobile ? 120 : 'auto', 
+                                    px: isMobile ? 2 : 1,
+                                    py: isMobile ? 1.5 : undefined,
+                                    fontSize: isMobile ? '1rem' : undefined
+                                  }}
                                 >
                                   Delivered
                                 </Button>
                                 <Button
-                                  size="small"
+                                  size={isMobile ? "medium" : "small"}
                                   variant="outlined"
                                   color="warning"
                                   startIcon={<ThumbDown />}
@@ -566,7 +588,12 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                                     e.stopPropagation();
                                     handleDeliveryClick(request, 'not_available');
                                   }}
-                                  sx={{ minWidth: 'auto', px: 1 }}
+                                  sx={{ 
+                                    minWidth: isMobile ? 120 : 'auto', 
+                                    px: isMobile ? 2 : 1,
+                                    py: isMobile ? 1.5 : undefined,
+                                    fontSize: isMobile ? '1rem' : undefined
+                                  }}
                                 >
                                   Not Available
                                 </Button>
@@ -875,9 +902,15 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                               <DeliveryAttemptChipWithTooltip request={request} />
                               {/* Delivery Action Buttons - Only for ready_for_delivery status during active runs */}
                               {request.status === 'ready_for_delivery' && (run.status === 'in_progress' || run.status === 'scheduled') && (
-                                <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto' }}>
+                                <Box sx={{ 
+                                  display: 'flex', 
+                                  gap: isMobile ? 1 : 0.5, 
+                                  ml: 'auto',
+                                  flexDirection: isMobile ? 'column' : 'row',
+                                  width: isMobile ? '100%' : 'auto'
+                                }}>
                                   <Button
-                                    size="small"
+                                    size={isMobile ? "medium" : "small"}
                                     variant="contained"
                                     color="success"
                                     startIcon={<Handshake />}
@@ -885,12 +918,17 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                                       e.stopPropagation();
                                       handleDeliveryClick(request, 'delivered');
                                     }}
-                                    sx={{ minWidth: 'auto', px: 1, fontSize: '0.75rem' }}
+                                    sx={{ 
+                                      minWidth: isMobile ? 120 : 'auto', 
+                                      px: isMobile ? 2 : 1,
+                                      py: isMobile ? 1.5 : undefined,
+                                      fontSize: isMobile ? '1rem' : '0.75rem'
+                                    }}
                                   >
                                     Delivered
                                   </Button>
                                   <Button
-                                    size="small"
+                                    size={isMobile ? "medium" : "small"}
                                     variant="outlined"
                                     color="warning"
                                     startIcon={<ThumbDown />}
@@ -898,7 +936,12 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                                       e.stopPropagation();
                                       handleDeliveryClick(request, 'not_available');
                                     }}
-                                    sx={{ minWidth: 'auto', px: 1, fontSize: '0.75rem' }}
+                                    sx={{ 
+                                      minWidth: isMobile ? 120 : 'auto', 
+                                      px: isMobile ? 2 : 1,
+                                      py: isMobile ? 1.5 : undefined,
+                                      fontSize: isMobile ? '1rem' : '0.75rem'
+                                    }}
                                   >
                                     Not Available
                                   </Button>
