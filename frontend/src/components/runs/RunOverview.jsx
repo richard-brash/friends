@@ -214,38 +214,26 @@ export default function RunOverview({ runId, onEdit, onBack }) {
         });
 
         // Create delivery attempt record
-        await fetch(`${API_BASE}/requests/${selectedRequest.id}/delivery-attempts`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            attemptDate: new Date().toISOString().split('T')[0],
-            outcome: 'delivered',
-            notes: deliveryNotes || 'Successfully delivered during run',
-            deliveredBy: run?.leadId || 'Unknown'
-          })
+        await axios.post(`${API_BASE}/requests/${selectedRequest.id}/delivery-attempts`, {
+          attemptDate: new Date().toISOString().split('T')[0],
+          outcome: 'delivered',
+          notes: deliveryNotes || 'Successfully delivered during run',
+          deliveredBy: run?.leadId || 'Unknown'
         });
       } else {
         // Increment delivery attempts count and keep status as ready_for_delivery
         const newAttemptCount = (selectedRequest.deliveryAttempts || 0) + 1;
-        await fetch(`${API_BASE}/requests/${selectedRequest.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            deliveryAttempts: newAttemptCount,
-            status: 'ready_for_delivery' // Keep it ready for next attempt
-          })
+        await axios.put(`${API_BASE}/requests/${selectedRequest.id}`, { 
+          deliveryAttempts: newAttemptCount,
+          status: 'ready_for_delivery' // Keep it ready for next attempt
         });
 
         // Create failed delivery attempt
-        await fetch(`${API_BASE}/requests/${selectedRequest.id}/delivery-attempts`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            attemptDate: new Date().toISOString().split('T')[0],
-            outcome: 'not_available',
-            notes: deliveryNotes || 'Person not available during run',
-            deliveredBy: run?.leadId || 'Unknown'
-          })
+        await axios.post(`${API_BASE}/requests/${selectedRequest.id}/delivery-attempts`, {
+          attemptDate: new Date().toISOString().split('T')[0],
+          outcome: 'not_available',
+          notes: deliveryNotes || 'Person not available during run',
+          deliveredBy: run?.leadId || 'Unknown'
         });
       }
       
@@ -278,9 +266,8 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     useEffect(() => {
       const fetchAttempts = async () => {
         try {
-          const response = await fetch(`${API_BASE}/requests/${request.id}/delivery-attempts`);
-          if (!response.ok) throw new Error('Failed to fetch delivery attempts');
-          const data = await response.json();
+          const response = await axios.get(`${API_BASE}/requests/${request.id}/delivery-attempts`);
+          const data = response.data;
           setAttempts(data.deliveryAttempts || []);
         } catch (error) {
           console.error('Error fetching delivery attempts:', error);
