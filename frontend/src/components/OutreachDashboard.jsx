@@ -12,7 +12,7 @@ export default function OutreachDashboard() {
 
   return (
     <Box>
-      <Typography variant="h4" sx={{ mb: 3 }}>Outreach Dashboard</Typography>
+      <Typography variant="h4" sx={{ mb: 3 }}>Route Management</Typography>
       <DashboardContainer setError={setError} showToast={showToast} />
       {error && <Typography color="error">{error}</Typography>}
       <Snackbar

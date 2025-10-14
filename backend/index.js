@@ -1,7 +1,9 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import authRouter from './src/routes/auth.js';
 import usersRouter from './routes/users.js';
 import friendsRouter from './routes/friends.js';
 import locationsRouter from './routes/locations.js';
@@ -29,9 +31,11 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
+app.use(cookieParser());
 app.use(express.json());
 
 // API routes
+app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/friends', friendsRouter);
 app.use('/api/locations', locationsRouter);

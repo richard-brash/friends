@@ -11,41 +11,110 @@ import {
   BottomNavigation, 
   BottomNavigationAction,
   useMediaQuery,
-  useTheme
+  useTheme,
+  IconButton,
+  Menu,
+  MenuItem,
+  Avatar,
+  Chip
 } from '@mui/material';
 import { 
   People, 
   DirectionsRun, 
   Assignment, 
-  Dashboard, 
-  SupervisedUserCircle 
+  Route, 
+  SupervisedUserCircle,
+  AccountCircle,
+  Settings,
+  Logout
 } from '@mui/icons-material';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import FriendSection from './components/FriendSection';
 import UserSection from './components/UserSection';
 import OutreachDashboard from './components/OutreachDashboard';
-import RouteLocationDashboard from './components/RouteLocationDashboard';
 import RunSection from './components/RunSection';
 import RequestsSection from './components/RequestsSection';
 import DeveloperTools from './components/DeveloperTools';
 import AppFooter from './components/AppFooter';
+import UserProfile from './components/auth/UserProfile';
 
 
-const sections = [
-  { label: 'Friends', Component: FriendSection, icon: People },
-  { label: 'Users', Component: UserSection, icon: SupervisedUserCircle },
-  { label: 'Dashboard', Component: OutreachDashboard, icon: Dashboard },
-  { label: 'Runs', Component: RunSection, icon: DirectionsRun },
-  { label: 'Requests', Component: RequestsSection, icon: Assignment },
-];
+// Component wrapper for role-based sections
+const RoleProtectedSection = ({ Component, requiredRoles, ...props }) => {
+  if (requiredRoles) {
+    return (
+      <ProtectedRoute requiredRoles={requiredRoles}>
+        <Component {...props} />
+      </ProtectedRoute>
+    );
+  }
+  return <Component {...props} />;
+};
 
-export default function App() {
+const getSectionsForUser = (user) => {
+  const baseSections = [
+    { label: 'Routes', Component: OutreachDashboard, icon: Route },
+    { label: 'Runs', Component: RunSection, icon: DirectionsRun },
+  ];
+
+  // Add sections based on user role
+  if (user?.role === 'admin' || user?.role === 'coordinator') {
+    baseSections.push(
+      { label: 'Requests', Component: RequestsSection, icon: Assignment, requiredRoles: ['admin', 'coordinator'] },
+      { label: 'Friends', Component: FriendSection, icon: People, requiredRoles: ['admin', 'coordinator'] }
+    );
+  }
+
+  if (user?.role === 'admin') {
+    baseSections.push(
+      { label: 'Users', Component: UserSection, icon: SupervisedUserCircle, requiredRoles: ['admin'] }
+    );
+  }
+
+  // Add profile section for all authenticated users
+  baseSections.push(
+    { label: 'Profile', Component: UserProfile, icon: AccountCircle }
+  );
+
+  return baseSections;
+};
+
+// Main authenticated app component
+function AuthenticatedApp() {
   const [tab, setTab] = React.useState(0);
+  const [anchorEl, setAnchorEl] = React.useState(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const Section = sections[tab].Component;
+  const { user, logout } = useAuth();
+
+  const sections = getSectionsForUser(user);
+  const Section = sections[tab]?.Component;
 
   const handleTabChange = (event, newValue) => {
     setTab(newValue);
+  };
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    handleMenuClose();
+  };
+
+  const getRoleColor = (role) => {
+    switch (role) {
+      case 'admin': return 'error';
+      case 'coordinator': return 'primary';
+      case 'volunteer': return 'success';
+      default: return 'default';
+    }
   };
 
   return (
@@ -60,6 +129,47 @@ export default function App() {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Friends Outreach CRM
           </Typography>
+          
+          {/* User Menu */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Chip
+              icon={<AccountCircle />}
+              label={user?.name}
+              color={getRoleColor(user?.role)}
+              sx={{ color: 'white', fontWeight: 'bold' }}
+            />
+            <IconButton
+              size="large"
+              edge="end"
+              aria-label="account menu"
+              aria-controls="user-menu"
+              aria-haspopup="true"
+              onClick={handleMenuOpen}
+              color="inherit"
+            >
+              <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.2)' }}>
+                {user?.name?.charAt(0)?.toUpperCase()}
+              </Avatar>
+            </IconButton>
+          </Box>
+          
+          {/* User Menu Dropdown */}
+          <Menu
+            id="user-menu"
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+            onClick={handleMenuClose}
+          >
+            <MenuItem onClick={() => setTab(sections.findIndex(s => s.label === 'Profile'))}>
+              <Settings sx={{ mr: 2 }} />
+              Profile & Settings
+            </MenuItem>
+            <MenuItem onClick={handleLogout}>
+              <Logout sx={{ mr: 2 }} />
+              Sign Out
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
       
@@ -88,9 +198,14 @@ export default function App() {
         p: isMobile ? 1 : 2 
       }}>
         <Paper sx={{ p: isMobile ? 1 : 2 }} elevation={2}>
-          <Section RouteLocationDashboard={RouteLocationDashboard} />
+          {Section && (
+            <RoleProtectedSection 
+              Component={Section} 
+              requiredRoles={sections[tab]?.requiredRoles}
+            />
+          )}
         </Paper>
-        {!isMobile && <DeveloperTools />}
+        {!isMobile && user?.role === 'admin' && <DeveloperTools />}
       </Box>
       
       {!isMobile && <AppFooter />}
@@ -122,5 +237,16 @@ export default function App() {
         </BottomNavigation>
       )}
     </Box>
+  );
+}
+
+// Root App component with AuthProvider
+export default function App() {
+  return (
+    <AuthProvider>
+      <ProtectedRoute>
+        <AuthenticatedApp />
+      </ProtectedRoute>
+    </AuthProvider>
   );
 }
