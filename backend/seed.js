@@ -8,68 +8,69 @@ const CORE_USERS = [
   { username: 'volunteer1', email: 'sarah@friendsoutreach.org', password: 'password', role: 'volunteer', name: 'Sarah Volunteer', phone: '555-0103' }
 ];
 
-// Optional sample data (only created when explicitly seeding)
+// Import real sample data from cleanSampleData.js
+import { 
+  sampleRoutes as realSampleRoutes,
+  sampleLocations as realSampleLocations,
+  sampleFriends as realSampleFriends,
+  sampleRuns as realSampleRuns,
+  sampleRequests as realSampleRequests
+} from './cleanSampleData.js';
+
+// Convert real sample data to database format
 const SAMPLE_DATA = {
   
-  routes: [
-    { name: 'Downtown Route', description: 'Urban core and surrounding neighborhoods', color: '#1976d2' },
-    { name: 'Westside Route', description: 'West side communities and shelters', color: '#388e3c' },
-    { name: 'North Route', description: 'Northern districts and camps', color: '#f57c00' }
-  ],
+  routes: realSampleRoutes.map(route => ({
+    name: route.name,
+    description: route.description,
+    color: route.color || '#1976d2'
+  })),
   
-  locations: [
-    // Downtown Route (route_id: 1)
-    { route_id: 1, name: 'Central Library', address: '123 Main St', order_in_route: 1 },
-    { route_id: 1, name: 'City Park', address: '456 Oak Ave', order_in_route: 2 },
-    { route_id: 1, name: 'Community Center', address: '789 First St', order_in_route: 3 },
-    { route_id: 1, name: 'Downtown Bridge', address: '321 River Rd', order_in_route: 4 },
-    { route_id: 1, name: 'Train Station', address: '654 Station Way', order_in_route: 5 },
+  locations: realSampleLocations.map((location, index) => {
+    // Map route IDs: '1' -> 1, '2' -> 2, '3' -> 3
+    const routeId = parseInt(location.routeId);
     
-    // Westside Route (route_id: 2)
-    { route_id: 2, name: 'West Park', address: '111 West St', order_in_route: 1 },
-    { route_id: 2, name: 'Riverside Camp', address: '222 River Ave', order_in_route: 2 },
-    { route_id: 2, name: 'Memorial Gardens', address: '333 Memorial Dr', order_in_route: 3 },
-    { route_id: 2, name: 'Industrial District', address: '444 Factory Rd', order_in_route: 4 },
-    { route_id: 2, name: 'Shopping Plaza', address: '555 Commerce St', order_in_route: 5 },
+    // Calculate order within route based on sequence in the array
+    const locationsInSameRoute = realSampleLocations.filter((loc, i) => 
+      i <= index && loc.routeId === location.routeId
+    );
     
-    // North Route (route_id: 3)
-    { route_id: 3, name: 'North Shelter', address: '777 Shelter Dr', order_in_route: 1 },
-    { route_id: 3, name: 'Highway Overpass', address: '888 Highway 101', order_in_route: 2 },
-    { route_id: 3, name: 'Warehouse District', address: '999 Warehouse Blvd', order_in_route: 3 },
-    { route_id: 3, name: 'Food Bank', address: '101 Charity Lane', order_in_route: 4 },
-    { route_id: 3, name: 'Transit Hub', address: '202 Transit Way', order_in_route: 5 }
-  ],
+    return {
+      route_id: routeId,
+      name: location.name,
+      address: location.address,
+      order_in_route: locationsInSameRoute.length
+    };
+  }),
   
-  friends: [
-    // Downtown Route friends
-    { location_id: 1, name: 'James Miller', nickname: 'Jim', clothing_sizes: { shirt: 'L', pants: '34x32', shoes: '11' }, notes: 'Prefers warm clothing, especially in winter' },
-    { location_id: 2, name: 'Maria Garcia', nickname: 'Mari', clothing_sizes: { shirt: 'M', pants: '8', shoes: '7' }, dietary_restrictions: 'Vegetarian' },
-    { location_id: 3, name: 'Robert Johnson', nickname: 'Rob', clothing_sizes: { shirt: 'XL', pants: '36x30', shoes: '12' }, notes: 'Has a service dog named Max' },
-    { location_id: 4, name: 'Lisa Chen', nickname: null, clothing_sizes: { shirt: 'S', pants: '6', shoes: '8' }, notes: 'Speaks Mandarin and English' },
-    { location_id: 5, name: 'David Brown', nickname: 'Dave', clothing_sizes: { shirt: 'M', pants: '32x34', shoes: '10' }, notes: 'Veteran, prefers practical items' },
+  friends: realSampleFriends.map(friend => {
+    // Map location IDs from string to number and find corresponding database location_id
+    const locationIndex = realSampleLocations.findIndex(loc => loc.id === friend.locationId);
+    const location_id = locationIndex + 1; // Database IDs start at 1
     
-    // Westside Route friends
-    { location_id: 6, name: 'Jennifer Lopez', nickname: 'Jen', clothing_sizes: { shirt: 'L', pants: '12', shoes: '9' }, dietary_restrictions: 'Gluten-free' },
-    { location_id: 7, name: 'Michael Davis', nickname: 'Mike', clothing_sizes: { shirt: 'XXL', pants: '40x30', shoes: '13' }, notes: 'Collects books, loves reading' },
-    { location_id: 8, name: 'Sarah Wilson', nickname: null, clothing_sizes: { shirt: 'M', pants: '10', shoes: '8' }, notes: 'Has three children (ages 5, 8, 12)' },
-    { location_id: 9, name: 'Carlos Rodriguez', nickname: 'Carl', clothing_sizes: { shirt: 'L', pants: '33x32', shoes: '11' }, notes: 'Mechanic, needs work clothes' },
-    { location_id: 10, name: 'Amanda White', nickname: 'Mandy', clothing_sizes: { shirt: 'S', pants: '4', shoes: '7' }, dietary_restrictions: 'Diabetic' },
-    
-    // North Route friends
-    { location_id: 11, name: 'Thomas Anderson', nickname: 'Tom', clothing_sizes: { shirt: 'XL', pants: '38x32', shoes: '12' }, notes: 'Former construction worker' },
-    { location_id: 12, name: 'Patricia Martinez', nickname: 'Patty', clothing_sizes: { shirt: 'L', pants: '14', shoes: '9' }, notes: 'Grandmother of 4, very kind' },
-    { location_id: 13, name: 'Kevin Taylor', nickname: null, clothing_sizes: { shirt: 'M', pants: '31x30', shoes: '9' }, notes: 'College student, temporary situation' },
-    { location_id: 14, name: 'Linda Jackson', nickname: 'Lin', clothing_sizes: { shirt: 'M', pants: '8', shoes: '8' }, dietary_restrictions: 'Lactose intolerant' },
-    { location_id: 15, name: 'Christopher Lee', nickname: 'Chris', clothing_sizes: { shirt: 'L', pants: '34x34', shoes: '10' }, notes: 'Musician, plays guitar' }
-  ],
+    return {
+      location_id: location_id,
+      name: friend.name,
+      nickname: friend.nickname || null,
+      clothing_sizes: {},
+      notes: friend.notes,
+      dietary_restrictions: friend.dietary_restrictions || null
+    };
+  }),
   
-  runs: [
-    { route_id: 1, name: 'Weekend Downtown Run', scheduled_date: '2024-11-16', start_time: '10:00', status: 'scheduled', created_by: 2 },
-    { route_id: 2, name: 'Westside Weekly', scheduled_date: '2024-11-17', start_time: '09:00', status: 'scheduled', created_by: 2 },
-    { route_id: 3, name: 'North Route Check-in', scheduled_date: '2024-11-18', start_time: '11:00', status: 'scheduled', created_by: 2 },
-    { route_id: 1, name: 'Downtown Express', scheduled_date: '2024-11-20', start_time: '14:00', status: 'scheduled', created_by: 2 },
-    { route_id: 2, name: 'Westside Evening Run', scheduled_date: '2024-11-22', start_time: '16:00', status: 'scheduled', created_by: 2 }
-  ]
+  runs: realSampleRuns.map(run => {
+    const routeId = parseInt(run.routeId);
+    const scheduledDate = new Date(run.scheduledDate);
+    
+    return {
+      route_id: routeId,
+      name: `${realSampleRoutes.find(r => r.id === run.routeId)?.name || 'Route'} Run`,
+      scheduled_date: scheduledDate.toISOString().split('T')[0],
+      start_time: scheduledDate.toTimeString().split(' ')[0].substring(0, 5),
+      status: run.status,
+      created_by: 2 // John Coordinator
+    };
+  })
 };
 
 // Function to seed a single table
@@ -193,7 +194,7 @@ async function seedSampleData() {
     
     // Summary
     console.log('\n📊 Seeded Data Summary:');
-    console.log(`- ${SAMPLE_DATA.users.length} users`);
+    console.log(`- 3 core users (admin, coordinator, volunteer)`);
     console.log(`- ${SAMPLE_DATA.routes.length} routes`);  
     console.log(`- ${SAMPLE_DATA.locations.length} locations`);
     console.log(`- ${SAMPLE_DATA.friends.length} friends`);
