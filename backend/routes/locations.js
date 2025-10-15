@@ -10,16 +10,16 @@ router.get('/', authenticateToken, (req, res) => {
 	res.json({ locations: getAllLocations(routes) });
 });
 
-// Add a location - coordinators and admins only
-router.post('/', authenticateToken, authorizeRoles('admin', 'coordinator'), (req, res) => {
+// Add a location - volunteers can add during field work
+router.post('/', authenticateToken, authorizeRoles('admin', 'coordinator', 'volunteer'), (req, res) => {
 	const { description, notes, routeId, address, latitude, longitude } = req.body;
 	if (!description) return res.status(400).json({ error: 'Description required' });
 	const location = addLocation(description, notes, routeId, routes, address, latitude, longitude);
 	res.status(201).json({ location });
 });
 
-// Update a location - coordinators and admins only
-router.patch('/:id', authenticateToken, authorizeRoles('admin', 'coordinator'), (req, res) => {
+// Update a location - volunteers can update during field work
+router.patch('/:id', authenticateToken, authorizeRoles('admin', 'coordinator', 'volunteer'), (req, res) => {
 	const { id } = req.params;
 	const { description, notes, routeId, address, latitude, longitude } = req.body;
 	const loc = updateLocation(Number(id), description, notes, routeId, routes, address, latitude, longitude);

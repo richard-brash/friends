@@ -60,8 +60,8 @@ router.get('/:id', authenticateToken, (req, res) => {
   res.json(requestWithAttempts);
 });
 
-// Create a new request
-router.post('/', authenticateToken, authorizeRoles('admin', 'coordinator'), (req, res) => {
+// Create a new request - volunteers can create during runs
+router.post('/', authenticateToken, authorizeRoles('admin', 'coordinator', 'volunteer'), (req, res) => {
   const request = {
     id: Date.now().toString(),
     friendId: req.body.friendId,
