@@ -1,4 +1,5 @@
 import express from 'express';
+import { authenticateToken } from '../src/middleware/auth.js';
 import { 
   getAllFriends, 
   addFriend, 
@@ -15,12 +16,12 @@ import { locations } from '../models/location.js';
 const router = express.Router();
 
 // Get all friends
-router.get('/', (req, res) => {
+router.get('/', authenticateToken, (req, res) => {
   res.json({ friends: getAllFriends(locations) });
 });
 
 // Get friends at a specific location (ever or currently)
-router.get('/at-location/:locationId', (req, res) => {
+router.get('/at-location/:locationId', authenticateToken, (req, res) => {
   const { locationId } = req.params;
   const { current } = req.query; // ?current=true for last known location only
   
@@ -32,7 +33,7 @@ router.get('/at-location/:locationId', (req, res) => {
 });
 
 // Add a friend
-router.post('/', (req, res) => {
+router.post('/', authenticateToken, (req, res) => {
   const { name, phone, email, notes, initialLocationId } = req.body;
   if (!name) return res.status(400).json({ error: 'Name required' });
   
@@ -49,7 +50,7 @@ router.post('/', (req, res) => {
 });
 
 // Update a friend's basic info
-router.patch('/:id', (req, res) => {
+router.patch('/:id', authenticateToken, (req, res) => {
   const { id } = req.params;
   const updates = req.body;
   
@@ -60,7 +61,7 @@ router.patch('/:id', (req, res) => {
 });
 
 // Add location to friend's history
-router.post('/:id/locations', (req, res) => {
+router.post('/:id/locations', authenticateToken, (req, res) => {
   const { id } = req.params;
   const { locationId, notes, dateRecorded } = req.body;
   
@@ -73,7 +74,7 @@ router.post('/:id/locations', (req, res) => {
 });
 
 // Update a specific location history entry
-router.patch('/:id/locations/:historyId', (req, res) => {
+router.patch('/:id/locations/:historyId', authenticateToken, (req, res) => {
   const { id, historyId } = req.params;
   const updates = req.body;
   
@@ -84,7 +85,7 @@ router.patch('/:id/locations/:historyId', (req, res) => {
 });
 
 // Remove a location history entry
-router.delete('/:id/locations/:historyId', (req, res) => {
+router.delete('/:id/locations/:historyId', authenticateToken, (req, res) => {
   const { id, historyId } = req.params;
   
   const friend = removeLocationHistory(Number(id), Number(historyId));
@@ -94,7 +95,7 @@ router.delete('/:id/locations/:historyId', (req, res) => {
 });
 
 // Delete a friend
-router.delete('/:id', (req, res) => {
+router.delete('/:id', authenticateToken, (req, res) => {
   deleteFriend(Number(req.params.id));
   res.sendStatus(204);
 });

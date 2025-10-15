@@ -87,7 +87,7 @@ export default function SettingsPage() {
 
   const tabs = [
     { label: 'Request Settings', icon: <Category />, requiresRole: ['admin', 'coordinator'] },
-    { label: 'User Management', icon: <People />, requiresRole: ['admin'] },
+    { label: 'User Management', icon: <People />, requiresRole: ['admin', 'coordinator'] },
     { label: 'Developer Tools', icon: <Code />, requiresRole: ['admin'] }
   ].filter(tab => tab.requiresRole.includes(user?.role));
 

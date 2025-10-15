@@ -5,11 +5,11 @@ const router = express.Router();
 // In-memory storage for users
 export let users = [];
 
-// Get all users (Admin only)
-router.get('/', authenticateToken, authorizeRoles('admin'), (req, res) => res.json({ users }));
+// Get all users (Admin and Coordinator can view)
+router.get('/', authenticateToken, authorizeRoles('admin', 'coordinator'), (req, res) => res.json({ users }));
 
-// Create a new user (Admin only)
-router.post('/', authenticateToken, authorizeRoles('admin'), (req, res) => {
+// Create a new user (Admin and Coordinator)
+router.post('/', authenticateToken, authorizeRoles('admin', 'coordinator'), (req, res) => {
   const user = {
     id: Date.now().toString(),
     ...req.body,
@@ -19,8 +19,8 @@ router.post('/', authenticateToken, authorizeRoles('admin'), (req, res) => {
   res.status(201).json(user);
 });
 
-// Update a user (Admin only)
-router.put('/:id', authenticateToken, authorizeRoles('admin'), (req, res) => {
+// Update a user (Admin and Coordinator)
+router.put('/:id', authenticateToken, authorizeRoles('admin', 'coordinator'), (req, res) => {
   const index = users.findIndex(u => u.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'User not found' });
   
