@@ -82,12 +82,12 @@ router.post('/login', authLimiter, async (req, res) => {
   }
 });
 
-// POST /api/auth/register (Admin only)
+// POST /api/auth/register (Admin and Coordinator)
 router.post('/register', authenticateToken, async (req, res) => {
   try {
-    // Only admins can register new users
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only administrators can register new users' });
+    // Only admins and coordinators can register new users
+    if (req.user.role !== 'admin' && req.user.role !== 'coordinator') {
+      return res.status(403).json({ error: 'Only administrators and coordinators can register new users' });
     }
 
     const { name, email, password, role } = req.body;
@@ -166,11 +166,11 @@ router.post('/logout', authenticateToken, (req, res) => {
   res.json({ message: 'Logged out successfully' });
 });
 
-// GET /api/auth/users (Admin only)
+// GET /api/auth/users (Admin and Coordinator)
 router.get('/users', authenticateToken, (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only administrators can view all users' });
+    if (req.user.role !== 'admin' && req.user.role !== 'coordinator') {
+      return res.status(403).json({ error: 'Only administrators and coordinators can view all users' });
     }
 
     const sanitizedUsers = users.map(sanitizeUser);
@@ -182,11 +182,11 @@ router.get('/users', authenticateToken, (req, res) => {
   }
 });
 
-// PUT /api/auth/users/:id (Admin only)
+// PUT /api/auth/users/:id (Admin and Coordinator)
 router.put('/users/:id', authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only administrators can modify users' });
+    if (req.user.role !== 'admin' && req.user.role !== 'coordinator') {
+      return res.status(403).json({ error: 'Only administrators and coordinators can modify users' });
     }
 
     const userId = parseInt(req.params.id);

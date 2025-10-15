@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
+import axios from 'axios';
 import AddFriendForm from './AddFriendForm';
 import FriendsList from './FriendsList';
 
@@ -16,18 +17,14 @@ export default function FriendsContainer() {
   const fetchData = async () => {
     try {
       const [friendsRes, locationsRes, routesRes] = await Promise.all([
-        fetch('/api/friends'),
-        fetch('/api/locations'),
-        fetch('/api/routes')
+        axios.get('/api/friends'),
+        axios.get('/api/locations'),
+        axios.get('/api/routes')
       ]);
       
-      if (!friendsRes.ok || !locationsRes.ok || !routesRes.ok) {
-        throw new Error('Failed to fetch data');
-      }
-      
-      const friendsData = await friendsRes.json();
-      const locationsData = await locationsRes.json();
-      const routesData = await routesRes.json();
+      const friendsData = friendsRes.data;
+      const locationsData = locationsRes.data;
+      const routesData = routesRes.data;
       
       setFriends(friendsData.friends || []);
       setLocations(locationsData.locations || []);
@@ -66,14 +63,8 @@ export default function FriendsContainer() {
         ...(initialLocationId && { initialLocationId })
       };
       
-      const res = await fetch('/api/friends', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData)
-      });
-      
-      if (!res.ok) throw new Error('Failed to add friend');
-      const data = await res.json();
+      const res = await axios.post('/api/friends', requestData);
+      const data = res.data;
       
       // Replace temp friend with real one (already includes location if provided)
       setFriends(prev => prev.map(f => f.id === tempId ? data.friend : f));
@@ -98,14 +89,8 @@ export default function FriendsContainer() {
     ));
     
     try {
-      const res = await fetch(`/api/friends/${friendId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-      
-      if (!res.ok) throw new Error('Failed to update friend');
-      const data = await res.json();
+      const res = await axios.patch(`/api/friends/${friendId}`, updates);
+      const data = res.data;
       
       // Update with server response
       setFriends(prev => prev.map(f => f.id === friendId ? data.friend : f));
@@ -145,14 +130,10 @@ export default function FriendsContainer() {
     ));
     
     try {
-      const res = await fetch(`/api/friends/${friendId}/locations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locationId, notes, dateRecorded })
+      const res = await axios.post(`/api/friends/${friendId}/locations`, {
+        locationId, notes, dateRecorded
       });
-      
-      if (!res.ok) throw new Error('Failed to add location history');
-      const data = await res.json();
+      const data = res.data;
       
       // Update with server response
       setFriends(prev => prev.map(f => f.id === friendId ? data.friend : f));
@@ -179,8 +160,7 @@ export default function FriendsContainer() {
     setFriends(prev => prev.filter(f => f.id !== friendId));
     
     try {
-      const res = await fetch(`/api/friends/${friendId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete friend');
+      await axios.delete(`/api/friends/${friendId}`);
     } catch (err) {
       // Rollback on error
       setFriends(prev => [...prev, oldFriend]);
