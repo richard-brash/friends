@@ -158,7 +158,7 @@ async function seedSampleData() {
   try {
     
     // Seed in order (respecting foreign key constraints)
-    await seedTable('users', usersWithHashedPasswords);
+    // Core users already exist, so just seed the operational data
     await seedTable('routes', SAMPLE_DATA.routes);
     await seedTable('locations', SAMPLE_DATA.locations);
     await seedTable('friends', SAMPLE_DATA.friends);
