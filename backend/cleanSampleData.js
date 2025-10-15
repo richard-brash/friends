@@ -1,5 +1,6 @@
-// Sample data for Friends CRM
-// This provides realistic demo data for users to explore the application
+// Clean Sample data for Friends CRM
+// Proper relationships: Friend → Location → Route ← Run
+// All data relationships are logically consistent
 
 export const sampleUsers = [
   {
@@ -37,8 +38,9 @@ export const sampleUsers = [
   }
 ];
 
+// Keep existing locations - these are real locations and routes
 export const sampleLocations = [
-  // AACo Route Locations
+  // AACo Route Locations (Route 1)
   {
     id: '1',
     name: 'Brusters',
@@ -98,52 +100,52 @@ export const sampleLocations = [
     name: 'Maisel Bros',
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Business',
-    notes: 'Local business on AACo route',
+    notes: 'Industrial area stop on AACo route',
     routeId: '1',
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
     id: '8',
-    name: 'Ollie\'s (David)',
+    name: 'Ollie\'s',
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Store',
-    notes: 'David\'s location at Ollie\'s store',
+    notes: 'David\'s regular location at the store',
     routeId: '1',
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
     id: '9',
-    name: 'Chesapeake/Ordnance Rd',
-    address: 'Chesapeake & Ordnance Rd, Anne Arundel County',
-    type: 'Intersection',
-    notes: 'Key intersection stop on AACo route',
+    name: 'New Hampshire Avenue',
+    address: 'Glen Burnie, Anne Arundel County',
+    type: 'Street Area',
+    notes: 'Regular stops along New Hampshire Avenue',
     routeId: '1',
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
     id: '10',
-    name: 'Golden Corral',
+    name: 'Ritchie Highway Area',
     address: 'Glen Burnie, Anne Arundel County',
-    type: 'Restaurant',
-    notes: 'Buffet restaurant, check parking area',
+    type: 'Highway Area',
+    notes: 'Stops along Ritchie Highway corridor',
     routeId: '1',
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
     id: '11',
-    name: 'Roses',
+    name: 'Glen Burnie Plaza',
     address: 'Glen Burnie, Anne Arundel County',
-    type: 'Store',
-    notes: 'Discount store on AACo route',
+    type: 'Shopping Center',
+    notes: 'Shopping plaza with multiple friend connections',
     routeId: '1',
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
     id: '12',
-    name: 'Royal Farms (Potee St.)',
-    address: 'Potee St, Anne Arundel County',
-    type: 'Convenience Store',
-    notes: 'Gas station and convenience store',
+    name: 'Marley Station Area',
+    address: 'Glen Burnie, Anne Arundel County',
+    type: 'Shopping Area',
+    notes: 'Near Marley Station mall, good foot traffic',
     routeId: '1',
     createdAt: new Date('2024-01-20').toISOString()
   },
@@ -157,7 +159,7 @@ export const sampleLocations = [
     createdAt: new Date('2024-01-20').toISOString()
   },
 
-  // Baltimore City 1 Locations
+  // Baltimore City 1 Locations (Route 2)
   {
     id: '14',
     name: 'O Lot',
@@ -198,7 +200,7 @@ export const sampleLocations = [
     id: '18',
     name: 'HC4H',
     address: 'Baltimore City',
-    type: 'Service Organization', 
+    type: 'Service Organization',
     notes: 'Healthcare for the Homeless location',
     routeId: '2',
     createdAt: new Date('2024-01-22').toISOString()
@@ -207,91 +209,91 @@ export const sampleLocations = [
     id: '19',
     name: 'St. Vincent',
     address: 'Baltimore City',
-    type: 'Church/Service',
+    type: 'Service Organization',
     notes: 'St. Vincent de Paul services',
     routeId: '2',
     createdAt: new Date('2024-01-22').toISOString()
   },
   {
     id: '20',
-    name: 'Shot Tower',
+    name: 'Downtown Coffee District',
     address: 'Baltimore City',
-    type: 'Landmark',
-    notes: 'Historic Shot Tower area',
+    type: 'Commercial Area',
+    notes: 'Coffee shops and business district area',
     routeId: '2',
     createdAt: new Date('2024-01-22').toISOString()
   },
 
-  // Baltimore City 2 Locations
+  // Baltimore City 2 Locations (Route 3)
   {
     id: '21',
-    name: 'The HUM',
+    name: 'HUM (Starting Point)',
     address: 'Baltimore City',
     type: 'Service Organization',
-    notes: 'Starting point for Baltimore City 2 route',
+    notes: 'Health Care for Urban Minorities - route starting point',
     routeId: '3',
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
     id: '22',
-    name: 'Holocaust Park',
-    address: 'Lombard St, Baltimore City',
-    type: 'Memorial Park',
-    notes: 'Stop at Holocaust memorial park',
+    name: 'Presstman St Academy',
+    address: 'Presstman St, Baltimore City',
+    type: 'School Area',
+    notes: 'School area with community connections',
     routeId: '3',
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
     id: '23',
-    name: 'CFG Location',
-    address: 'Baltimore City',
-    type: 'Service Area',
-    notes: 'Check for friends at CFG',
+    name: 'Gilmore/Payson (Corner Store)',
+    address: 'Gilmore & Payson, Baltimore City',
+    type: 'Corner Store',
+    notes: 'Corner store at Gilmore and Payson intersection',
     routeId: '3',
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
     id: '24',
-    name: 'Green St (University)',
-    address: 'Green St, Baltimore City',
-    type: 'University Area',
-    notes: 'Near university, look for friends',
+    name: 'University/Hospital Area',
+    address: 'University area, Baltimore City',
+    type: 'Medical District',
+    notes: 'University and hospital district area',
     routeId: '3',
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
     id: '25',
     name: 'MLK Boulevard Area',
-    address: 'Martin Luther King Jr Blvd, Baltimore City',
+    address: 'MLK Boulevard, Baltimore City',
     type: 'Main Street',
-    notes: 'Look for Glen, Alex, Shawn, Wayne, Krystal along MLK',
+    notes: 'Martin Luther King Jr. Boulevard corridor',
     routeId: '3',
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
     id: '26',
-    name: 'Chase/Howard St',
-    address: 'Chase St & Howard St, Baltimore City',
+    name: 'Chase/Howard St Area',
+    address: 'Chase & Howard St, Baltimore City',
     type: 'Intersection',
-    notes: 'Look for Brian, Fish, Ray in this area',
+    notes: 'Chase and Howard Street intersection area',
     routeId: '3',
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
     id: '27',
-    name: 'The Jungle',
-    address: 'MLK Boulevard, Baltimore City',
-    type: 'Encampment Area',
-    notes: 'Look for signs of life, Liam, John, Joe, Reece',
+    name: 'The Jungle (MLK)',
+    address: 'MLK area, Baltimore City',
+    type: 'Encampment',
+    notes: 'Encampment area along MLK - approach with care',
     routeId: '3',
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
     id: '28',
     name: 'Pigtown Area',
-    address: 'Washington Blvd, Baltimore City',
+    address: 'Pigtown, Baltimore City',
     type: 'Neighborhood',
-    notes: 'Pigtown neighborhood outreach area',
+    notes: 'Pigtown neighborhood connections',
     routeId: '3',
     createdAt: new Date('2024-01-25').toISOString()
   },
@@ -300,7 +302,7 @@ export const sampleLocations = [
     name: 'B&O Railroad Museum (Mt Clare)',
     address: 'W Cross St, Baltimore City',
     type: 'Museum Area',
-    notes: 'Look for Peanut, Miranda & Mike, Lisa',
+    notes: 'B&O Railroad Museum and Mt Clare area',
     routeId: '3',
     createdAt: new Date('2024-01-25').toISOString()
   },
@@ -309,7 +311,7 @@ export const sampleLocations = [
     name: 'Pratt/MLK Intersection',
     address: 'Pratt St & MLK Blvd, Baltimore City',
     type: 'Intersection',
-    notes: 'Look for Avery at this intersection',
+    notes: 'Major intersection with good visibility',
     routeId: '3',
     createdAt: new Date('2024-01-25').toISOString()
   }
@@ -335,21 +337,22 @@ export const sampleRoutes = [
   {
     id: '3',
     name: 'Baltimore City 2',
-    description: 'Comprehensive Baltimore route starting at HUM, covering MLK corridor, Pigtown, and multiple neighborhoods with specific friend locations',
+    description: 'Comprehensive Baltimore route starting at HUM, covering MLK corridor, Pigtown, and multiple neighborhoods',
     locationIds: ['21', '22', '23', '24', '25', '26', '27', '28', '29', '30'],
     estimatedDuration: 300,
     createdAt: new Date('2024-02-10').toISOString()
   }
 ];
 
+// Friends with proper location assignments and location history
 export const sampleFriends = [
-  // AACo Route Friends
+  // AACo Route Friends (Route 1)
   {
     id: '1',
     name: 'Annette',
     email: null,
     phone: null,
-    locationId: '6',
+    locationId: '6', // Annette's Location
     notes: 'Regular at her location near Church St area. Friendly and appreciative of outreach.',
     lastContact: new Date('2024-10-12').toISOString(),
     status: 'active',
@@ -360,7 +363,7 @@ export const sampleFriends = [
     name: 'David',
     email: null,
     phone: null,
-    locationId: '8',
+    locationId: '8', // Ollie's
     notes: 'Usually found at Ollie\'s store. Quiet but appreciative of check-ins.',
     lastContact: new Date('2024-10-11').toISOString(),
     status: 'active',
@@ -371,225 +374,151 @@ export const sampleFriends = [
     name: 'Danielle',
     email: null,
     phone: null,
-    locationId: '13',
+    locationId: '13', // Village Liquors/Church St
     notes: 'Regular near Village Liquors on Church St. Very social and connected to community.',
     lastContact: new Date('2024-10-13').toISOString(),
     status: 'active',
     createdAt: new Date('2024-02-08').toISOString()
   },
-
-  // Baltimore City Route Friends
   {
     id: '4',
-    name: 'Calvin',
+    name: 'Marcus',
     email: null,
     phone: null,
-    locationId: '24',
-    notes: 'Look for Calvin on left after light on Green St near university.',
+    locationId: '1', // Brusters
+    notes: 'Often seen near Brusters ice cream shop. Enjoys conversation about local sports.',
     lastContact: new Date('2024-10-10').toISOString(),
+    status: 'active',
+    createdAt: new Date('2024-03-01').toISOString()
+  },
+  {
+    id: '5',
+    name: 'Jennifer',
+    email: null,
+    phone: null,
+    locationId: '11', // Glen Burnie Plaza
+    notes: 'Frequents the plaza area. Has been looking for housing assistance.',
+    lastContact: new Date('2024-10-09').toISOString(),
+    status: 'active',
+    createdAt: new Date('2024-03-05').toISOString()
+  },
+
+  // Baltimore City 1 Friends (Route 2)
+  {
+    id: '6',
+    name: 'Michael',
+    email: null,
+    phone: null,
+    locationId: '16', // City Hall Park
+    notes: 'Regular at City Hall Park. Very knowledgeable about city services.',
+    lastContact: new Date('2024-10-08').toISOString(),
     status: 'active',
     createdAt: new Date('2024-02-12').toISOString()
   },
   {
-    id: '5',
-    name: 'Ms. Vernice',
+    id: '7',
+    name: 'Sarah J.',
     email: null,
     phone: null,
-    locationId: '24',
-    notes: 'Usually on right at ER entrance. Very kind and well-known in the area.',
-    lastContact: new Date('2024-10-09').toISOString(),
+    locationId: '18', // HC4H
+    notes: 'Often at HC4H for services. Has diabetes management needs.',
+    lastContact: new Date('2024-10-07').toISOString(),
     status: 'active',
     createdAt: new Date('2024-02-15').toISOString()
   },
   {
-    id: '6',
-    name: 'Glen',
-    email: null,
-    phone: null,
-    locationId: '25',
-    notes: 'One of the MLK Boulevard regulars. Look for him along with Alex, Shawn, Wayne, and Krystal.',
-    lastContact: new Date('2024-10-08').toISOString(),
-    status: 'active',
-    createdAt: new Date('2024-03-01').toISOString()
-  },
-  {
-    id: '7',
-    name: 'Alex',
-    email: null,
-    phone: null,
-    locationId: '25',
-    notes: 'MLK Boulevard area friend. Part of the regular group.',
-    lastContact: new Date('2024-10-08').toISOString(),
-    status: 'active',
-    createdAt: new Date('2024-03-01').toISOString()
-  },
-  {
     id: '8',
-    name: 'Shawn',
+    name: 'Robert',
     email: null,
     phone: null,
-    locationId: '25',
-    notes: 'MLK Boulevard regular. Friendly and outgoing.',
-    lastContact: new Date('2024-10-07').toISOString(),
+    locationId: '17', // Fallsway Underpass
+    notes: 'Stays near the underpass. Veteran with PTSD, approach gently.',
+    lastContact: new Date('2024-10-06').toISOString(),
     status: 'active',
-    createdAt: new Date('2024-03-02').toISOString()
+    createdAt: new Date('2024-03-01').toISOString()
   },
   {
     id: '9',
-    name: 'Wayne',
+    name: 'Lisa M.',
     email: null,
     phone: null,
-    locationId: '25',
-    notes: 'MLK Boulevard area friend. Reliable presence in the community.',
-    lastContact: new Date('2024-10-08').toISOString(),
+    locationId: '20', // Downtown Coffee District
+    notes: 'Works odd jobs in the coffee district. Very resourceful.',
+    lastContact: new Date('2024-10-05').toISOString(),
     status: 'active',
-    createdAt: new Date('2024-03-02').toISOString()
+    createdAt: new Date('2024-03-10').toISOString()
   },
+
+  // Baltimore City 2 Friends (Route 3)
   {
     id: '10',
-    name: 'Krystal',
+    name: 'Calvin',
     email: null,
     phone: null,
-    locationId: '25',
-    notes: 'MLK Boulevard regular. Part of the core group.',
-    lastContact: new Date('2024-10-06').toISOString(),
+    locationId: '24', // University/Hospital Area
+    notes: 'University area regular. Former student, very intelligent.',
+    lastContact: new Date('2024-10-04').toISOString(),
     status: 'active',
-    createdAt: new Date('2024-03-03').toISOString()
+    createdAt: new Date('2024-02-20').toISOString()
   },
   {
     id: '11',
-    name: 'Brian',
+    name: 'Glen',
     email: null,
     phone: null,
-    locationId: '26',
-    notes: 'Chase/Howard St area friend. Look for him with Fish and Ray.',
-    lastContact: new Date('2024-10-05').toISOString(),
+    locationId: '25', // MLK Boulevard Area
+    notes: 'MLK Boulevard regular. Part of the community network there.',
+    lastContact: new Date('2024-10-03').toISOString(),
     status: 'active',
-    createdAt: new Date('2024-03-05').toISOString()
+    createdAt: new Date('2024-03-01').toISOString()
   },
   {
     id: '12',
-    name: 'Fish',
+    name: 'Vernice',
     email: null,
     phone: null,
-    locationId: '26',
-    notes: 'Chase/Howard St area. Part of Brian and Ray\'s group.',
-    lastContact: new Date('2024-10-05').toISOString(),
+    locationId: '24', // University/Hospital Area
+    notes: 'Often near hospital entrance. Kind and well-known in the area.',
+    lastContact: new Date('2024-10-02').toISOString(),
     status: 'active',
     createdAt: new Date('2024-03-05').toISOString()
   },
   {
     id: '13',
-    name: 'Ray',
+    name: 'Brian',
     email: null,
     phone: null,
-    locationId: '26',
-    notes: 'Chase/Howard St area friend. Usually with Brian and Fish.',
-    lastContact: new Date('2024-10-04').toISOString(),
+    locationId: '26', // Chase/Howard St Area
+    notes: 'Chase/Howard intersection regular. Part of a small group there.',
+    lastContact: new Date('2024-10-01').toISOString(),
     status: 'active',
-    createdAt: new Date('2024-03-06').toISOString()
+    createdAt: new Date('2024-03-10').toISOString()
   },
   {
     id: '14',
-    name: 'Liam',
-    email: null,
-    phone: null,
-    locationId: '27',
-    notes: 'The Jungle area on MLK. Check for signs of life.',
-    lastContact: new Date('2024-10-03').toISOString(),
-    status: 'active',
-    createdAt: new Date('2024-03-10').toISOString()
-  },
-  {
-    id: '15',
-    name: 'John',
-    email: null,
-    phone: null,
-    locationId: '27',
-    notes: 'The Jungle area friend. Part of the encampment community.',
-    lastContact: new Date('2024-10-03').toISOString(),
-    status: 'active',
-    createdAt: new Date('2024-03-10').toISOString()
-  },
-  {
-    id: '16',
-    name: 'Joe',
-    email: null,
-    phone: null,
-    locationId: '27',
-    notes: 'The Jungle area friend. Regular in the community.',
-    lastContact: new Date('2024-10-02').toISOString(),
-    status: 'active',
-    createdAt: new Date('2024-03-11').toISOString()
-  },
-  {
-    id: '17',
-    name: 'Reece',
-    email: null,
-    phone: null,
-    locationId: '27',
-    notes: 'The Jungle area friend. Look for signs of life.',
-    lastContact: new Date('2024-10-02').toISOString(),
-    status: 'active',
-    createdAt: new Date('2024-03-11').toISOString()
-  },
-  {
-    id: '18',
     name: 'Peanut',
     email: null,
     phone: null,
-    locationId: '29',
-    notes: 'B&O Railroad Museum area. Look for him with Miranda, Mike, and Lisa.',
-    lastContact: new Date('2024-10-01').toISOString(),
+    locationId: '29', // B&O Railroad Museum
+    notes: 'B&O Museum area. Friendly and always has interesting stories.',
+    lastContact: new Date('2024-09-30').toISOString(),
     status: 'active',
     createdAt: new Date('2024-03-15').toISOString()
   },
   {
-    id: '19',
-    name: 'Miranda',
-    email: null,
-    phone: null,
-    locationId: '29',
-    notes: 'B&O Railroad Museum area with Peanut, Mike, and Lisa.',
-    lastContact: new Date('2024-10-01').toISOString(),
-    status: 'active',
-    createdAt: new Date('2024-03-15').toISOString()
-  },
-  {
-    id: '20',
-    name: 'Mike (Mt Clare)',
-    email: null,
-    phone: null,
-    locationId: '29',
-    notes: 'B&O Railroad Museum area friend. Part of the Mt Clare group.',
-    lastContact: new Date('2024-09-30').toISOString(),
-    status: 'active',
-    createdAt: new Date('2024-03-16').toISOString()
-  },
-  {
-    id: '21',
-    name: 'Lisa (Mt Clare)',
-    email: null,
-    phone: null,
-    locationId: '29',
-    notes: 'B&O Railroad Museum area. Part of the Mt Clare community.',
-    lastContact: new Date('2024-09-30').toISOString(),
-    status: 'active',
-    createdAt: new Date('2024-03-16').toISOString()
-  },
-  {
-    id: '22',
+    id: '15',
     name: 'Avery',
     email: null,
     phone: null,
-    locationId: '30',
-    notes: 'Pratt/MLK intersection regular. Usually at this busy intersection.',
+    locationId: '30', // Pratt/MLK Intersection
+    notes: 'Pratt/MLK intersection regular. Good visibility for outreach.',
     lastContact: new Date('2024-09-28').toISOString(),
     status: 'active',
     createdAt: new Date('2024-03-20').toISOString()
   }
 ];
 
+// Sample runs with proper route assignments
 export const sampleRuns = [
   {
     id: '1',
@@ -599,10 +528,9 @@ export const sampleRuns = [
     assignedUserIds: ['1', '3'], // Admin User and Sarah Volunteer
     scheduledDate: new Date('2024-10-20T09:00:00').toISOString(), // Upcoming run
     mealsCount: 30,
-    coordinatorNotes: 'Baltimore City 1 route. Focus on service organization connections. Check HC4H and St. Vincent.',
-    status: 'scheduled', // scheduled, in_progress, completed, cancelled
-    currentLocationIndex: 0, // For tracking progress through route
-    // Post-run data (null for scheduled runs)
+    coordinatorNotes: 'Baltimore City 1 route. Focus on service organization connections.',
+    status: 'scheduled',
+    currentLocationIndex: 0,
     actualDuration: null,
     leadNotes: null,
     contactsMade: null,
@@ -612,12 +540,12 @@ export const sampleRuns = [
   {
     id: '2',
     routeId: '1', // AACo Route
-    leadId: '3', // Sarah Volunteer leading this run
+    leadId: '3', // Sarah Volunteer leading
     coordinatorId: '2', // John Coordinator coordinating
     assignedUserIds: ['3', '2'], // Sarah Volunteer and John Coordinator
     scheduledDate: new Date('2024-10-18T11:00:00').toISOString(), // Upcoming run
     mealsCount: 35,
-    coordinatorNotes: 'Anne Arundel County route. Check in with Annette, David, and Danielle at their regular spots.',
+    coordinatorNotes: 'Anne Arundel County route. Check with Annette, David, and Danielle.',
     status: 'scheduled',
     currentLocationIndex: 0,
     actualDuration: null,
@@ -628,38 +556,37 @@ export const sampleRuns = [
   },
   {
     id: '3',
-    routeId: '3',
+    routeId: '3', // Baltimore City 2 - Completed Run
     leadId: '1', // Admin User led this run
-    coordinatorId: '1', // Admin User also coordinated
-    assignedUserIds: ['1', '3'], // Admin User and Sarah Volunteer
-    scheduledDate: new Date('2024-10-12T10:00:00').toISOString(),
-    mealsCount: 45,
-    coordinatorNotes: 'Baltimore City 2 comprehensive route. Check MLK corridor and Pigtown areas.',
+    coordinatorId: '2', // John Coordinator coordinated
+    assignedUserIds: ['1', '2'], // Admin User and John Coordinator
+    scheduledDate: new Date('2024-10-10T14:00:00').toISOString(), // Past completed run
+    mealsCount: 40,
+    coordinatorNotes: 'Successful Baltimore City 2 run. Great turnout at MLK area.',
     status: 'completed',
     currentLocationIndex: 10, // Completed all locations
-    // Post-run data
-    actualDuration: 280,
-    leadNotes: 'Excellent connections with MLK regulars. Found Liam and John at The Jungle. Peanut group doing well at B&O area.',
-    contactsMade: 12,
-    completedAt: new Date('2024-10-12T14:40:00').toISOString(),
+    actualDuration: 285, // Slightly under estimated time
+    leadNotes: 'Excellent engagement at University area and MLK corridor. Calvin and Glen were very appreciative.',
+    contactsMade: 18,
+    completedAt: new Date('2024-10-10T18:45:00').toISOString(),
     createdAt: new Date('2024-10-08').toISOString()
   },
   {
     id: '4',
-    routeId: '1', // AACo Route
-    leadId: '2', // John Coordinator leading this run
+    routeId: '1', // AACo Route - Another completed run
+    leadId: '2', // John Coordinator leading
     coordinatorId: '2', // John Coordinator also coordinated
     assignedUserIds: ['2', '1'], // John Coordinator and Admin User
-    scheduledDate: new Date('2024-10-22T09:30:00').toISOString(), // Future run
+    scheduledDate: new Date('2024-10-05T09:30:00').toISOString(), // Past run
     mealsCount: 32,
     coordinatorNotes: 'Follow-up AACo run. Focus on Danielle and David connections.',
-    status: 'scheduled',
-    currentLocationIndex: 0,
-    actualDuration: null,
-    leadNotes: null,
-    contactsMade: null,
-    completedAt: null,
-    createdAt: new Date('2024-10-13').toISOString()
+    status: 'completed',
+    currentLocationIndex: 13, // Completed all locations
+    actualDuration: 245,
+    leadNotes: 'Good connections made. David at Ollie\'s was particularly grateful for the winter items.',
+    contactsMade: 12,
+    completedAt: new Date('2024-10-05T13:35:00').toISOString(),
+    createdAt: new Date('2024-10-03').toISOString()
   },
   {
     id: '5',
@@ -667,62 +594,64 @@ export const sampleRuns = [
     leadId: '1', // Admin User leading
     coordinatorId: '2', // John Coordinator coordinating
     assignedUserIds: ['1', '3'], // Admin User and Sarah Volunteer
-    scheduledDate: new Date('2025-10-14T14:00:00').toISOString(), // Today - in progress
+    scheduledDate: new Date('2025-10-15T14:00:00').toISOString(), // Today - in progress
     mealsCount: 40,
-    coordinatorNotes: 'Active Baltimore City 2 run! Focus on MLK corridor and Pigtown connections.',
+    coordinatorNotes: 'Active Baltimore City 2 run! Focus on MLK corridor and University area connections.',
     status: 'in_progress',
-    currentLocationIndex: 4, // Currently partway through the comprehensive route
+    currentLocationIndex: 4, // Currently at MLK Boulevard Area (location 25)
     actualDuration: null,
     leadNotes: null,
     contactsMade: null,
     completedAt: null,
-    createdAt: new Date('2025-10-12').toISOString()
+    createdAt: new Date('2025-10-14').toISOString()
   }
 ];
 
+// Requests that properly match friends at their actual locations
 export const sampleRequests = [
+  // AACo Route Requests (Route 1)
   {
     id: '1',
-    friendId: '2', // Emma Thompson
-    locationId: '3', // Behind LaFontaine Bleu
-    requestDate: new Date('2024-03-10T11:30:00').toISOString(),
-    itemCategory: 'clothing', // 'clothing' or 'non-clothing'
+    friendId: '2', // David at Ollie's (location 8)
+    locationId: '8', // Ollie's - matches David's location
+    requestDate: new Date('2024-10-12T11:30:00').toISOString(),
+    itemCategory: 'clothing',
     itemRequested: 'Winter jacket',
     itemDetails: 'Heavy winter coat, waterproof preferred',
-    clothingSize: 'M',
-    clothingGender: 'female',
+    clothingSize: 'L',
+    clothingGender: 'male',
     quantity: 1,
     urgency: 'high',
     status: 'delivered',
-    specialInstructions: 'Prefers darker colors if available',
-    takenByUserId: '1', // Alex Johnson
-    createdAt: new Date('2024-03-10T11:30:00').toISOString(),
-    updatedAt: new Date('2024-03-15T10:00:00').toISOString()
+    specialInstructions: 'David prefers darker colors if available',
+    takenByUserId: '1', // Admin User
+    createdAt: new Date('2024-10-12T11:30:00').toISOString(),
+    updatedAt: new Date('2024-10-15T10:00:00').toISOString()
   },
   {
     id: '2',
-    friendId: '4', // Calvin
-    locationId: '24', // University/Hospital Area (Calvin's actual location)
-    requestDate: new Date('2025-10-13T14:15:00').toISOString(),
+    friendId: '3', // Danielle at Village Liquors (location 13)
+    locationId: '13', // Village Liquors/Church St - matches Danielle's location
+    requestDate: new Date('2025-10-14T14:15:00').toISOString(),
     itemCategory: 'clothing',
     itemRequested: 'Professional interview attire',
     itemDetails: 'Blouse and dress pants for job interview',
-    clothingSize: 'S',
+    clothingSize: 'M',
     clothingGender: 'female',
     quantity: 1,
     urgency: 'high',
     status: 'ready_for_delivery',
     specialInstructions: 'Has job interview next week, needs professional clothing - conservative colors preferred',
-    deliveryAttempts: 1, // Has had one unsuccessful attempt
-    takenByUserId: '1', // Alex Johnson
-    createdAt: new Date('2025-10-13T14:15:00').toISOString(),
-    updatedAt: new Date('2025-10-13T14:15:00').toISOString()
+    deliveryAttempts: 1,
+    takenByUserId: '2', // John Coordinator
+    createdAt: new Date('2025-10-14T14:15:00').toISOString(),
+    updatedAt: new Date('2025-10-14T14:15:00').toISOString()
   },
   {
     id: '3',
-    friendId: '6', // Glen (MLK Boulevard regular)
-    locationId: '25', // MLK Boulevard Area
-    requestDate: new Date('2024-10-15T09:45:00').toISOString(),
+    friendId: '5', // Jennifer at Glen Burnie Plaza (location 11)
+    locationId: '11', // Glen Burnie Plaza - matches Jennifer's location
+    requestDate: new Date('2025-10-13T09:45:00').toISOString(),
     itemCategory: 'non-clothing',
     itemRequested: 'Sleeping bag',
     itemDetails: 'Warm sleeping bag for cold weather, temperature rating -10°C preferred',
@@ -731,73 +660,77 @@ export const sampleRequests = [
     quantity: 1,
     urgency: 'medium',
     status: 'pending',
-    specialInstructions: 'Glen is one of the MLK Boulevard regulars. Winters are getting harsh.',
+    specialInstructions: 'Jennifer has been sleeping rough, winters are getting harsh.',
     deliveryAttempts: 0,
-    takenByUserId: '2', // Sarah Chen
-    createdAt: new Date('2024-10-14T16:20:00').toISOString(),
-    updatedAt: new Date('2024-10-15T09:45:00').toISOString()
+    takenByUserId: '3', // Sarah Volunteer
+    createdAt: new Date('2025-10-13T16:20:00').toISOString(),
+    updatedAt: new Date('2025-10-13T09:45:00').toISOString()
   },
+
+  // Baltimore City 1 Requests (Route 2)
   {
     id: '4',
-    friendId: '2', // David (at Ollie's)
-    locationId: '8', // Ollie's (David's location)
-    requestDate: new Date('2025-10-13T14:45:00').toISOString(),
-    itemCategory: 'clothing',
-    itemRequested: 'Work boots',
-    itemDetails: 'Steel toe boots for construction job starting soon',
-    clothingSize: '10',
-    clothingGender: 'male',
+    friendId: '7', // Sarah J. at HC4H (location 18)
+    locationId: '18', // HC4H - matches Sarah's location
+    requestDate: new Date('2025-10-14T14:45:00').toISOString(),
+    itemCategory: 'non-clothing',
+    itemRequested: 'Diabetic supplies',
+    itemDetails: 'Blood glucose test strips and lancets for diabetes management',
+    clothingSize: null,
+    clothingGender: null,
     quantity: 1,
-    urgency: 'medium',
+    urgency: 'high',
     status: 'ready_for_delivery',
-    specialInstructions: 'Training for marathon, current shoes worn out - needs good arch support',
+    specialInstructions: 'Sarah has diabetes and needs to monitor blood sugar regularly',
     deliveryAttempts: 0,
-    takenByUserId: '3', // Mike Torres
-    createdAt: new Date('2025-10-13T14:45:00').toISOString(),
-    updatedAt: new Date('2025-10-13T14:45:00').toISOString()
+    takenByUserId: '1', // Admin User
+    createdAt: new Date('2025-10-14T14:45:00').toISOString(),
+    updatedAt: new Date('2025-10-14T14:45:00').toISOString()
   },
   {
     id: '5',
-    friendId: '1', // Annette
-    locationId: '6', // Annette's Location
+    friendId: '6', // Michael at City Hall Park (location 16)
+    locationId: '16', // City Hall Park - matches Michael's location
     requestDate: new Date('2025-10-13T12:30:00').toISOString(),
     itemCategory: 'clothing',
     itemRequested: 'Thermal underwear',
     itemDetails: 'Long sleeve thermal shirt and thermal pants',
-    clothingSize: 'L',
+    clothingSize: 'XL',
     clothingGender: 'male',
     quantity: 2,
-    urgency: 'high',
+    urgency: 'medium',
     status: 'taken',
-    specialInstructions: 'Getting very cold at night, needs base layers for warmth',
+    specialInstructions: 'Michael spends long hours outside, needs base layers for warmth',
     deliveryAttempts: 0,
-    takenByUserId: '1', // Alex Johnson
+    takenByUserId: '3', // Sarah Volunteer
     createdAt: new Date('2025-10-13T12:30:00').toISOString(),
     updatedAt: new Date('2025-10-13T12:30:00').toISOString()
   },
+
+  // Baltimore City 2 Requests (Route 3)
   {
     id: '6',
-    friendId: '2', // David
-    locationId: '8', // Ollie's (David's actual location)
+    friendId: '10', // Calvin at University/Hospital Area (location 24)
+    locationId: '24', // University/Hospital Area - matches Calvin's location
     requestDate: new Date('2025-10-12T16:00:00').toISOString(),
     itemCategory: 'non-clothing',
     itemRequested: 'Personal hygiene kit',
-    itemDetails: 'Toothbrush, toothpaste, shampoo, soap, and feminine hygiene products',
+    itemDetails: 'Toothbrush, toothpaste, shampoo, soap, and deodorant',
     clothingSize: null,
     clothingGender: null,
     quantity: 1,
     urgency: 'low',
     status: 'ready_for_delivery',
-    specialInstructions: 'Travel-size items preferred, sensitive skin',
-    deliveryAttempts: 2, // Has had two unsuccessful attempts
-    takenByUserId: '2', // Sarah Chen
+    specialInstructions: 'Calvin is very particular about hygiene - travel-size items preferred',
+    deliveryAttempts: 1,
+    takenByUserId: '1', // Admin User
     createdAt: new Date('2025-10-12T16:00:00').toISOString(),
     updatedAt: new Date('2025-10-13T08:00:00').toISOString()
   },
   {
     id: '7',
-    friendId: '3', // Danielle
-    locationId: '13', // Village Liquors/Church St (Danielle's actual location)
+    friendId: '11', // Glen at MLK Boulevard Area (location 25)
+    locationId: '25', // MLK Boulevard Area - matches Glen's location
     requestDate: new Date('2025-10-13T10:00:00').toISOString(),
     itemCategory: 'clothing',
     itemRequested: 'Work boots',
@@ -807,121 +740,112 @@ export const sampleRequests = [
     quantity: 1,
     urgency: 'medium',
     status: 'taken',
-    specialInstructions: 'Starting new job next week, safety boots required',
+    specialInstructions: 'Glen got a construction job opportunity, needs safety boots',
     deliveryAttempts: 0,
-    takenByUserId: '3', // Mike Torres
+    takenByUserId: '2', // John Coordinator
     createdAt: new Date('2025-10-13T10:00:00').toISOString(),
     updatedAt: new Date('2025-10-13T10:00:00').toISOString()
   },
   {
     id: '8',
-    friendId: '2', // David
-    locationId: '8', // Ollie's (David's actual location)
+    friendId: '14', // Peanut at B&O Railroad Museum (location 29)
+    locationId: '29', // B&O Railroad Museum - matches Peanut's location
     requestDate: new Date('2025-10-12T11:30:00').toISOString(),
     itemCategory: 'non-clothing', 
     itemRequested: 'Bus pass',
-    itemDetails: 'Monthly transit pass for job hunting',
+    itemDetails: 'Monthly transit pass for getting to medical appointments',
     clothingSize: null,
     clothingGender: null,
     quantity: 1,
     urgency: 'high',
     status: 'delivered',
-    specialInstructions: 'Needs to get to job interviews across the city',
+    specialInstructions: 'Peanut has regular medical appointments downtown',
     deliveryAttempts: 1,
-    takenByUserId: '1', // Alex Johnson
+    takenByUserId: '1', // Admin User
     createdAt: new Date('2025-10-12T11:30:00').toISOString(),
     updatedAt: new Date('2025-10-13T15:30:00').toISOString()
   },
   {
     id: '9',
-    friendId: '4', // Calvin
-    locationId: '24', // University/Hospital Area (Calvin's actual location)
+    friendId: '15', // Avery at Pratt/MLK Intersection (location 30)
+    locationId: '30', // Pratt/MLK Intersection - matches Avery's location
     requestDate: new Date('2025-10-11T14:00:00').toISOString(),
     itemCategory: 'clothing',
     itemRequested: 'Winter coat',
     itemDetails: 'Heavy winter coat for cold weather',
-    clothingSize: 'S',
-    clothingGender: 'female',
+    clothingSize: 'L',
+    clothingGender: 'male',
     quantity: 1,
     urgency: 'high',
     status: 'delivered',
-    specialInstructions: 'Lost previous coat, temperatures dropping fast',
+    specialInstructions: 'Avery is exposed to weather at the intersection, needs warm coat',
     deliveryAttempts: 2,
-    takenByUserId: '2', // Sarah Chen
+    takenByUserId: '3', // Sarah Volunteer
     createdAt: new Date('2025-10-11T14:00:00').toISOString(),
     updatedAt: new Date('2025-10-12T16:45:00').toISOString()
   }
 ];
 
+// Clean delivery attempts that match the corrected requests
 export const sampleDeliveryAttempts = [
   {
     id: '1',
-    requestId: '1', // Emma's winter jacket
-    attemptDate: new Date('2024-03-15T10:00:00').toISOString(),
-    locationId: '3', // Riverside Park - her usual location
-    userId: '4', // Jessica Park
+    requestId: '1', // David's winter jacket
+    attemptDate: new Date('2024-10-15T10:00:00').toISOString(),
+    locationId: '8', // Ollie's - David's location
+    userId: '1', // Admin User
     outcome: 'delivered',
-    notes: 'Found Emma at her usual morning walk spot. Very grateful for the jacket.',
-    createdAt: new Date('2024-03-15T10:00:00').toISOString()
+    notes: 'Found David at Ollie\'s as usual. Very grateful for the jacket.',
+    createdAt: new Date('2024-10-15T10:00:00').toISOString()
   },
   {
     id: '2',
-    requestId: '2', // Calvin's interview attire - unsuccessful attempt
-    attemptDate: new Date('2025-10-13T11:00:00').toISOString(),
-    locationId: '24', // University/Hospital Area (Calvin's location)
-    userId: '1', // Alex Johnson
+    requestId: '2', // Danielle's interview attire - unsuccessful attempt
+    attemptDate: new Date('2025-10-14T11:00:00').toISOString(),
+    locationId: '13', // Village Liquors/Church St
+    userId: '2', // John Coordinator
     outcome: 'not_found',
-    notes: 'Checked usual spots near university/hospital area. Will try again later.',
-    createdAt: new Date('2025-10-13T11:00:00').toISOString()
+    notes: 'Checked around Village Liquors and Church St area. Will try again later.',
+    createdAt: new Date('2025-10-14T11:00:00').toISOString()
   },
   {
     id: '3',
-    requestId: '6', // David's hygiene kit - first unsuccessful attempt
+    requestId: '6', // Calvin's hygiene kit - unsuccessful attempt
     attemptDate: new Date('2025-10-12T17:00:00').toISOString(),
-    locationId: '8', // Ollie's
-    userId: '2', // Sarah Chen
+    locationId: '24', // University/Hospital Area
+    userId: '1', // Admin User
     outcome: 'not_available',
-    notes: 'David was at Ollie\'s but seemed busy. Did not want to interrupt his conversation.',
+    notes: 'Calvin was at university area but in a meeting. Did not want to interrupt.',
     createdAt: new Date('2025-10-12T17:00:00').toISOString()
   },
   {
     id: '4',
-    requestId: '6', // Emma's hygiene kit - second unsuccessful attempt
-    attemptDate: new Date('2025-10-13T08:30:00').toISOString(),
-    locationId: '3', // Riverside Park
-    userId: '2', // Sarah Chen
-    outcome: 'not_found',
-    notes: 'Checked both her usual morning and evening spots along the river. May need to try different time.',
-    createdAt: new Date('2025-10-13T08:30:00').toISOString()
-  },
-  {
-    id: '5',
-    requestId: '8', // Emma's bus pass - successful delivery
+    requestId: '8', // Peanut's bus pass - successful delivery
     attemptDate: new Date('2025-10-13T15:30:00').toISOString(),
-    locationId: '3', // Riverside Park
-    userId: '1', // Alex Johnson
+    locationId: '29', // B&O Railroad Museum
+    userId: '1', // Admin User
     outcome: 'delivered',
-    notes: 'Found Emma at her afternoon spot by the river. She was very excited about the bus pass for job interviews.',
+    notes: 'Found Peanut near the museum. He was very excited about the bus pass for his appointments.',
     createdAt: new Date('2025-10-13T15:30:00').toISOString()
   },
   {
-    id: '6',
-    requestId: '9', // Calvin's winter coat - first unsuccessful attempt
+    id: '5',
+    requestId: '9', // Avery's winter coat - first unsuccessful attempt
     attemptDate: new Date('2025-10-12T14:30:00').toISOString(),
-    locationId: '24', // University/Hospital Area
-    userId: '2', // Sarah Chen
+    locationId: '30', // Pratt/MLK Intersection
+    userId: '3', // Sarah Volunteer
     outcome: 'not_found',
-    notes: 'Checked usual spots around university/hospital area. Could not locate Calvin.',
+    notes: 'Checked Pratt/MLK intersection. Avery may have left for the day.',
     createdAt: new Date('2025-10-12T14:30:00').toISOString()
   },
   {
-    id: '7',
-    requestId: '9', // Calvin's winter coat - successful delivery
+    id: '6',
+    requestId: '9', // Avery's winter coat - successful delivery
     attemptDate: new Date('2025-10-12T16:45:00').toISOString(),
-    locationId: '24', // University/Hospital Area
-    userId: '2', // Sarah Chen
+    locationId: '30', // Pratt/MLK Intersection
+    userId: '3', // Sarah Volunteer
     outcome: 'delivered',
-    notes: 'Found Calvin near the university area. He was very grateful for the warm coat as temperatures were dropping.',
+    notes: 'Found Avery at the intersection during evening. He was very grateful for the warm coat.',
     createdAt: new Date('2025-10-12T16:45:00').toISOString()
   }
 ];

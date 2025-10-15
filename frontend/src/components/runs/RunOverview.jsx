@@ -59,7 +59,8 @@ export default function RunOverview({ runId, onEdit, onBack }) {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [run, setRun] = useState(null);
   const [route, setRoute] = useState(null);
-  const [locations, setLocations] = useState([]);
+  const [locations, setLocations] = useState([]); // Route's locations only
+  const [allLocations, setAllLocations] = useState([]); // All locations for lookups
   const [users, setUsers] = useState([]);
   const [requests, setRequests] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -121,9 +122,17 @@ export default function RunOverview({ runId, onEdit, onBack }) {
         const routeInfo = routesData.routes?.find(r => r.id.toString() === runData.run.routeId.toString());
         setRoute(routeInfo);
         
-        // Load ALL locations (not just route locations) for request lookups
-        // This ensures requests for any location can be properly displayed
-        setLocations(locationsData.locations || []);
+        // Store all locations for lookups
+        const allLocations = locationsData.locations || [];
+        setAllLocations(allLocations);
+        
+        // Filter locations to only include those on this route
+        // This ensures proper Run → Route → Locations → Friends → Requests relationship
+        const routeLocationIds = routeInfo?.locationIds || [];
+        const routeLocations = allLocations.filter(loc => 
+          routeLocationIds.includes(loc.id.toString())
+        );
+        setLocations(routeLocations);
         
         setUsers(usersData.users || []);
         setRequests(requestsData.requests || []);
@@ -316,7 +325,8 @@ export default function RunOverview({ runId, onEdit, onBack }) {
   };
   const getLocationById = (id) => {
     if (!id) return null;
-    return locations.find(l => l?.id?.toString() === id.toString());
+    // Use allLocations for lookups to display location names for any request
+    return allLocations.find(l => l?.id?.toString() === id.toString());
   };
 
   // Delivery Attempt Chip with Tooltip Component
@@ -445,8 +455,15 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     );
   };
 
-  // Get ready for delivery requests (status: ready_for_delivery)
-  const readyForDeliveryRequests = requests.filter(r => r.status === 'ready_for_delivery' && r.friendId);
+  // Get route location IDs for filtering
+  const routeLocationIds = route?.locationIds || [];
+
+  // Get ready for delivery requests (only for locations on this route)
+  const readyForDeliveryRequests = requests.filter(r => 
+    r.status === 'ready_for_delivery' && 
+    r.friendId && 
+    routeLocationIds.includes(r.locationId?.toString())
+  );
 
   // Get requests for current location
   const currentLocationRequests = nextLocation 

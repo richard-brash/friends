@@ -18,7 +18,7 @@ import {
   sampleRuns, 
   sampleRequests,
   sampleDeliveryAttempts 
-} from './sampleData.js';
+} from './cleanSampleData.js';
 import { users } from './routes/users.js';
 import { runs } from './routes/runs.js';
 import { requests, deliveryAttempts } from './routes/requests.js';
