@@ -52,13 +52,13 @@ const RoleProtectedSection = ({ Component, requiredRoles, ...props }) => {
 
 const getSectionsForUser = (user) => {
   const baseSections = [
-    { label: 'Routes', Component: OutreachDashboard, icon: Route },
     { label: 'Runs', Component: RunSection, icon: DirectionsRun },
   ];
 
   // Add sections based on user role
   if (user?.role === 'admin' || user?.role === 'coordinator') {
     baseSections.push(
+      { label: 'Routes', Component: OutreachDashboard, icon: Route, requiredRoles: ['admin', 'coordinator'] },
       { label: 'Requests', Component: RequestsSection, icon: Assignment, requiredRoles: ['admin', 'coordinator'] },
       { label: 'Friends', Component: FriendSection, icon: People, requiredRoles: ['admin', 'coordinator'] }
     );

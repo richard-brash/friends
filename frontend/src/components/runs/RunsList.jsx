@@ -54,15 +54,26 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [runsRes, routesRes, usersRes] = await Promise.all([
+      
+      // Fetch runs and routes (all users can access these)
+      const [runsRes, routesRes] = await Promise.all([
         axios.get(`${API_BASE}/runs`),
-        axios.get(`${API_BASE}/routes`),
-        axios.get(`${API_BASE}/users`)
+        axios.get(`${API_BASE}/routes`)
       ]);
 
       setRuns(runsRes.data.runs || []);
       setRoutes(routesRes.data.routes || []);
-      setUsers(usersRes.data.users || []);
+
+      // Try to fetch users (only admins/coordinators can access)
+      try {
+        const usersRes = await axios.get(`${API_BASE}/users`);
+        setUsers(usersRes.data.users || []);
+      } catch (userErr) {
+        // If user fetch fails (volunteers), continue without user data
+        console.log('Cannot fetch users (insufficient permissions)');
+        setUsers([]);
+      }
+      
     } catch (err) {
       setError('Failed to load runs: ' + err.message);
     } finally {
@@ -98,7 +109,10 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
     return format(date, 'MMM d');
   };
 
-  const getUserById = (id) => users.find(u => u.id.toString() === id.toString());
+  const getUserById = (id) => {
+    const user = users.find(u => u.id.toString() === id.toString());
+    return user || { id, name: `User ${id}`, email: '' }; // Fallback for volunteers
+  };
   const getRouteById = (id) => routes.find(r => r.id.toString() === id.toString());
 
   const handleMenuOpen = (event, run) => {
