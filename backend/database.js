@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 // Database connection pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || process.env.DB_CONNECTION_STRING,
+  connectionString: process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL || process.env.DB_CONNECTION_STRING,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
