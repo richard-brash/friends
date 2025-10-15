@@ -42,12 +42,23 @@ const sanitizeUser = (user) => {
 // POST /api/auth/login
 router.post('/login', authLimiter, async (req, res) => {
   try {
+    console.log('🚀 Login attempt started');
+    console.log('📝 Request body:', { email: req.body.email, hasPassword: !!req.body.password });
+    
     const { email, password } = req.body;
 
     // Validate input
     if (!email || !password) {
+      console.log('❌ Missing email or password');
       return res.status(400).json({ error: 'Email and password are required' });
     }
+
+    // Check environment variables
+    console.log('🔧 Environment check:', {
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      hasDatabaseUrl: !!(process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL),
+      nodeEnv: process.env.NODE_ENV
+    });
 
     // Find user by email (now using database)
     console.log('🔍 Looking for user with email:', email);
@@ -55,7 +66,14 @@ router.post('/login', authLimiter, async (req, res) => {
     console.log('👤 Found user:', user ? { id: user.id, email: user.email, role: user.role } : 'NOT FOUND');
     
     if (!user) {
+      console.log('❌ User not found in database');
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Check if user has password_hash
+    if (!user.password_hash) {
+      console.log('❌ User found but no password_hash field');
+      return res.status(500).json({ error: 'User account configuration error' });
     }
 
     // Verify password against password_hash from database
@@ -64,13 +82,17 @@ router.post('/login', authLimiter, async (req, res) => {
     console.log('✅ Password valid:', isValidPassword);
     
     if (!isValidPassword) {
+      console.log('❌ Password verification failed');
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     // Generate token
+    console.log('🎫 Generating JWT token...');
     const token = generateToken(user);
+    console.log('✅ Token generated successfully');
 
     // Return user info and token
+    console.log('🎉 Login successful for user:', user.email);
     res.json({
       user: sanitizeUser(user),
       token,
@@ -78,8 +100,16 @@ router.post('/login', authLimiter, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Internal server error during login' });
+    console.error('❌ Login error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      name: error.name
+    });
+    res.status(500).json({ 
+      error: 'Internal server error during login',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
