@@ -37,10 +37,10 @@ import {
 } from '@mui/icons-material';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 import { API_BASE } from '../../config/api.js';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
-  const { user } = useAuth();
+  const permissions = usePermissions();
   const [runs, setRuns] = useState([]);
   const [routes, setRoutes] = useState([]);
   const [users, setUsers] = useState([]);
@@ -164,8 +164,8 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
         <Typography variant="h4">
           Outreach Runs
         </Typography>
-        {/* Only show Schedule New Run button for admins and coordinators */}
-        {user?.role && ['admin', 'coordinator'].includes(user.role) && (
+        {/* Only show Schedule New Run button if user has permission */}
+        {permissions.canScheduleRuns && (
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -321,13 +321,13 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
               No active runs
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {user?.role && ['admin', 'coordinator'].includes(user.role) 
+              {permissions.canScheduleRuns
                 ? 'Schedule your first outreach run to get started'
                 : 'No active runs scheduled at this time'
               }
             </Typography>
-            {/* Only show Schedule New Run button for admins and coordinators */}
-            {user?.role && ['admin', 'coordinator'].includes(user.role) && (
+            {/* Only show Schedule New Run button if user has permission */}
+            {permissions.canScheduleRuns && (
               <Button variant="contained" startIcon={<Add />} onClick={onCreateRun}>
                 Schedule New Run
               </Button>

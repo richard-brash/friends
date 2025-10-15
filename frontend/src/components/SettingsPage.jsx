@@ -41,6 +41,7 @@ import {
   Clear
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import UserManagement from './admin/UserManagement';
 import DeveloperTools from './DeveloperTools';
 
@@ -76,6 +77,7 @@ export default function SettingsPage() {
   const [error, setError] = useState('');
   
   const { user } = useAuth();
+  const permissions = usePermissions();
 
   // Form state for add/edit dialogs
   const [formData, setFormData] = useState({
@@ -85,11 +87,17 @@ export default function SettingsPage() {
     description: ''
   });
 
-  const tabs = [
-    { label: 'Request Settings', icon: <Category />, requiresRole: ['admin', 'coordinator'] },
-    { label: 'User Management', icon: <People />, requiresRole: ['admin', 'coordinator'] },
-    { label: 'Developer Tools', icon: <Code />, requiresRole: ['admin'] }
-  ].filter(tab => tab.requiresRole.includes(user?.role));
+  // Build tabs array based on permissions instead of roles
+  const tabs = [];
+  if (permissions.canManageSettings) {
+    tabs.push({ label: 'Request Settings', icon: <Category /> });
+  }
+  if (permissions.canViewUsers) {
+    tabs.push({ label: 'User Management', icon: <People /> });
+  }
+  if (permissions.canViewDeveloperTools) {
+    tabs.push({ label: 'Developer Tools', icon: <Code /> });
+  }
 
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);

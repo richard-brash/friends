@@ -54,9 +54,11 @@ import TakeRequestDialog from './TakeRequestDialog';
 import axios from 'axios';
 import { API_BASE } from '../../config/api.js';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export default function RunOverview({ runId, onEdit, onBack }) {
   const { user } = useAuth();
+  const permissions = usePermissions();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [run, setRun] = useState(null);
@@ -546,8 +548,8 @@ export default function RunOverview({ runId, onEdit, onBack }) {
               Manage Team
             </Button>
           )}
-          {/* Only show Edit Run button for admins and coordinators */}
-          {user?.role && ['admin', 'coordinator'].includes(user.role) && (
+          {/* Only show Edit Run button if user has permission */}
+          {permissions.canEditRuns && (
             <Button onClick={() => onEdit(run.id)} variant="contained" startIcon={<Edit />}>
               Edit Run
             </Button>
