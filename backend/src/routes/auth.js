@@ -198,13 +198,15 @@ router.post('/logout', authenticateToken, (req, res) => {
 });
 
 // GET /api/auth/users (Admin and Coordinator)
-router.get('/users', authenticateToken, (req, res) => {
+router.get('/users', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'admin' && req.user.role !== 'coordinator') {
       return res.status(403).json({ error: 'Only administrators and coordinators can view all users' });
     }
 
-    const sanitizedUsers = users.map(sanitizeUser);
+    // Get users from database instead of in-memory array
+    const dbUsers = await userService.getAllUsers();
+    const sanitizedUsers = dbUsers.map(sanitizeUser);
     res.json({ users: sanitizedUsers });
 
   } catch (error) {

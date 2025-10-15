@@ -123,7 +123,7 @@ export const AuthProvider = ({ children }) => {
   // Get all users (admin only)
   const getUsers = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/auth/users`);
+      const response = await axios.get(`${API_BASE}/users`);
       return { success: true, users: response.data.users };
     } catch (error) {
       const errorMessage = error.response?.data?.error || 'Failed to fetch users';
