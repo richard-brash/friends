@@ -79,6 +79,33 @@ const getSectionsForUser = (user) => {
   return baseSections;
 };
 
+// Get sections for mobile bottom navigation (excludes Profile since it's accessible from top menu)
+const getMobileSectionsForUser = (user) => {
+  const baseSections = [
+    { label: 'Runs', Component: RunSection, icon: DirectionsRun },
+  ];
+
+  // Add sections based on user role
+  if (user?.role === 'admin' || user?.role === 'coordinator') {
+    baseSections.push(
+      { label: 'Routes', Component: OutreachDashboard, icon: Route, requiredRoles: ['admin', 'coordinator'] },
+      { label: 'Requests', Component: RequestsSection, icon: Assignment, requiredRoles: ['admin', 'coordinator'] },
+      { label: 'Friends', Component: FriendSection, icon: People, requiredRoles: ['admin', 'coordinator'] }
+    );
+  }
+
+  // Add Settings for admins and coordinators
+  if (user?.role === 'admin' || user?.role === 'coordinator') {
+    baseSections.push(
+      { label: 'Settings', Component: SettingsPage, icon: Settings, requiredRoles: ['admin', 'coordinator'] }
+    );
+  }
+
+  // Profile is excluded from mobile nav since it's accessible from top user menu
+
+  return baseSections;
+};
+
 // Main authenticated app component
 function AuthenticatedApp() {
   const [tab, setTab] = React.useState(0);
@@ -87,8 +114,14 @@ function AuthenticatedApp() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, logout } = useAuth();
 
-  const sections = getSectionsForUser(user);
-  const Section = sections[tab]?.Component;
+  const allSections = getSectionsForUser(user);
+  const mobileSections = getMobileSectionsForUser(user);
+  
+  // Use appropriate sections based on screen size
+  const sections = isMobile ? mobileSections : allSections;
+  
+  // For rendering, always use allSections to handle Profile tab access
+  const Section = allSections[tab]?.Component;
 
   const handleTabChange = (event, newValue) => {
     setTab(newValue);
@@ -160,7 +193,7 @@ function AuthenticatedApp() {
             onClose={handleMenuClose}
             onClick={handleMenuClose}
           >
-            <MenuItem onClick={() => setTab(sections.findIndex(s => s.label === 'Profile'))}>
+            <MenuItem onClick={() => setTab(allSections.findIndex(s => s.label === 'Profile'))}>
               <Settings sx={{ mr: 2 }} />
               Profile & Settings
             </MenuItem>
@@ -211,7 +244,7 @@ function AuthenticatedApp() {
       {/* Mobile Bottom Navigation */}
       {isMobile && (
         <BottomNavigation
-          value={tab}
+          value={tab < sections.length ? tab : 0}
           onChange={handleTabChange}
           showLabels
           sx={{
