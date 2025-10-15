@@ -51,28 +51,50 @@ export default function DeveloperTools() {
     }
   };
 
-  const clearAllData = async () => {
-    if (!window.confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+  const resetDatabase = async () => {
+    if (!window.confirm('Are you sure you want to reset the entire database? This will delete ALL data and reload sample data. This cannot be undone.')) {
       return;
     }
     
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/seed`, {
-        method: 'DELETE',
+      const response = await fetch(`${API_BASE}/reset`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
       
       if (response.ok) {
-        showMessage('All data cleared successfully', 'success');
-        // Refresh the page to show empty state
+        const result = await response.json();
+        showMessage('Database reset and reseeded successfully!', 'success');
+        // Refresh the page to show new data
         setTimeout(() => window.location.reload(), 1500);
       } else {
         const error = await response.json();
-        showMessage(`Failed to clear data: ${error.error}`, 'error');
+        showMessage(`Failed to reset database: ${error.error}`, 'error');
       }
     } catch (error) {
-      showMessage(`Error clearing data: ${error.message}`, 'error');
+      showMessage(`Error resetting database: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkDatabaseHealth = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/health`);
+      const result = await response.json();
+      
+      if (response.ok) {
+        showMessage(
+          `Database Status: ${result.database} | Environment: ${result.environment} | Time: ${result.timestamp}`, 
+          result.database === 'connected' ? 'success' : 'error'
+        );
+      } else {
+        showMessage('Failed to check database health', 'error');
+      }
+    } catch (error) {
+      showMessage(`Error checking database: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -98,17 +120,27 @@ export default function DeveloperTools() {
           color="primary"
           size="small"
         >
-          {loading ? 'Loading...' : '🔄 Load Sample Data'}
+          {loading ? 'Loading...' : '🌱 Seed Database'}
         </Button>
         
         <Button
           variant="outlined"
-          onClick={clearAllData}
+          onClick={resetDatabase}
           disabled={loading}
           color="warning"
           size="small"
         >
-          🗑️ Clear All Data
+          � Reset Database
+        </Button>
+
+        <Button
+          variant="outlined"
+          onClick={checkDatabaseHealth}
+          disabled={loading}
+          color="info"
+          size="small"
+        >
+          🏥 Health Check
         </Button>
 
         {loading && (
@@ -123,7 +155,9 @@ export default function DeveloperTools() {
       )}
 
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
-        💡 Sample data includes realistic friends, locations, routes, runs, and requests for demonstration purposes.
+        💡 <strong>Seed Database:</strong> Adds sample data to current database<br />
+        🔄 <strong>Reset Database:</strong> Completely wipes and recreates all tables with fresh sample data<br />
+        🏥 <strong>Health Check:</strong> Tests database connectivity and shows system status
       </Typography>
     </Paper>
   );

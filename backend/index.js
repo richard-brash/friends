@@ -3,6 +3,16 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+// Initialize environment variables
+dotenv.config();
+
+// Database imports
+import { testConnection, initializeSchema } from './database.js';
+import { resetAndSeed, seedDatabase, seedSampleData } from './seed.js';
+
+// Route imports
 import authRouter from './src/routes/auth.js';
 import usersRouter from './routes/users.js';
 import friendsRouter from './routes/friends.js';
@@ -43,59 +53,89 @@ app.use('/api/routes', routesRouter);
 app.use('/api/runs', runsRouter);
 app.use('/api/requests', requestsRouter);
 
-// Sample data endpoints
-app.post('/api/seed', (req, res) => {
+// Database management endpoints
+app.post('/api/seed', async (req, res) => {
   try {
-    // Clear existing data first
-    users.length = 0;
-    runs.length = 0;
-    requests.length = 0;
-    deliveryAttempts.length = 0;
-    clearAllFriends();
-    clearAllLocations();
-    clearAllRoutes();
-    
-    // Seed data in the correct order (locations first, then routes, then friends)
-    seedLocations(sampleLocations);
-    seedRoutes(sampleRoutes);
-    seedFriends(sampleFriends);
-    users.push(...sampleUsers);
-    runs.push(...sampleRuns);
-    requests.push(...sampleRequests);
-    deliveryAttempts.push(...sampleDeliveryAttempts);
+    console.log('🌱 Seeding sample data via API...');
+    await seedSampleData();
     
     res.json({ 
-      message: 'Sample data loaded successfully',
-      data: {
-        users: sampleUsers.length,
-        friends: sampleFriends.length,
-        locations: sampleLocations.length,
-        routes: sampleRoutes.length,
-        runs: sampleRuns.length,
-        requests: sampleRequests.length,
-        deliveryAttempts: sampleDeliveryAttempts.length
-      }
+      message: 'Sample data seeded successfully',
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to load sample data', details: error.message });
+    console.error('❌ Seeding failed:', error.message);
+    
+    // Fallback to in-memory seeding if database fails
+    try {
+      console.log('⚠️  Database seeding failed, falling back to in-memory...');
+      // Clear existing data first
+      users.length = 0;
+      runs.length = 0;
+      requests.length = 0;
+      deliveryAttempts.length = 0;
+      clearAllFriends();
+      clearAllLocations();
+      clearAllRoutes();
+      
+      // Seed data in the correct order
+      seedLocations(sampleLocations);
+      seedRoutes(sampleRoutes);
+      seedFriends(sampleFriends);
+      users.push(...sampleUsers);
+      runs.push(...sampleRuns);
+      requests.push(...sampleRequests);
+      deliveryAttempts.push(...sampleDeliveryAttempts);
+      
+      res.json({ 
+        message: 'Sample data loaded successfully (in-memory fallback)',
+        data: {
+          users: sampleUsers.length,
+          friends: sampleFriends.length,
+          locations: sampleLocations.length,
+          routes: sampleRoutes.length,
+          runs: sampleRuns.length,
+          requests: sampleRequests.length,
+          deliveryAttempts: sampleDeliveryAttempts.length
+        }
+      });
+    } catch (fallbackError) {
+      res.status(500).json({ 
+        error: 'Failed to load sample data', 
+        details: `Database: ${error.message}, Fallback: ${fallbackError.message}` 
+      });
+    }
   }
 });
 
-app.delete('/api/seed', (req, res) => {
+// Reset database (full wipe and reseed)
+app.post('/api/reset', async (req, res) => {
   try {
-    // Clear all data arrays
-    users.length = 0;
-    runs.length = 0;
-    requests.length = 0;
-    deliveryAttempts.length = 0;
-    clearAllFriends();
-    clearAllLocations();
-    clearAllRoutes();
+    console.log('🔄 Resetting database via API...');
+    await resetAndSeed();
     
-    res.json({ message: 'All data cleared successfully' });
+    res.json({ 
+      message: 'Database reset and seeded successfully',
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to clear data', details: error.message });
+    console.error('❌ Reset failed:', error.message);
+    res.status(500).json({ 
+      error: 'Failed to reset database', 
+      details: error.message 
+    });
   }
+});
+
+// Health check endpoint
+app.get('/api/health', async (req, res) => {
+  const dbConnected = await testConnection();
+  res.json({
+    status: 'ok',
+    database: dbConnected ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Serve static files from frontend dist
@@ -106,37 +146,89 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
-// Load sample data on server startup
-const loadInitialData = () => {
+// Initialize database and start server
+async function startServer() {
   try {
-    console.log('Loading initial sample data...');
+    console.log('🔌 Testing database connection...');
+    const connected = await testConnection();
     
-    // Clear existing data first
-    users.length = 0;
-    runs.length = 0;
-    requests.length = 0;
-    deliveryAttempts.length = 0;
-    clearAllFriends();
-    clearAllLocations();
-    clearAllRoutes();
+    if (connected) {
+      console.log('✅ Database connected successfully');
+      console.log('🔧 Initializing database schema...');
+      await initializeSchema();
+      
+      // Only seed in development, not production
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🌱 Seeding database with sample data...');
+        await seedDatabase();
+      }
+    } else {
+      console.log('⚠️  Database connection failed - falling back to in-memory storage');
+      console.log('Loading initial sample data (in-memory)...');
+      
+      // Clear existing data first
+      users.length = 0;
+      runs.length = 0;
+      requests.length = 0;
+      deliveryAttempts.length = 0;
+      clearAllFriends();
+      clearAllLocations();
+      clearAllRoutes();
+      
+      // Seed data in the correct order
+      seedLocations(sampleLocations);
+      seedRoutes(sampleRoutes);
+      seedFriends(sampleFriends);
+      users.push(...sampleUsers);
+      runs.push(...sampleRuns);
+      requests.push(...sampleRequests);
+      deliveryAttempts.push(...sampleDeliveryAttempts);
+      
+      console.log(`Sample data loaded: ${sampleUsers.length} users, ${sampleFriends.length} friends, ${sampleLocations.length} locations, ${sampleRoutes.length} routes, ${sampleRuns.length} runs, ${sampleRequests.length} requests`);
+    }
     
-    // Seed data in the correct order (locations first, then routes, then friends)
-    seedLocations(sampleLocations);
-    seedRoutes(sampleRoutes);
-    seedFriends(sampleFriends);
-    users.push(...sampleUsers);
-    runs.push(...sampleRuns);
-    requests.push(...sampleRequests);
-    deliveryAttempts.push(...sampleDeliveryAttempts);
+    const PORT = process.env.PORT || 4000;
+    app.listen(PORT, () => {
+      console.log(`🚀 Backend running on port ${PORT}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🗄️  Database: ${connected ? 'Connected (PostgreSQL)' : 'In-Memory Arrays'}`);
+    });
     
-    console.log(`Sample data loaded: ${sampleUsers.length} users, ${sampleFriends.length} friends, ${sampleLocations.length} locations, ${sampleRoutes.length} routes, ${sampleRuns.length} runs, ${sampleRequests.length} requests`);
   } catch (error) {
-    console.error('Failed to load initial data:', error);
+    console.error('❌ Failed to start server:', error.message);
+    process.exit(1);
   }
-};
+}
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
-  loadInitialData();
+startServer();
+
+// Add manual database reset functionality
+process.stdin.setEncoding('utf8');
+process.stdin.on('readable', () => {
+  const chunk = process.stdin.read();
+  if (chunk !== null) {
+    const input = chunk.trim().toLowerCase();
+    if (input === 'reset' || input === 'r') {
+      console.log('🔄 Manual database reset triggered...');
+      resetAndSeed()
+        .then(() => {
+          console.log('✅ Database reset completed successfully!');
+          console.log('💡 You can now login with admin@friendsoutreach.org / password');
+        })
+        .catch((error) => {
+          console.error('❌ Manual reset failed:', error.message);
+        });
+    } else if (input === 'help' || input === 'h') {
+      console.log('📖 Available commands:');
+      console.log('  reset, r  - Reset and reseed database');
+      console.log('  help, h   - Show this help');
+      console.log('  quit, q   - Exit server');
+    } else if (input === 'quit' || input === 'q') {
+      console.log('👋 Shutting down server...');
+      process.exit(0);
+    }
+  }
 });
+
+console.log('💡 Type "reset" or "r" to manually reset the database');
+console.log('💡 Type "help" or "h" for available commands');

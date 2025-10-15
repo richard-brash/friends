@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { authenticateToken, JWT_SECRET } from '../middleware/auth.js';
-import { sampleUsers } from '../../sampleData.js';
+import userService from '../../services/userService.js';
 
 const router = express.Router();
 
@@ -14,10 +14,10 @@ const authLimiter = rateLimit({
   message: { error: 'Too many authentication attempts, please try again later.' }
 });
 
-// Use sample users for consistent demo experience 
-let users = [...sampleUsers];
-
-let nextUserId = 4;
+// Users are now managed in the database via userService
+// Temporary fallback for legacy endpoints (will be removed)
+const users = [];
+let nextUserId = 1000;
 
 // Helper function to generate JWT token
 const generateToken = (user) => {
@@ -49,19 +49,20 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Find user by email
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    // Find user by email (now using database)
+    console.log('🔍 Looking for user with email:', email);
+    const user = await userService.getUserByEmail(email);
+    console.log('👤 Found user:', user ? { id: user.id, email: user.email, role: user.role } : 'NOT FOUND');
+    
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Check if user is active
-    if (!user.active) {
-      return res.status(401).json({ error: 'Account is inactive. Please contact an administrator.' });
-    }
-
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    // Verify password against password_hash from database
+    console.log('🔒 Verifying password...');
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    console.log('✅ Password valid:', isValidPassword);
+    
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -139,10 +140,10 @@ router.post('/register', authenticateToken, async (req, res) => {
 });
 
 // GET /api/auth/me
-router.get('/me', authenticateToken, (req, res) => {
+router.get('/me', authenticateToken, async (req, res) => {
   try {
-    // Find current user
-    const user = users.find(u => u.id === req.user.id);
+    // Find current user in database
+    const user = await userService.getUserById(req.user.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }

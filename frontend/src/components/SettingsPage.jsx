@@ -295,7 +295,7 @@ export default function SettingsPage() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <SettingsIcon color="primary" />
         <Typography variant="h4">
-          System Settings
+          Settings
         </Typography>
       </Box>
 

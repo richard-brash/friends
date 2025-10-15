@@ -37,14 +37,14 @@ export const usePermissions = () => {
     canDeleteRequests: user?.role && ['admin'].includes(user.role),
     
     // User management permissions
-    canViewUsers: user?.role && ['admin', 'coordinator'].includes(user.role),
+    canViewUsers: user?.role && ['admin'].includes(user.role),
     canCreateUsers: user?.role && ['admin'].includes(user.role),
     canEditUsers: user?.role && ['admin'].includes(user.role),
     canDeleteUsers: user?.role && ['admin'].includes(user.role),
     
     // System permissions
     canViewDeveloperTools: user?.role && ['admin'].includes(user.role),
-    canManageSettings: user?.role && ['admin'].includes(user.role),
+    canManageSettings: user?.role && ['admin', 'coordinator', 'volunteer'].includes(user.role),
     
     // Administrative permissions
     canViewReports: user?.role && ['admin', 'coordinator'].includes(user.role),
