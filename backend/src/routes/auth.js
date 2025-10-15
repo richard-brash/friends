@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { authenticateToken, JWT_SECRET } from '../middleware/auth.js';
+import { sampleUsers } from '../../sampleData.js';
 
 const router = express.Router();
 
@@ -13,36 +14,8 @@ const authLimiter = rateLimit({
   message: { error: 'Too many authentication attempts, please try again later.' }
 });
 
-// In-memory user storage for MVP (replace with database in production)
-let users = [
-  {
-    id: 1,
-    name: 'Admin User',
-    email: 'admin@friendsoutreach.org',
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
-    role: 'admin',
-    createdAt: new Date(),
-    active: true
-  },
-  {
-    id: 2,
-    name: 'John Coordinator',
-    email: 'john@friendsoutreach.org',
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
-    role: 'coordinator',
-    createdAt: new Date(),
-    active: true
-  },
-  {
-    id: 3,
-    name: 'Sarah Volunteer',
-    email: 'sarah@friendsoutreach.org',
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
-    role: 'volunteer',
-    createdAt: new Date(),
-    active: true
-  }
-];
+// Use sample users for consistent demo experience 
+let users = [...sampleUsers];
 
 let nextUserId = 4;
 

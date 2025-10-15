@@ -3,40 +3,37 @@
 
 export const sampleUsers = [
   {
-    id: '1',
-    name: 'Alex Johnson',
-    email: 'alex@example.com',
+    id: 1,
+    name: 'Admin User',
+    email: 'admin@friendsoutreach.org',
     phone: '555-0101',
-    role: 'Team Lead',
-    permissions: ['coordinate_runs', 'lead_runs', 'assign_users', 'view_reports'],
-    createdAt: new Date('2024-01-15').toISOString()
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
+    role: 'admin',
+    permissions: ['all_permissions'],
+    active: true,
+    createdAt: new Date('2024-01-15')
   },
   {
-    id: '2', 
-    name: 'Sarah Chen',
-    email: 'sarah@example.com',
+    id: 2, 
+    name: 'John Coordinator',
+    email: 'john@friendsoutreach.org',
     phone: '555-0102',
-    role: 'Outreach Coordinator',
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
+    role: 'coordinator',
     permissions: ['coordinate_runs', 'lead_runs', 'assign_users', 'manage_routes'],
-    createdAt: new Date('2024-02-01').toISOString()
+    active: true,
+    createdAt: new Date('2024-02-01')
   },
   {
-    id: '3',
-    name: 'Mike Torres',
-    email: 'mike.t@example.com', 
+    id: 3,
+    name: 'Sarah Volunteer',
+    email: 'sarah@friendsoutreach.org', 
     phone: '555-0103',
-    role: 'Volunteer',
-    permissions: ['participate_runs', 'view_assignments'],
-    createdAt: new Date('2024-02-10').toISOString()
-  },
-  {
-    id: '4',
-    name: 'Jessica Park',
-    email: 'jessica.p@example.com',
-    phone: '555-0104', 
-    role: 'Team Member',
-    permissions: ['lead_runs', 'participate_runs', 'view_assignments'],
-    createdAt: new Date('2024-02-15').toISOString()
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
+    role: 'volunteer',
+    permissions: ['participate_runs', 'view_assignments', 'field_operations'],
+    active: true,
+    createdAt: new Date('2024-02-10')
   }
 ];
 
@@ -597,9 +594,9 @@ export const sampleRuns = [
   {
     id: '1',
     routeId: '2', // Baltimore City 1
-    leadId: '1', // Lead user
-    coordinatorId: '2', // Coordinator who created the run
-    assignedUserIds: ['1', '3'], // Team members assigned to this run
+    leadId: '1', // Admin User leading
+    coordinatorId: '2', // John Coordinator created the run
+    assignedUserIds: ['1', '3'], // Admin User and Sarah Volunteer
     scheduledDate: new Date('2024-10-20T09:00:00').toISOString(), // Upcoming run
     mealsCount: 30,
     coordinatorNotes: 'Baltimore City 1 route. Focus on service organization connections. Check HC4H and St. Vincent.',
@@ -615,9 +612,9 @@ export const sampleRuns = [
   {
     id: '2',
     routeId: '1', // AACo Route
-    leadId: '4',
-    coordinatorId: '2',
-    assignedUserIds: ['4', '3'],
+    leadId: '3', // Sarah Volunteer leading this run
+    coordinatorId: '2', // John Coordinator coordinating
+    assignedUserIds: ['3', '2'], // Sarah Volunteer and John Coordinator
     scheduledDate: new Date('2024-10-18T11:00:00').toISOString(), // Upcoming run
     mealsCount: 35,
     coordinatorNotes: 'Anne Arundel County route. Check in with Annette, David, and Danielle at their regular spots.',
@@ -632,9 +629,9 @@ export const sampleRuns = [
   {
     id: '3',
     routeId: '3',
-    leadId: '1',
-    coordinatorId: '1', // Alex coordinated his own run
-    assignedUserIds: ['1', '4'],
+    leadId: '1', // Admin User led this run
+    coordinatorId: '1', // Admin User also coordinated
+    assignedUserIds: ['1', '3'], // Admin User and Sarah Volunteer
     scheduledDate: new Date('2024-10-12T10:00:00').toISOString(),
     mealsCount: 45,
     coordinatorNotes: 'Baltimore City 2 comprehensive route. Check MLK corridor and Pigtown areas.',
@@ -650,9 +647,9 @@ export const sampleRuns = [
   {
     id: '4',
     routeId: '1', // AACo Route
-    leadId: '4',
-    coordinatorId: '2',
-    assignedUserIds: ['4', '1'],
+    leadId: '2', // John Coordinator leading this run
+    coordinatorId: '2', // John Coordinator also coordinated
+    assignedUserIds: ['2', '1'], // John Coordinator and Admin User
     scheduledDate: new Date('2024-10-22T09:30:00').toISOString(), // Future run
     mealsCount: 32,
     coordinatorNotes: 'Follow-up AACo run. Focus on Danielle and David connections.',
@@ -667,9 +664,9 @@ export const sampleRuns = [
   {
     id: '5',
     routeId: '3', // Baltimore City 2 - Today's In-Progress Run
-    leadId: '1',
-    coordinatorId: '2',
-    assignedUserIds: ['1', '3', '4'],
+    leadId: '1', // Admin User leading
+    coordinatorId: '2', // John Coordinator coordinating
+    assignedUserIds: ['1', '3'], // Admin User and Sarah Volunteer
     scheduledDate: new Date('2025-10-14T14:00:00').toISOString(), // Today - in progress
     mealsCount: 40,
     coordinatorNotes: 'Active Baltimore City 2 run! Focus on MLK corridor and Pigtown connections.',
