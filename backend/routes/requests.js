@@ -20,12 +20,7 @@ router.get('/', authenticateToken, (req, res) => {
     filteredRequests = filteredRequests.filter(r => r.friendId === req.query.friendId);
   }
   
-  // Filter by run ID
-  if (req.query.runId) {
-    filteredRequests = filteredRequests.filter(r => r.runId === req.query.runId);
-  }
-  
-  // Filter by route ID
+  // Filter by route ID (requests for locations in this route)
   if (req.query.routeId) {
     filteredRequests = filteredRequests.filter(r => r.routeId === req.query.routeId);
   }

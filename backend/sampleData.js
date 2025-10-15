@@ -684,8 +684,7 @@ export const sampleRequests = [
   {
     id: '1',
     friendId: '2', // Emma Thompson
-    runId: '3', // Completed weekend park run
-    locationId: '3', // Riverside Park
+    locationId: '3', // Behind LaFontaine Bleu
     requestDate: new Date('2024-03-10T11:30:00').toISOString(),
     itemCategory: 'clothing', // 'clothing' or 'non-clothing'
     itemRequested: 'Winter jacket',
@@ -703,7 +702,6 @@ export const sampleRequests = [
   {
     id: '2',
     friendId: '4', // Lisa Garcia
-    runId: '5', // Today's in-progress run
     locationId: '2', // University Campus
     requestDate: new Date('2025-10-13T14:15:00').toISOString(),
     itemCategory: 'clothing',
@@ -723,7 +721,6 @@ export const sampleRequests = [
   {
     id: '3',
     friendId: '6', // Glen (MLK Boulevard regular)
-    runId: '1', // Scheduled Baltimore City 1 run
     locationId: '25', // MLK Boulevard Area
     requestDate: new Date('2024-10-15T09:45:00').toISOString(),
     itemCategory: 'non-clothing',
@@ -743,7 +740,6 @@ export const sampleRequests = [
   {
     id: '4',
     friendId: '2', // David (at Ollie's)
-    runId: '5', // Today's in-progress run
     locationId: '8', // Ollie's (David's location)
     requestDate: new Date('2025-10-13T14:45:00').toISOString(),
     itemCategory: 'clothing',
@@ -763,7 +759,6 @@ export const sampleRequests = [
   {
     id: '5',
     friendId: '1', // Mike Rodriguez
-    runId: '2', // Campus lunch run
     locationId: '2', // University Campus
     requestDate: new Date('2025-10-13T12:30:00').toISOString(),
     itemCategory: 'clothing',
@@ -783,8 +778,7 @@ export const sampleRequests = [
   {
     id: '6',
     friendId: '2', // Emma Thompson
-    runId: '4', // Weekend park run
-    locationId: '3', // Riverside Park
+    locationId: '3', // Behind LaFontaine Bleu
     requestDate: new Date('2025-10-12T16:00:00').toISOString(),
     itemCategory: 'non-clothing',
     itemRequested: 'Personal hygiene kit',
@@ -803,7 +797,6 @@ export const sampleRequests = [
   {
     id: '7',
     friendId: '3', // David Kim
-    runId: '1', // Scheduled downtown run
     locationId: '1', // Downtown Coffee District
     requestDate: new Date('2025-10-13T10:00:00').toISOString(),
     itemCategory: 'clothing',
@@ -823,7 +816,6 @@ export const sampleRequests = [
   {
     id: '8',
     friendId: '2', // Emma Thompson
-    runId: '5', // Today's in-progress run
     locationId: '3', // Riverside Park
     requestDate: new Date('2025-10-12T11:30:00').toISOString(),
     itemCategory: 'non-clothing', 
@@ -843,7 +835,6 @@ export const sampleRequests = [
   {
     id: '9',
     friendId: '4', // Lisa Garcia
-    runId: '4', // Weekend park run
     locationId: '2', // University Campus
     requestDate: new Date('2025-10-11T14:00:00').toISOString(),
     itemCategory: 'clothing',
@@ -867,7 +858,6 @@ export const sampleDeliveryAttempts = [
     id: '1',
     requestId: '1', // Emma's winter jacket
     attemptDate: new Date('2024-03-15T10:00:00').toISOString(),
-    runId: '4', // Follow-up downtown run
     locationId: '3', // Riverside Park - her usual location
     userId: '4', // Jessica Park
     outcome: 'delivered',
@@ -878,7 +868,6 @@ export const sampleDeliveryAttempts = [
     id: '2',
     requestId: '2', // Lisa's interview attire - unsuccessful attempt
     attemptDate: new Date('2025-10-13T11:00:00').toISOString(),
-    runId: '5', // Today's in-progress run
     locationId: '2', // University Campus
     userId: '1', // Alex Johnson
     outcome: 'not_found',
@@ -889,7 +878,6 @@ export const sampleDeliveryAttempts = [
     id: '3',
     requestId: '6', // Emma's hygiene kit - first unsuccessful attempt
     attemptDate: new Date('2025-10-12T17:00:00').toISOString(),
-    runId: '4', // Weekend park run
     locationId: '3', // Riverside Park
     userId: '2', // Sarah Chen
     outcome: 'not_available',
@@ -900,7 +888,6 @@ export const sampleDeliveryAttempts = [
     id: '4',
     requestId: '6', // Emma's hygiene kit - second unsuccessful attempt
     attemptDate: new Date('2025-10-13T08:30:00').toISOString(),
-    runId: '5', // Today's in-progress run
     locationId: '3', // Riverside Park
     userId: '2', // Sarah Chen
     outcome: 'not_found',
@@ -911,7 +898,6 @@ export const sampleDeliveryAttempts = [
     id: '5',
     requestId: '8', // Emma's bus pass - successful delivery
     attemptDate: new Date('2025-10-13T15:30:00').toISOString(),
-    runId: '5', // Today's in-progress run
     locationId: '3', // Riverside Park
     userId: '1', // Alex Johnson
     outcome: 'delivered',
@@ -922,7 +908,6 @@ export const sampleDeliveryAttempts = [
     id: '6',
     requestId: '9', // Lisa's winter coat - first unsuccessful attempt
     attemptDate: new Date('2025-10-12T14:30:00').toISOString(),
-    runId: '4', // Weekend park run
     locationId: '2', // University Campus
     userId: '2', // Sarah Chen
     outcome: 'not_found',
@@ -933,7 +918,6 @@ export const sampleDeliveryAttempts = [
     id: '7',
     requestId: '9', // Lisa's winter coat - successful delivery
     attemptDate: new Date('2025-10-12T16:45:00').toISOString(),
-    runId: '4', // Weekend park run
     locationId: '2', // University Campus
     userId: '2', // Sarah Chen
     outcome: 'delivered',

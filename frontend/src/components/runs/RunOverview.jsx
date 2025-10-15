@@ -121,13 +121,9 @@ export default function RunOverview({ runId, onEdit, onBack }) {
         const routeInfo = routesData.routes?.find(r => r.id.toString() === runData.run.routeId.toString());
         setRoute(routeInfo);
         
-        // Get locations for this route in correct order
-        if (routeInfo && routeInfo.locationIds) {
-          const routeLocations = routeInfo.locationIds.map(id => 
-            locationsData.locations?.find(l => l.id.toString() === id.toString())
-          ).filter(Boolean);
-          setLocations(routeLocations);
-        }
+        // Load ALL locations (not just route locations) for request lookups
+        // This ensures requests for any location can be properly displayed
+        setLocations(locationsData.locations || []);
         
         setUsers(usersData.users || []);
         setRequests(requestsData.requests || []);
