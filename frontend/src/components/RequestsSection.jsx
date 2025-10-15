@@ -63,7 +63,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = '/api';
 
 export default function RequestsSection() {
   const [requests, setRequests] = useState([]);

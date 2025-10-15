@@ -19,7 +19,7 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = '/api';
 
 export default function CreateRunForm({ onRunCreated, onCancel }) {
   const [routes, setRoutes] = useState([]);

@@ -50,10 +50,9 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import ManageTeamDialog from './ManageTeamDialog';
-import axios from 'axios';
 import TakeRequestDialog from './TakeRequestDialog';
-
-const API_BASE = 'http://localhost:4000/api';
+import axios from 'axios';
+import { API_BASE } from '../../config/api.js';
 
 export default function RunOverview({ runId, onEdit, onBack }) {
   const theme = useTheme();

@@ -31,8 +31,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import axios from 'axios';
-
-const API_BASE = 'http://localhost:4000/api';
+import { API_BASE } from '../../config/api.js';
 
 export default function TakeRequestDialog({ 
   open, 

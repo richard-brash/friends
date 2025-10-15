@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { Person, Group } from '@mui/icons-material';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = '/api';
 
 export default function ManageTeamDialog({ open, onClose, runId, onTeamUpdated }) {
   const [run, setRun] = useState(null);

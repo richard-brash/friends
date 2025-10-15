@@ -36,8 +36,7 @@ import {
   Group
 } from '@mui/icons-material';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
-
-const API_BASE = 'http://localhost:4000/api';
+import { API_BASE } from '../../config/api.js';
 
 export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
   const [runs, setRuns] = useState([]);

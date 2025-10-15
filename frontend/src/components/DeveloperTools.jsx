@@ -9,7 +9,7 @@ import {
   Divider
 } from '@mui/material';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = '/api';
 
 export default function DeveloperTools() {
   const [loading, setLoading] = useState(false);

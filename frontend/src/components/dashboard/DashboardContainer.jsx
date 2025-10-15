@@ -16,8 +16,8 @@ export default function DashboardContainer({ showToast, setError }) {
     setLoading(true);
     try {
       const [routesRes, locsRes] = await Promise.all([
-        axios.get("http://localhost:4000/api/routes"),
-        axios.get("http://localhost:4000/api/locations")
+        axios.get("/api/routes"),
+        axios.get("/api/locations")
       ]);
       const routesData = routesRes.data;
       const locsData = locsRes.data;
@@ -48,7 +48,7 @@ export default function DashboardContainer({ showToast, setError }) {
     setRoutes(prevRoutes => [...prevRoutes, tempRoute]);
     
     try {
-      const res = await axios.post("http://localhost:4000/api/routes", { name });
+      const res = await axios.post("/api/routes", { name });
       const response = res.data;
       
       // Handle both response formats: {route: {...}} or {...}
@@ -85,7 +85,7 @@ export default function DashboardContainer({ showToast, setError }) {
     }
     
     try {
-      const res = await axios.post("http://localhost:4000/api/locations", loc);
+      const res = await axios.post("/api/locations", loc);
       const response = res.data;
       
       // Handle both response formats: {location: {...}} or {...}
@@ -130,7 +130,7 @@ export default function DashboardContainer({ showToast, setError }) {
     ));
     
     try {
-      const res = await axios.patch(`http://localhost:4000/api/routes/${routeId}`, { name });
+      const res = await axios.patch(`/api/routes/${routeId}`, { name });
       showToast && showToast("Route updated");
     } catch {
       // Rollback on error
@@ -154,10 +154,10 @@ export default function DashboardContainer({ showToast, setError }) {
     try {
       // Disassociate all locations from this route
       for (const loc of routeLocations) {
-        await axios.patch(`http://localhost:4000/api/locations/${loc.id}`, { routeId: null });
+        await axios.patch(`/api/locations/${loc.id}`, { routeId: null });
       }
       // Now delete the route
-      const res = await axios.delete(`http://localhost:4000/api/routes/${routeId}`);
+      const res = await axios.delete(`/api/routes/${routeId}`);
       showToast && showToast("Route deleted");
     } catch {
       // Rollback on error
@@ -182,7 +182,7 @@ export default function DashboardContainer({ showToast, setError }) {
       if ('routeId' in payload) {
         payload.routeId = payload.routeId === "" || payload.routeId === undefined ? null : Number(payload.routeId);
       }
-      const res = await axios.patch(`http://localhost:4000/api/locations/${locId}`, payload);
+      const res = await axios.patch(`/api/locations/${locId}`, payload);
       showToast && showToast("Location updated");
     } catch {
       // Rollback on error
@@ -204,7 +204,7 @@ export default function DashboardContainer({ showToast, setError }) {
     })));
 
     try {
-      const res = await axios.delete(`http://localhost:4000/api/locations/${locId}`);
+      const res = await axios.delete(`/api/locations/${locId}`);
       showToast && showToast("Location deleted");
     } catch {
       // Rollback on error
@@ -241,7 +241,7 @@ export default function DashboardContainer({ showToast, setError }) {
     }));
 
     try {
-      const res = await axios.patch(`http://localhost:4000/api/locations/${locId}`, {
+      const res = await axios.patch(`/api/locations/${locId}`, {
         description: loc.description,
         notes: loc.notes,
         routeId: newRouteId === "" || newRouteId === undefined ? null : Number(newRouteId)
@@ -266,7 +266,7 @@ export default function DashboardContainer({ showToast, setError }) {
     try {
       const route = routes.find(r => r.id === routeId);
       if (!route) return;
-      const res = await axios.patch(`http://localhost:4000/api/routes/${routeId}`, { 
+      const res = await axios.patch(`/api/routes/${routeId}`, { 
         name: route.name, 
         locationIds: newLocOrder 
       });
