@@ -101,16 +101,84 @@ export default function DeveloperTools() {
   };
 
   return (
-    <Paper sx={{ p: 3, mt: 2, bgcolor: 'grey.50', border: '1px dashed grey.300' }}>
-      <Typography variant="h6" color="primary" sx={{ mb: 1 }}>
-        🔧 Developer Tools
-      </Typography>
-      
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        These tools help you quickly test the application with sample data or reset to a clean state.
-      </Typography>
+    <Box>
+      {/* Help & Documentation Section */}
+      <Paper sx={{ p: 3, mb: 2, bgcolor: 'blue.50', border: '1px solid', borderColor: 'primary.200' }}>
+        <Typography variant="h6" color="primary" sx={{ mb: 1 }}>
+          📚 Help & Documentation
+        </Typography>
+        
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Access user manuals, report bugs, and request new features through GitHub.
+        </Typography>
 
-      <Divider sx={{ mb: 2 }} />
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            onClick={() => window.open('https://github.com/richard-brash/friends/blob/main/USER_MANUAL.md', '_blank')}
+          >
+            📖 User Manual
+          </Button>
+          
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={() => window.open('https://github.com/richard-brash/friends/issues/new?template=bug_report.md', '_blank')}
+          >
+            🐛 Report Bug
+          </Button>
+          
+          <Button
+            variant="outlined"
+            color="success"
+            size="small"
+            onClick={() => window.open('https://github.com/richard-brash/friends/issues/new?template=feature_request.md', '_blank')}
+          >
+            ✨ Request Feature
+          </Button>
+          
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => window.open('https://github.com/richard-brash/friends/issues/new?template=user_feedback.md', '_blank')}
+          >
+            💬 Give Feedback
+          </Button>
+        </Box>
+        
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Button
+            variant="text"
+            size="small"
+            onClick={() => window.open('https://github.com/richard-brash/friends/issues', '_blank')}
+          >
+            View All Issues
+          </Button>
+          
+          <Button
+            variant="text"
+            size="small"
+            onClick={() => window.open('https://github.com/richard-brash/friends/projects', '_blank')}
+          >
+            Development Progress
+          </Button>
+        </Box>
+      </Paper>
+
+      {/* Developer Tools Section */}
+      <Paper sx={{ p: 3, mt: 2, bgcolor: 'grey.50', border: '1px dashed grey.300' }}>
+        <Typography variant="h6" color="primary" sx={{ mb: 1 }}>
+          🔧 Developer Tools
+        </Typography>
+        
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          These tools help you quickly test the application with sample data or reset to a clean state.
+        </Typography>
+
+        <Divider sx={{ mb: 2 }} />
 
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <Button
@@ -154,11 +222,12 @@ export default function DeveloperTools() {
         </Alert>
       )}
 
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
-        💡 <strong>Seed Database:</strong> Adds sample data to current database<br />
-        🔄 <strong>Reset Database:</strong> Completely wipes and recreates all tables with fresh sample data<br />
-        🏥 <strong>Health Check:</strong> Tests database connectivity and shows system status
-      </Typography>
-    </Paper>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
+          💡 <strong>Seed Database:</strong> Adds sample data to current database<br />
+          🔄 <strong>Reset Database:</strong> Completely wipes and recreates all tables with fresh sample data<br />
+          🏥 <strong>Health Check:</strong> Tests database connectivity and shows system status
+        </Typography>
+      </Paper>
+    </Box>
   );
 }
