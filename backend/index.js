@@ -106,7 +106,37 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
+// Load sample data on server startup
+const loadInitialData = () => {
+  try {
+    console.log('Loading initial sample data...');
+    
+    // Clear existing data first
+    users.length = 0;
+    runs.length = 0;
+    requests.length = 0;
+    deliveryAttempts.length = 0;
+    clearAllFriends();
+    clearAllLocations();
+    clearAllRoutes();
+    
+    // Seed data in the correct order (locations first, then routes, then friends)
+    seedLocations(sampleLocations);
+    seedRoutes(sampleRoutes);
+    seedFriends(sampleFriends);
+    users.push(...sampleUsers);
+    runs.push(...sampleRuns);
+    requests.push(...sampleRequests);
+    deliveryAttempts.push(...sampleDeliveryAttempts);
+    
+    console.log(`Sample data loaded: ${sampleUsers.length} users, ${sampleFriends.length} friends, ${sampleLocations.length} locations, ${sampleRoutes.length} routes, ${sampleRuns.length} runs, ${sampleRequests.length} requests`);
+  } catch (error) {
+    console.error('Failed to load initial data:', error);
+  }
+};
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
+  loadInitialData();
 });
