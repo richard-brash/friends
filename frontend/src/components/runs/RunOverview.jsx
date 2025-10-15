@@ -127,11 +127,14 @@ export default function RunOverview({ runId, onEdit, onBack }) {
         setAllLocations(allLocations);
         
         // Filter locations to only include those on this route
-        // This ensures proper Run → Route → Locations → Friends → Requests relationship
+        // IMPORTANT: Maintain the original route order for currentLocationIndex to work correctly
         const routeLocationIds = routeInfo?.locationIds || [];
-        const routeLocations = allLocations.filter(loc => 
-          routeLocationIds.includes(loc.id.toString())
-        );
+        const routeLocations = routeLocationIds
+          .map(locationId => allLocations.find(loc => loc.id.toString() === locationId.toString()))
+          .filter(Boolean); // Remove any undefined locations
+        
+
+        
         setLocations(routeLocations);
         
         setUsers(usersData.users || []);
@@ -459,11 +462,15 @@ export default function RunOverview({ runId, onEdit, onBack }) {
   const routeLocationIds = route?.locationIds || [];
 
   // Get ready for delivery requests (only for locations on this route)
+  // Handle both string and number locationIds in route data
   const readyForDeliveryRequests = requests.filter(r => 
     r.status === 'ready_for_delivery' && 
     r.friendId && 
-    routeLocationIds.includes(r.locationId?.toString())
+    (routeLocationIds.includes(r.locationId?.toString()) || 
+     routeLocationIds.includes(Number(r.locationId)))
   );
+  
+
 
   // Get requests for current location
   const currentLocationRequests = nextLocation 
