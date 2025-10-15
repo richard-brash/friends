@@ -79,7 +79,7 @@ const getSectionsForUser = (user) => {
   return baseSections;
 };
 
-// Get sections for mobile bottom navigation (excludes Profile since it's accessible from top menu)
+  // Get sections for mobile bottom navigation (excludes Profile since it's accessible from top menu)
 const getMobileSectionsForUser = (user) => {
   const baseSections = [
     { label: 'Runs', Component: RunSection, icon: DirectionsRun },
@@ -101,12 +101,23 @@ const getMobileSectionsForUser = (user) => {
     );
   }
 
+  // Add Help for all mobile users
+  baseSections.push(
+    { 
+      label: 'Help', 
+      Component: () => {
+        // Redirect to manual when accessed
+        window.open('https://github.com/richard-brash/friends/wiki', '_blank');
+        return null;
+      }, 
+      icon: () => '📚'
+    }
+  );
+
   // Profile is excluded from mobile nav since it's accessible from top user menu
 
   return baseSections;
-};
-
-// Main authenticated app component
+};// Main authenticated app component
 function AuthenticatedApp() {
   const [tab, setTab] = React.useState(0);
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -164,6 +175,19 @@ function AuthenticatedApp() {
           
           {/* User Menu */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {/* Help Button */}
+            <IconButton
+              color="inherit"
+              onClick={() => window.open('https://github.com/richard-brash/friends/wiki', '_blank')}
+              title="User Manual & Help"
+              sx={{ 
+                bgcolor: 'rgba(255,255,255,0.1)', 
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+              }}
+            >
+              📚
+            </IconButton>
+            
             <Chip
               icon={<AccountCircle />}
               label={user?.name}
@@ -193,6 +217,9 @@ function AuthenticatedApp() {
             onClose={handleMenuClose}
             onClick={handleMenuClose}
           >
+            <MenuItem onClick={() => window.open('https://github.com/richard-brash/friends/wiki', '_blank')}>
+              📚 User Manual & Help
+            </MenuItem>
             <MenuItem onClick={() => setTab(allSections.findIndex(s => s.label === 'Profile'))}>
               <Settings sx={{ mr: 2 }} />
               Profile & Settings
