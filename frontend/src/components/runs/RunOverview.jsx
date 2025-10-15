@@ -53,8 +53,10 @@ import ManageTeamDialog from './ManageTeamDialog';
 import TakeRequestDialog from './TakeRequestDialog';
 import axios from 'axios';
 import { API_BASE } from '../../config/api.js';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function RunOverview({ runId, onEdit, onBack }) {
+  const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [run, setRun] = useState(null);
@@ -544,9 +546,12 @@ export default function RunOverview({ runId, onEdit, onBack }) {
               Manage Team
             </Button>
           )}
-          <Button onClick={() => onEdit(run.id)} variant="contained" startIcon={<Edit />}>
-            Edit Run
-          </Button>
+          {/* Only show Edit Run button for admins and coordinators */}
+          {user?.role && ['admin', 'coordinator'].includes(user.role) && (
+            <Button onClick={() => onEdit(run.id)} variant="contained" startIcon={<Edit />}>
+              Edit Run
+            </Button>
+          )}
         </Box>
       </Box>
 
