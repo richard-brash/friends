@@ -1,4 +1,4 @@
-const { query } = require('../database');
+import { query } from '../database.js';
 
 class RunService {
   // Get all runs with route and team info
@@ -120,4 +120,4 @@ class RunService {
   }
 }
 
-module.exports = new RunService();
+export default new RunService();

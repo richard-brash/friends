@@ -1,4 +1,4 @@
-const { query } = require('../database');
+import { query } from '../database.js';
 
 class LocationService {
   // Get all locations with route info
@@ -86,4 +86,4 @@ class LocationService {
   }
 }
 
-module.exports = new LocationService();
+export default new LocationService();

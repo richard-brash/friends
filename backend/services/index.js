@@ -1,12 +1,12 @@
 // Central exports for all services
-const userService = require('./userService');
-const routeService = require('./routeService');
-const locationService = require('./locationService');
-const friendService = require('./friendService');
-const runService = require('./runService');
-const requestService = require('./requestService');
+import userService from './userService.js';
+import routeService from './routeService.js';
+import locationService from './locationService.js';
+import friendService from './friendService.js';
+import runService from './runService.js';
+import requestService from './requestService.js';
 
-module.exports = {
+export {
   userService,
   routeService,
   locationService,

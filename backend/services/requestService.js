@@ -1,4 +1,4 @@
-const { query } = require('../database');
+import { query } from '../database.js';
 
 class RequestService {
   // Get all requests with friend, location, and run info
@@ -164,4 +164,4 @@ class RequestService {
   }
 }
 
-module.exports = new RequestService();
+export default new RequestService();

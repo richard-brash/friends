@@ -1,4 +1,4 @@
-const { query } = require('../database');
+import { query } from '../database.js';
 
 class FriendService {
   // Get all friends with location and route info
@@ -99,4 +99,4 @@ class FriendService {
   }
 }
 
-module.exports = new FriendService();
+export default new FriendService();
