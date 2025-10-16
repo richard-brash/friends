@@ -41,6 +41,32 @@ app.use(cors());
 app.use(cookieParser());
 app.use(express.json());
 
+// Health check endpoint for debugging Railway deployment
+app.get('/api/health', async (req, res) => {
+  try {
+    const dbConnected = await testConnection();
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      database: {
+        connected: dbConnected,
+        hasUrl: !!(process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL)
+      },
+      auth: {
+        hasJwtSecret: !!process.env.JWT_SECRET
+      },
+      port: process.env.PORT || 4000
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // API routes
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
