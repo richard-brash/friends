@@ -13,7 +13,11 @@ class FriendService {
       GROUP BY f.id, l.name, r.name, r.color
       ORDER BY r.name, l.order_in_route, f.name
     `);
-    return result.rows;
+    // Add frontend-compatible field names
+    return result.rows.map(friend => ({
+      ...friend,
+      locationId: friend.location_id
+    }));
   }
 
   // Get friends by location ID
@@ -26,7 +30,11 @@ class FriendService {
       GROUP BY f.id
       ORDER BY f.name
     `, [locationId]);
-    return result.rows;
+    // Add frontend-compatible field names
+    return result.rows.map(friend => ({
+      ...friend,
+      locationId: friend.location_id
+    }));
   }
 
   // Get friend by ID with requests

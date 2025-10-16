@@ -16,7 +16,11 @@ class RunService {
       GROUP BY r.id, rt.name, rt.color, u.name
       ORDER BY r.scheduled_date DESC, r.start_time
     `);
-    return result.rows;
+    // Add frontend-compatible field names
+    return result.rows.map(run => ({
+      ...run,
+      routeId: run.route_id
+    }));
   }
 
   // Get run by ID with full details
@@ -53,8 +57,10 @@ class RunService {
       ORDER BY l.order_in_route, f.name
     `, [id]);
 
+    const run = runResult.rows[0];
     return {
-      ...runResult.rows[0],
+      ...run,
+      routeId: run.route_id, // Add for frontend compatibility
       team: teamResult.rows,
       requests: requestsResult.rows
     };

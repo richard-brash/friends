@@ -31,7 +31,8 @@ class RouteService {
 
     return {
       ...routeResult.rows[0],
-      locations: locationsResult.rows
+      locations: locationsResult.rows,
+      locationIds: locationsResult.rows.map(loc => loc.id) // Add for frontend compatibility
     };
   }
 

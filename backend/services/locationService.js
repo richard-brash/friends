@@ -12,7 +12,11 @@ class LocationService {
       GROUP BY l.id, r.name, r.color
       ORDER BY r.name, l.order_in_route
     `);
-    return result.rows;
+    // Add frontend-compatible field names
+    return result.rows.map(location => ({
+      ...location,
+      routeId: location.route_id
+    }));
   }
 
   // Get locations by route ID
@@ -25,7 +29,11 @@ class LocationService {
       GROUP BY l.id
       ORDER BY l.order_in_route
     `, [routeId]);
-    return result.rows;
+    // Add frontend-compatible field names
+    return result.rows.map(location => ({
+      ...location,
+      routeId: location.route_id
+    }));
   }
 
   // Get location by ID with friends
