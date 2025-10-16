@@ -29,9 +29,6 @@ import {
   sampleRequests,
   sampleDeliveryAttempts 
 } from './cleanSampleData.js';
-import { users } from './routes/users.js';
-import { runs } from './routes/runs.js';
-import { requests, deliveryAttempts } from './routes/requests.js';
 import { seedFriends, clearAllFriends } from './models/friend.js';
 import { seedLocations, clearAllLocations } from './models/location.js';
 import { seedRoutes, clearAllRoutes } from './models/route.js';
@@ -65,57 +62,10 @@ app.post('/api/seed', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Seeding failed:', error.message);
-    
-    // Fallback to in-memory seeding if database fails
-    try {
-      console.log('⚠️  Database seeding failed, falling back to in-memory...');
-      // Clear existing data first
-      users.length = 0;
-      runs.length = 0;
-      requests.length = 0;
-      deliveryAttempts.length = 0;
-      clearAllFriends();
-      clearAllLocations();
-      clearAllRoutes();
-      
-      // Import the sample data properly
-      const { 
-        sampleUsers: realUsers, 
-        sampleLocations: realLocations, 
-        sampleRoutes: realRoutes, 
-        sampleFriends: realFriends, 
-        sampleRuns: realRuns, 
-        sampleRequests: realRequests,
-        sampleDeliveryAttempts: realDeliveryAttempts
-      } = await import('./cleanSampleData.js');
-      
-      // Seed data in the correct order
-      seedLocations(realLocations);
-      seedRoutes(realRoutes);
-      seedFriends(realFriends);
-      users.push(...realUsers);
-      runs.push(...realRuns);
-      requests.push(...realRequests);
-      deliveryAttempts.push(...realDeliveryAttempts);
-      
-      res.json({ 
-        message: 'Sample data loaded successfully (in-memory fallback)',
-        data: {
-          users: realUsers.length,
-          friends: realFriends.length,
-          locations: realLocations.length,
-          routes: realRoutes.length,
-          runs: realRuns.length,
-          requests: realRequests.length,
-          deliveryAttempts: realDeliveryAttempts.length
-        }
-      });
-    } catch (fallbackError) {
-      res.status(500).json({ 
-        error: 'Failed to load sample data', 
-        details: `Database: ${error.message}, Fallback: ${fallbackError.message}` 
-      });
-    }
+    res.status(500).json({ 
+      error: 'Database seeding failed',
+      details: error.message
+    });
   }
 });
 
