@@ -1,12 +1,19 @@
 import express from 'express';
+import runService from '../services/runService.js';
 import { authenticateToken, authorizeRoles } from '../src/middleware/auth.js';
+
 const router = express.Router();
 
-// In-memory storage for runs
-export let runs = [];
-
 // Get all runs
-router.get('/', authenticateToken, (req, res) => res.json({ runs }));
+router.get('/', authenticateToken, async (req, res) => {
+	try {
+		const runs = await runService.getAllRuns();
+		res.json({ runs });
+	} catch (error) {
+		console.error('Error fetching runs:', error);
+		res.status(500).json({ error: 'Failed to fetch runs' });
+	}
+});
 
 // Get a specific run by ID
 router.get('/:id', (req, res) => {

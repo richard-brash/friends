@@ -78,25 +78,36 @@ app.post('/api/seed', async (req, res) => {
       clearAllLocations();
       clearAllRoutes();
       
+      // Import the sample data properly
+      const { 
+        sampleUsers: realUsers, 
+        sampleLocations: realLocations, 
+        sampleRoutes: realRoutes, 
+        sampleFriends: realFriends, 
+        sampleRuns: realRuns, 
+        sampleRequests: realRequests,
+        sampleDeliveryAttempts: realDeliveryAttempts
+      } = await import('./cleanSampleData.js');
+      
       // Seed data in the correct order
-      seedLocations(sampleLocations);
-      seedRoutes(sampleRoutes);
-      seedFriends(sampleFriends);
-      users.push(...sampleUsers);
-      runs.push(...sampleRuns);
-      requests.push(...sampleRequests);
-      deliveryAttempts.push(...sampleDeliveryAttempts);
+      seedLocations(realLocations);
+      seedRoutes(realRoutes);
+      seedFriends(realFriends);
+      users.push(...realUsers);
+      runs.push(...realRuns);
+      requests.push(...realRequests);
+      deliveryAttempts.push(...realDeliveryAttempts);
       
       res.json({ 
         message: 'Sample data loaded successfully (in-memory fallback)',
         data: {
-          users: sampleUsers.length,
-          friends: sampleFriends.length,
-          locations: sampleLocations.length,
-          routes: sampleRoutes.length,
-          runs: sampleRuns.length,
-          requests: sampleRequests.length,
-          deliveryAttempts: sampleDeliveryAttempts.length
+          users: realUsers.length,
+          friends: realFriends.length,
+          locations: realLocations.length,
+          routes: realRoutes.length,
+          runs: realRuns.length,
+          requests: realRequests.length,
+          deliveryAttempts: realDeliveryAttempts.length
         }
       });
     } catch (fallbackError) {

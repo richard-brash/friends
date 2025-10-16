@@ -1,23 +1,18 @@
 import express from 'express';
 import { authenticateToken } from '../src/middleware/auth.js';
-import { 
-  getAllFriends, 
-  addFriend, 
-  updateFriend, 
-  addLocationToFriendHistory,
-  updateLocationHistory,
-  removeLocationHistory,
-  deleteFriend,
-  getFriendsAtLocation,
-  getFriendsLastSeenAt
-} from '../models/friend.js';
-import { locations } from '../models/location.js';
+import friendService from '../services/friendService.js';
 
 const router = express.Router();
 
 // Get all friends
-router.get('/', authenticateToken, (req, res) => {
-  res.json({ friends: getAllFriends(locations) });
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const friends = await friendService.getAllFriends();
+    res.json({ friends });
+  } catch (error) {
+    console.error('Error fetching friends:', error);
+    res.status(500).json({ error: 'Failed to fetch friends' });
+  }
 });
 
 // Get friends at a specific location (ever or currently)

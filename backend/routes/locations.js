@@ -1,13 +1,19 @@
 import express from 'express';
-import { getAllLocations, addLocation, updateLocation, deleteLocation } from '../models/location.js';
-import { routes } from '../models/route.js';
+import locationService from '../services/locationService.js';
 import { authenticateToken, authorizeRoles } from '../src/middleware/auth.js';
+
 const router = express.Router();
 
 // Get all locations - accessible to all authenticated users
 // Return locations with routeId and routeName if present
-router.get('/', authenticateToken, (req, res) => {
-	res.json({ locations: getAllLocations(routes) });
+router.get('/', authenticateToken, async (req, res) => {
+	try {
+		const locations = await locationService.getAllLocations();
+		res.json({ locations });
+	} catch (error) {
+		console.error('Error fetching locations:', error);
+		res.status(500).json({ error: 'Failed to fetch locations' });
+	}
 });
 
 // Add a location - volunteers can add during field work
