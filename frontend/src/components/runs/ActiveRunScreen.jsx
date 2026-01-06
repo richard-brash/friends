@@ -35,7 +35,7 @@ import {
   Flag as FlagIcon
 } from '@mui/icons-material';
 import { API_BASE } from '../../config/api';
-import syncQueue from '../utils/offlineSync';
+import syncQueue from '../../utils/offlineSync';
 
 export default function ActiveRunScreen() {
   const { id } = useParams();
