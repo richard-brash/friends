@@ -25,7 +25,7 @@ import {
   PlayArrow as PlayArrowIcon,
   ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
-import { API_BASE_URL } from '../config/api';
+import { API_BASE } from '../../config/api';
 import syncQueue from '../utils/offlineSync';
 
 export default function RunPreparationScreen() {
@@ -59,7 +59,7 @@ export default function RunPreparationScreen() {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${API_BASE_URL}/api/v2/execution/${id}/preparation`, {
+      const response = await fetch(`${API_BASE}/v2/execution/${id}/preparation`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -34,7 +34,7 @@ import {
   Map as MapIcon,
   Flag as FlagIcon
 } from '@mui/icons-material';
-import { API_BASE_URL } from '../config/api';
+import { API_BASE } from '../../config/api';
 import syncQueue from '../utils/offlineSync';
 
 export default function ActiveRunScreen() {
@@ -90,7 +90,7 @@ export default function ActiveRunScreen() {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${API_BASE_URL}/api/v2/execution/${id}/execution`, {
+      const response = await fetch(`${API_BASE}/v2/execution/${id}/execution`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -138,7 +138,7 @@ export default function ActiveRunScreen() {
       const token = localStorage.getItem('token');
       
       const response = await fetch(
-        `${API_BASE_URL}/api/v2/execution/${id}/changes?since=${lastSync}`,
+        `${API_BASE}/v2/execution/${id}/changes?since=${lastSync}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
