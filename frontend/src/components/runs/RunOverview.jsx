@@ -25,7 +25,10 @@ import {
   Tooltip,
   Badge,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Collapse,
+  Select,
+  MenuItem
 } from '@mui/material';
 import {
   Person,
@@ -39,6 +42,8 @@ import {
   Group,
   NavigateNext,
   NavigateBefore,
+  ExpandMore,
+  ExpandLess,
   Flag,
   PersonAdd,
   Start,
@@ -46,23 +51,31 @@ import {
   LocalShipping,
   ThumbDown,
   Handshake,
-  AddLocation
+  AddLocation,
+  ArrowBack,
+  Close,
+  CalendarToday,
+  Delete
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import ManageTeamDialog from './ManageTeamDialog';
 import TakeRequestDialog from './TakeRequestDialog';
+import LocationsList from '../locations/LocationsList';
 import axios from 'axios';
 import { API_BASE } from '../../config/api.js';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useNavigate } from 'react-router-dom';
 
 export default function RunOverview({ runId, onEdit, onBack }) {
   const { user } = useAuth();
   const permissions = usePermissions();
+  const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [run, setRun] = useState(null);
   const [route, setRoute] = useState(null);
+  const [routes, setRoutes] = useState([]); // All routes for moving locations
   const [locations, setLocations] = useState([]); // Route's locations only
   const [allLocations, setAllLocations] = useState([]); // All locations for lookups
   const [users, setUsers] = useState([]);
@@ -73,19 +86,14 @@ export default function RunOverview({ runId, onEdit, onBack }) {
   const [showManageTeam, setShowManageTeam] = useState(false);
   const [showTakeRequest, setShowTakeRequest] = useState(false);
   const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
-  const [showAddLocationDialog, setShowAddLocationDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [deliveryOutcome, setDeliveryOutcome] = useState('delivered'); // 'delivered' or 'not_available'
   const [deliveryNotes, setDeliveryNotes] = useState('');
-  
-  // New location form state
-  const [newLocationForm, setNewLocationForm] = useState({
-    description: '',
-    address: '',
-    notes: '',
-    latitude: '',
-    longitude: ''
-  });
+  const [teamExpanded, setTeamExpanded] = useState(false); // Collapsible team section
+  const [editingRun, setEditingRun] = useState(false); // Inline run editing mode
+  const [editForm, setEditForm] = useState({ mealCount: 0, notes: '', scheduledDate: '' });
+  const [editingTeam, setEditingTeam] = useState(false); // Inline team editing mode
+  const [newTeamMember, setNewTeamMember] = useState(''); // Selected user ID for adding
 
   useEffect(() => {
     if (runId) {
@@ -97,13 +105,13 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     try {
       setLoading(true);
       
-      // Fetch run data and related information
+      // Fetch run data and related information (include team members with query param)
       const [runRes, routesRes, locationsRes, requestsRes, friendsRes] = await Promise.all([
-        axios.get(`${API_BASE}/runs/${runId}`),
-        axios.get(`${API_BASE}/routes`),
-        axios.get(`${API_BASE}/locations`),
-        axios.get(`${API_BASE}/requests`),
-        axios.get(`${API_BASE}/friends`)
+        axios.get(`${API_BASE}/v2/runs/${runId}?includeTeam=true`),
+        axios.get(`${API_BASE}/v2/routes`),
+        axios.get(`${API_BASE}/v2/locations`),
+        axios.get(`${API_BASE}/v2/requests`),
+        axios.get(`${API_BASE}/v2/friends`)
       ]);
 
       const runData = runRes.data;
@@ -121,29 +129,35 @@ export default function RunOverview({ runId, onEdit, onBack }) {
         console.log('Cannot fetch users (insufficient permissions)');
       }
 
-      if (runData.run) {
-        setRun(runData.run);
-        const routeInfo = routesData.routes?.find(r => r.id.toString() === runData.run.routeId.toString());
+      // V2 API returns data directly with team members included (via ?includeTeam=true)
+      const run = runData.data || runData.run;
+      const routes = routesData.data || routesData.routes;
+      const locations = locationsData.data || locationsData.locations;
+      const requests = requestsData.data || requestsData.requests;
+      const friends = friendsData.data || friendsData.friends;
+      
+      if (run) {
+        // Team members are already included in the run object from ?includeTeam=true
+        setRun(run);
+        const routeInfo = routes?.find(r => r.id.toString() === run.routeId.toString());
         setRoute(routeInfo);
+        setRoutes(routes); // Store all routes for location management
         
         // Store all locations for lookups
-        const allLocations = locationsData.locations || [];
-        setAllLocations(allLocations);
+        setAllLocations(locations);
         
-        // Filter locations to only include those on this route
-        // IMPORTANT: Maintain the original route order for currentLocationIndex to work correctly
-        const routeLocationIds = routeInfo?.locationIds || [];
-        const routeLocations = routeLocationIds
-          .map(locationId => allLocations.find(loc => loc.id.toString() === locationId.toString()))
-          .filter(Boolean); // Remove any undefined locations
-        
-
+        // Filter locations to only include those assigned to this route
+        // Locations have a route_id foreign key pointing to their route
+        // IMPORTANT: Order by route_order for proper sequence during runs
+        const routeLocations = locations
+          .filter(loc => loc.routeId?.toString() === run.routeId.toString())
+          .sort((a, b) => (a.routeOrder || 0) - (b.routeOrder || 0));
         
         setLocations(routeLocations);
         
         setUsers(usersData.users || []);
-        setRequests(requestsData.requests || []);
-        setFriends(friendsData.friends || []);
+        setRequests(requests);
+        setFriends(friends);
       } else {
         setError('Run not found');
       }
@@ -151,6 +165,26 @@ export default function RunOverview({ runId, onEdit, onBack }) {
       setError('Failed to load run details: ' + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Lightweight refresh for just locations (no page reset/scroll)
+  const refreshLocations = async () => {
+    try {
+      const locationsRes = await axios.get(`${API_BASE}/v2/locations`);
+      const locationsData = locationsRes.data;
+      const locations = locationsData.data || locationsData.locations;
+      
+      // Filter and sort for this route only
+      if (run) {
+        const routeLocations = locations
+          .filter(loc => loc.routeId?.toString() === run.routeId.toString())
+          .sort((a, b) => (a.routeOrder || 0) - (b.routeOrder || 0));
+        
+        setLocations(routeLocations);
+      }
+    } catch (err) {
+      console.error('Failed to refresh locations:', err);
     }
   };
 
@@ -175,12 +209,19 @@ export default function RunOverview({ runId, onEdit, onBack }) {
   };
 
   const getUserById = (id) => {
+    if (!id) return null;
     const user = users.find(u => u.id.toString() === id.toString());
     return user || { id, name: `User ${id}`, email: '' }; // Fallback for volunteers
   };
-  const lead = getUserById(run?.leadId);
-  const coordinator = getUserById(run?.coordinatorId);
-  const assignedUsers = run?.assignedUserIds?.map(getUserById).filter(Boolean) || [];
+  
+  // Run schema has created_by and team members, not leadId/coordinatorId/assignedUserIds
+  const createdBy = getUserById(run?.createdBy);
+  const teamMembers = run?.team || [];
+  
+  // For backward compatibility, treat createdBy as the lead/coordinator
+  const lead = createdBy;
+  const coordinator = createdBy;
+  const assignedUsers = teamMembers.map(member => getUserById(member.userId)).filter(Boolean) || [];
 
   const nextLocationIndex = run?.currentLocationIndex || 0;
   const nextLocation = locations[nextLocationIndex];
@@ -192,7 +233,7 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     if (newIndex < 0 || newIndex >= locations.length) return;
 
     try {
-      await axios.put(`${API_BASE}/runs/${runId}`, {
+      await axios.put(`${API_BASE}/v2/runs/${runId}`, {
         currentLocationIndex: newIndex
       });
       await fetchRunDetails();
@@ -213,7 +254,7 @@ export default function RunOverview({ runId, onEdit, onBack }) {
         updates.currentLocationIndex = 0;
       }
 
-      const response = await axios.put(`${API_BASE}/runs/${runId}`, updates);
+      const response = await axios.put(`${API_BASE}/v2/runs/${runId}`, updates);
       
       console.log('Status update successful');
       await fetchRunDetails();
@@ -230,49 +271,6 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     fetchRunDetails();
   };
 
-  const handleAddLocation = async () => {
-    if (!newLocationForm.description.trim()) {
-      setError('Location description is required');
-      return;
-    }
-
-    try {
-      // 1. Create the new location
-      const locationResponse = await axios.post(`${API_BASE}/locations`, {
-        ...newLocationForm,
-        routeId: run?.routeId
-      });
-
-      const createdLocation = locationResponse.data.location;
-      
-      // 2. Add location to the current route's locationIds array
-      if (run?.routeId && route) {
-        const updatedLocationIds = [...(route.locationIds || []), createdLocation.id];
-        
-        await axios.put(`${API_BASE}/routes/${run.routeId}`, {
-          ...route,
-          locationIds: updatedLocationIds
-        });
-      }
-      
-      // 3. Close dialog and refresh data
-      setShowAddLocationDialog(false);
-      setNewLocationForm({
-        description: '',
-        address: '',
-        notes: '',
-        latitude: '',
-        longitude: ''
-      });
-      
-      // Refresh run details to show the new location
-      await fetchRunDetails();
-      
-    } catch (err) {
-      setError('Failed to add location: ' + err.message);
-    }
-  };
-
   const handleDeliveryClick = (request, outcome) => {
     setSelectedRequest(request);
     setDeliveryOutcome(outcome);
@@ -280,37 +278,99 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     setShowDeliveryDialog(true);
   };
 
+  const handleEditRun = () => {
+    // Convert ISO date to YYYY-MM-DD format for date input
+    const dateOnly = run.scheduledDate ? run.scheduledDate.split('T')[0] : '';
+    setEditForm({
+      mealCount: run.mealCount || 0,
+      notes: run.notes || '',
+      scheduledDate: dateOnly
+    });
+    setEditingRun(true);
+  };
+
+  const handleSaveRunEdit = async () => {
+    try {
+      // Parse meal count as integer before sending
+      const updateData = {
+        ...editForm,
+        mealCount: parseInt(editForm.mealCount) || 0
+      };
+      await axios.put(`${API_BASE}/v2/runs/${runId}`, updateData);
+      await fetchRunDetails();
+      setEditingRun(false);
+    } catch (err) {
+      setError('Failed to update run: ' + err.message);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRun(false);
+    setEditForm({ mealCount: 0, notes: '', scheduledDate: '' });
+  };
+
+  // Team Management Functions
+  const refreshTeamMembers = async () => {
+    try {
+      const runRes = await axios.get(`${API_BASE}/v2/runs/${runId}?includeTeam=true`);
+      // V2 API wraps response in { success: true, data: {...} }
+      const runData = runRes.data.data || runRes.data;
+      setRun(prevRun => ({
+        ...prevRun,
+        team: runData.team || []
+      }));
+    } catch (err) {
+      setError('Failed to refresh team members: ' + err.message);
+    }
+  };
+
+  const handleAddTeamMember = async (userId) => {
+    if (!userId) return;
+    
+    try {
+      await axios.post(`${API_BASE}/v2/runs/${runId}/team-members`, {
+        userId: parseInt(userId)
+      });
+      setNewTeamMember('');
+      await refreshTeamMembers(); // Use lightweight refresh instead of fetchRunDetails
+    } catch (err) {
+      setError('Failed to add team member: ' + err.message);
+    }
+  };
+
+  const handleRemoveTeamMember = async (userId) => {
+    try {
+      await axios.delete(`${API_BASE}/v2/runs/${runId}/team-members/${userId}`);
+      await refreshTeamMembers(); // Use lightweight refresh instead of fetchRunDetails
+    } catch (err) {
+      setError('Failed to remove team member: ' + err.message);
+    }
+  };
+
+  const handleToggleTeamEdit = () => {
+    setEditingTeam(!editingTeam);
+    setNewTeamMember('');
+  };
+
   const handleDeliveryConfirm = async () => {
     if (!selectedRequest) return;
     
     try {
       if (deliveryOutcome === 'delivered') {
-        // Mark as delivered
-        await axios.put(`${API_BASE}/requests/${selectedRequest.id}`, {
-          status: 'delivered'
-        });
-
-        // Create delivery attempt record
-        await axios.post(`${API_BASE}/requests/${selectedRequest.id}/delivery-attempts`, {
-          attemptDate: new Date().toISOString().split('T')[0],
-          outcome: 'delivered',
+        // Add status history entry with 'delivered' status
+        // This will automatically update the request status to 'delivered'
+        await axios.post(`${API_BASE}/v2/requests/${selectedRequest.id}/status-history`, {
+          status: 'delivered',
           notes: deliveryNotes || 'Successfully delivered during run',
-          deliveredBy: run?.leadId || 'Unknown'
+          user_id: user?.id
         });
       } else {
-        // Increment delivery attempts count and keep status as ready_for_delivery
-        const newAttemptCount = (selectedRequest.deliveryAttempts || 0) + 1;
-        await axios.put(`${API_BASE}/requests/${selectedRequest.id}`, { 
-          deliveryAttempts: newAttemptCount,
-          status: 'ready_for_delivery' // Keep it ready for next attempt
-        });
-
-        // Create failed delivery attempt
-        await axios.post(`${API_BASE}/requests/${selectedRequest.id}/delivery-attempts`, {
-          attemptDate: new Date().toISOString().split('T')[0],
-          outcome: 'not_available',
+        // Add status history entry with 'delivery_attempt_failed' status
+        // This logs the attempt but keeps request as 'ready_for_delivery'
+        await axios.post(`${API_BASE}/v2/requests/${selectedRequest.id}/status-history`, {
+          status: 'delivery_attempt_failed',
           notes: deliveryNotes || 'Person not available during run',
-          deliveredBy: run?.leadId || 'Unknown'
+          user_id: user?.id
         });
       }
       
@@ -344,7 +404,7 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     useEffect(() => {
       const fetchAttempts = async () => {
         try {
-          const response = await axios.get(`${API_BASE}/requests/${request.id}/delivery-attempts`);
+          const response = await axios.get(`${API_BASE}/v2/requests/${request.id}/delivery-attempts`);
           const data = response.data;
           setAttempts(data.deliveryAttempts || []);
         } catch (error) {
@@ -510,69 +570,172 @@ export default function RunOverview({ runId, onEdit, onBack }) {
 
   return (
     <Box sx={{ p: isMobile ? 2 : 3 }}>
-      {/* Header */}
+      {/* Header - Route Name and Back Button */}
       <Box sx={{ 
         display: 'flex', 
-        alignItems: isMobile ? 'flex-start' : 'center', 
+        alignItems: 'center', 
         justifyContent: 'space-between', 
-        mb: 3,
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: isMobile ? 2 : 0
+        mb: 3
       }}>
-        <Box>
-          <Typography variant={isMobile ? "h5" : "h4"} gutterBottom>
-            {route?.name || 'Run Overview'}
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <Chip
-              icon={getStatusIcon(run.status)}
-              label={run.status?.toUpperCase()}
-              color={getStatusColor(run.status)}
-              variant="filled"
-            />
-            <Typography variant="body2" color="text.secondary">
-              Scheduled: {format(new Date(run.scheduledDate), 'PPp')}
-            </Typography>
-          </Box>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button onClick={onBack} variant="outlined">
-            Back to Runs
-          </Button>
-          {run.status === 'scheduled' && (
-            <Button 
-              onClick={() => setShowManageTeam(true)} 
-              variant="outlined" 
-              startIcon={<PersonAdd />}
-            >
-              Manage Team
-            </Button>
-          )}
-          {/* Only show Edit Run button if user has permission */}
-          {permissions.canEditRuns && (
-            <Button onClick={() => onEdit(run.id)} variant="contained" startIcon={<Edit />}>
-              Edit Run
-            </Button>
-          )}
-        </Box>
+        <Typography variant={isMobile ? "h5" : "h4"}>
+          {route?.name || 'Run Overview'}
+        </Typography>
+        <Tooltip title="Back to Runs">
+          <IconButton onClick={onBack} size="large">
+            <ArrowBack />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       <Grid container spacing={3}>
-        {/* Left Column - Run Details and Requests */}
+        {/* Left Column - Run Details, Status, Requests, Team */}
         <Grid item xs={12} md={6}>
-          {/* Ready for Delivery Requests */}
-          {readyForDeliveryRequests.length > 0 && (
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <RestaurantMenu /> Ready for Delivery ({readyForDeliveryRequests.length})
-                </Typography>
+          {/* Run Details Card */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">Run Details</Typography>
+                {!editingRun && run.status !== 'completed' && (
+                  <Tooltip title="Edit run details">
+                    <IconButton onClick={handleEditRun} size="small">
+                      <Edit />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+              
+              {editingRun ? (
+                // Edit Form
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    label="Run Date"
+                    type="date"
+                    value={editForm.scheduledDate}
+                    onChange={(e) => setEditForm({ ...editForm, scheduledDate: e.target.value })}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                  />
+                  <TextField
+                    label="Meal Count"
+                    value={editForm.mealCount}
+                    onChange={(e) => setEditForm({ ...editForm, mealCount: e.target.value })}
+                    placeholder="0"
+                    fullWidth
+                  />
+                  <TextField
+                    label="Notes"
+                    multiline
+                    rows={3}
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                    fullWidth
+                  />
+                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                    <Button onClick={handleCancelEdit} variant="outlined">Cancel</Button>
+                    <Button onClick={handleSaveRunEdit} variant="contained">Save</Button>
+                  </Box>
+                </Box>
+              ) : (
+                // Display Mode
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CalendarToday color="primary" fontSize="small" />
+                    <Typography>
+                      <strong>Date:</strong> {format(new Date(run.scheduledDate), 'PPP')}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <RestaurantMenu color="primary" fontSize="small" />
+                    <Typography>
+                      <strong>Meals:</strong> {run.mealCount || 0}
+                    </Typography>
+                  </Box>
+                  {run.notes && (
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>Notes:</Typography>
+                      <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
+                        <Typography variant="body2">{run.notes}</Typography>
+                      </Paper>
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Run Status and Actions */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Run Status</Typography>
+              
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Chip
+                  icon={getStatusIcon(run.status)}
+                  label={run.status?.toUpperCase()}
+                  color={getStatusColor(run.status)}
+                  variant="filled"
+                  sx={{ alignSelf: 'flex-start' }}
+                />
                 
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {run.status === 'scheduled' && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<PlayArrow />}
+                      onClick={() => navigate(`/runs/${runId}/prepare`)}
+                    >
+                      Prepare Run
+                    </Button>
+                  )}
+                  {run.status === 'in_progress' && (
+                    <>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        startIcon={<LocalShipping />}
+                        onClick={() => navigate(`/runs/${runId}/active`)}
+                      >
+                        Continue Run
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="success"
+                        startIcon={<CheckCircle />}
+                        onClick={() => handleStatusChange('completed')}
+                      >
+                        Complete Run
+                      </Button>
+                    </>
+                  )}
+                  {(run.status === 'scheduled' || run.status === 'in_progress') && (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      startIcon={<Cancel />}
+                      onClick={() => handleStatusChange('cancelled')}
+                    >
+                      Cancel Run
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Ready for Delivery Requests */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <RestaurantMenu /> Ready Requests ({readyForDeliveryRequests.length})
+              </Typography>
+              
+              {readyForDeliveryRequests.length > 0 ? (
                 <List dense>
                   {readyForDeliveryRequests.map((request) => {
                     const friend = getFriendById(request.friendId);
                     const location = getLocationById(request.locationId);
-                    if (!friend && !request.friendId) return null; // Skip if no friend data
+                    if (!friend && !request.friendId) return null;
                     
                     return (
                       <ListItem 
@@ -582,12 +745,12 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                           borderRadius: 1,
                           mb: 1,
                           border: '1px solid',
-                          borderColor: 'success.200'
+                          borderColor: 'success.main'
                         }}
                       >
                         <ListItemAvatar>
                           <Avatar sx={{ bgcolor: 'success.main' }}>
-                            <CheckCircle />
+                            <RestaurantMenu />
                           </Avatar>
                         </ListItemAvatar>
                         <Box sx={{ flex: 1 }}>
@@ -597,13 +760,7 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                           <Typography variant="caption" display="block">
                             for {friend?.name || 'Unknown Friend'}
                           </Typography>
-                          <Typography variant="caption" display="block" color="text.secondary">
-                            {request.itemCategory || 'Unknown Category'}
-                            {request.itemCategory === 'clothing' && request.clothingGender && request.clothingSize && 
-                              ` • ${request.clothingGender} • Size ${request.clothingSize}`
-                            }
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
                             <Chip 
                               size="small" 
                               icon={<LocationOn />} 
@@ -613,59 +770,10 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                             {request.urgency && request.urgency !== 'medium' && (
                               <Chip 
                                 size="small" 
-                                label={request.urgency?.toUpperCase() || 'MEDIUM'} 
+                                label={request.urgency?.toUpperCase()} 
                                 color={request.urgency === 'high' ? 'error' : 'default'}
                                 variant="outlined"
                               />
-                            )}
-                            {/* Show delivery attempt count if > 0 */}
-                            <DeliveryAttemptChipWithTooltip request={request} />
-                            {/* Delivery Action Buttons for Active Runs */}
-                            {(run.status === 'in_progress' || run.status === 'scheduled') && (
-                              <Box sx={{ 
-                                display: 'flex', 
-                                gap: isMobile ? 1 : 0.5, 
-                                ml: 'auto',
-                                flexDirection: isMobile ? 'column' : 'row',
-                                width: isMobile ? '100%' : 'auto'
-                              }}>
-                                <Button
-                                  size={isMobile ? "medium" : "small"}
-                                  variant="contained"
-                                  color="success"
-                                  startIcon={<CheckCircle />}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeliveryClick(request, 'delivered');
-                                  }}
-                                  sx={{ 
-                                    minWidth: isMobile ? 120 : 'auto', 
-                                    px: isMobile ? 2 : 1,
-                                    py: isMobile ? 1.5 : undefined,
-                                    fontSize: isMobile ? '1rem' : undefined
-                                  }}
-                                >
-                                  Delivered
-                                </Button>
-                                <Button
-                                  size={isMobile ? "medium" : "small"}
-                                  variant="outlined"
-                                  color="warning"
-                                  startIcon={<ThumbDown />}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeliveryClick(request, 'not_available');
-                                  }}
-                                  sx={{ 
-                                    minWidth: isMobile ? 120 : 'auto', 
-                                    px: isMobile ? 2 : 1,
-                                    py: isMobile ? 1.5 : undefined,
-                                    fontSize: isMobile ? '1rem' : undefined
-                                  }}
-                                >
-                                  Not Available
-                                </Button>
-                              </Box>
                             )}
                           </Box>
                         </Box>
@@ -673,446 +781,136 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                     );
                   })}
                 </List>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Run Details */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <RestaurantMenu /> Run Details
-              </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <RestaurantMenu color="primary" />
-                  <Typography>
-                    <strong>{run.mealsCount}</strong> meals prepared
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 3, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Typography color="text.secondary">
+                    No requests ready for delivery
                   </Typography>
                 </Box>
-                
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Schedule color="primary" />
-                  <Typography>
-                    <strong>{route?.estimatedDuration || 'Unknown'}</strong> minutes estimated
-                  </Typography>
-                </Box>
-
-                {/* Take Request Button - Prominent */}
-                {(run.status === 'scheduled' || run.status === 'in_progress') && (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      size="large"
-                      startIcon={<PersonAdd />}
-                      onClick={() => setShowTakeRequest(true)}
-                      sx={{ 
-                        py: 1.5,
-                        fontSize: '1.1rem',
-                        fontWeight: 'bold',
-                        boxShadow: 2,
-                        '&:hover': {
-                          boxShadow: 4
-                        }
-                      }}
-                    >
-                      Take Request from Friend
-                    </Button>
-                  </Box>
-                )}
-
-                {/* Status Controls */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Run Status Controls:
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {run.status === 'scheduled' && (
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="primary"
-                        startIcon={<Start />}
-                        onClick={() => handleStatusChange('in_progress')}
-                      >
-                        Start Run
-                      </Button>
-                    )}
-                    {run.status === 'in_progress' && (
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="success"
-                        startIcon={<CheckCircle />}
-                        onClick={() => handleStatusChange('completed')}
-                      >
-                        Complete Run
-                      </Button>
-                    )}
-                    {(run.status === 'scheduled' || run.status === 'in_progress') && (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="error"
-                        startIcon={<Cancel />}
-                        onClick={() => handleStatusChange('cancelled')}
-                      >
-                        Cancel Run
-                      </Button>
-                    )}
-                  </Box>
-                </Box>
-                
-                {run.coordinatorNotes && (
-                  <Box>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Coordinator Notes:
-                    </Typography>
-                    <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
-                      <Typography variant="body2">
-                        {run.coordinatorNotes}
-                      </Typography>
-                    </Paper>
-                  </Box>
-                )}
-                
-                {run.leadNotes && (
-                  <Box>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Lead Notes:
-                    </Typography>
-                    <Paper variant="outlined" sx={{ p: 2, bgcolor: 'blue.50' }}>
-                      <Typography variant="body2">
-                        {run.leadNotes}
-                      </Typography>
-                    </Paper>
-                  </Box>
-                )}
-              </Box>
+              )}
             </CardContent>
           </Card>
 
-          {/* Team Information */}
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Group /> Team Members
-              </Typography>
-              
-              <List>
-                <ListItem>
-                  <ListItemAvatar>
-                    <Avatar><Flag /></Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={lead?.name || 'No Lead Assigned'}
-                    secondary="Run Lead"
-                  />
-                </ListItem>
-                
-                <ListItem>
-                  <ListItemAvatar>
-                    <Avatar><Person /></Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={coordinator?.name || 'Unknown'}
-                    secondary="Coordinator"
-                  />
-                </ListItem>
-                
-                <Divider />
-                
-                {assignedUsers.map((user, index) => (
-                  <ListItem key={user?.id || index}>
-                    <ListItemAvatar>
-                      <Avatar>{user?.name?.[0] || '?'}</Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={user?.name || 'Unknown User'}
-                      secondary={user?.role || 'Team Member'}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Right Column - Location Navigation */}
-        <Grid item xs={12} md={6}>
+          {/* Team Members */}
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <LocationOn /> Route Progress
+                  <Group /> Team Members
                 </Typography>
-                
-                {/* Location Navigation Controls */}
-                {run.status === 'in_progress' && (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
+                {(permissions.canManageTeams || user?.role === 'admin' || user?.role === 'coordinator') && (
+                  <Tooltip title={editingTeam ? "Done editing" : "Edit team"}>
+                    <IconButton 
+                      onClick={handleToggleTeamEdit} 
+                      color={editingTeam ? "primary" : "default"}
                       size="small"
-                      variant="outlined"
-                      startIcon={<NavigateBefore />}
-                      onClick={() => handleLocationNavigation('previous')}
-                      disabled={nextLocationIndex <= 0}
                     >
-                      Previous
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      endIcon={<NavigateNext />}
-                      onClick={() => handleLocationNavigation('next')}
-                      disabled={nextLocationIndex >= locations.length}
-                    >
-                      Next
-                    </Button>
-                  </Box>
+                      <Edit />
+                    </IconButton>
+                  </Tooltip>
                 )}
               </Box>
               
-              {/* Current Location - Emphasized */}
-              {nextLocation && run.status !== 'completed' && (
-                <Paper 
-                  variant="outlined" 
-                  sx={{ 
-                    p: 3, 
-                    mb: 3, 
-                    bgcolor: 'primary.50', 
-                    border: '2px solid',
-                    borderColor: 'primary.main',
-                    textAlign: 'center'
-                  }}
-                >
-                  <Typography variant="subtitle1" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                    <NavigateNext /> Current Location ({nextLocationIndex + 1} of {locations.length})
+              {/* Add Team Member Form (when in edit mode) */}
+              {editingTeam && (
+                <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                    Add Team Member
                   </Typography>
-                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
-                    {nextLocation.description}
-                  </Typography>
-                  {nextLocation.notes && (
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                      {nextLocation.notes}
-                    </Typography>
-                  )}
-                  {nextLocation.address && (
-                    <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                      <LocationOn color="primary" />
-                      {nextLocation.address}
-                    </Typography>
-                  )}
-                </Paper>
-              )}
-
-              {/* Current Location Requests */}
-              {currentLocationRequests.length > 0 && (
-                <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: 'warning.50' }}>
-                  <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Person /> Requests at This Location ({currentLocationRequests.length})
-                  </Typography>
-                  
-                  <List dense>
-                    {currentLocationRequests.map((request) => {
-                      const friend = getFriendById(request.friendId);
-                      if (!friend && !request.friendId) return null; // Skip if no friend data
-                      
-                      return (
-                        <ListItem 
-                          key={request.id}
-                          sx={{ 
-                            bgcolor: 'background.paper',
-                            borderRadius: 1,
-                            mb: 1,
-                            border: '1px solid',
-                            borderColor: 'divider'
-                          }}
-                        >
-                          <ListItemAvatar>
-                            <Avatar sx={{ 
-                              bgcolor: request.urgency === 'high' ? 'error.main' : 
-                                      request.urgency === 'low' ? 'info.main' : 'warning.main'
-                            }}>
-                              <RestaurantMenu />
-                            </Avatar>
-                          </ListItemAvatar>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                              {request.itemRequested} (x{request.quantity || 1})
-                            </Typography>
-                            <Typography variant="caption" display="block">
-                              for {friend?.name || 'Unknown Friend'}
-                            </Typography>
-                            <Typography variant="caption" display="block" color="text.secondary">
-                              {request.itemCategory || 'Unknown Category'}
-                              {request.itemCategory === 'clothing' && request.clothingGender && request.clothingSize && 
-                                ` • ${request.clothingGender} • Size ${request.clothingSize}`
-                              }
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 1, mt: 0.5, mb: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
-                              <Chip 
-                                size="small" 
-                                label={request.status?.replace('_', ' ')?.toUpperCase() || 'PENDING'} 
-                                color={request.status === 'ready_for_delivery' ? 'success' : 'default'}
-                                variant="outlined"
-                              />
-                              {request.urgency && request.urgency !== 'medium' && (
-                                <Chip 
-                                  size="small" 
-                                  label={request.urgency?.toUpperCase() || 'MEDIUM'} 
-                                  color={request.urgency === 'high' ? 'error' : 'info'}
-                                  variant="outlined"
-                                />
-                              )}
-                              {/* Show delivery attempt count if > 0 */}
-                              <DeliveryAttemptChipWithTooltip request={request} />
-                              {/* Delivery Action Buttons - Only for ready_for_delivery status during active runs */}
-                              {request.status === 'ready_for_delivery' && (run.status === 'in_progress' || run.status === 'scheduled') && (
-                                <Box sx={{ 
-                                  display: 'flex', 
-                                  gap: isMobile ? 1 : 0.5, 
-                                  ml: 'auto',
-                                  flexDirection: isMobile ? 'column' : 'row',
-                                  width: isMobile ? '100%' : 'auto'
-                                }}>
-                                  <Button
-                                    size={isMobile ? "medium" : "small"}
-                                    variant="contained"
-                                    color="success"
-                                    startIcon={<Handshake />}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeliveryClick(request, 'delivered');
-                                    }}
-                                    sx={{ 
-                                      minWidth: isMobile ? 120 : 'auto', 
-                                      px: isMobile ? 2 : 1,
-                                      py: isMobile ? 1.5 : undefined,
-                                      fontSize: isMobile ? '1rem' : '0.75rem'
-                                    }}
-                                  >
-                                    Delivered
-                                  </Button>
-                                  <Button
-                                    size={isMobile ? "medium" : "small"}
-                                    variant="outlined"
-                                    color="warning"
-                                    startIcon={<ThumbDown />}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeliveryClick(request, 'not_available');
-                                    }}
-                                    sx={{ 
-                                      minWidth: isMobile ? 120 : 'auto', 
-                                      px: isMobile ? 2 : 1,
-                                      py: isMobile ? 1.5 : undefined,
-                                      fontSize: isMobile ? '1rem' : '0.75rem'
-                                    }}
-                                  >
-                                    Not Available
-                                  </Button>
-                                </Box>
-                              )}
-                            </Box>
-                            {request.specialInstructions && (
-                              <Typography variant="caption" display="block" sx={{ fontStyle: 'italic' }}>
-                                {request.specialInstructions}
-                              </Typography>
-                            )}
-                          </Box>
-                        </ListItem>
-                      );
-                    })}
-                  </List>
-                </Paper>
-              )}
-              
-              {/* Progress Bar */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Overall Progress: {nextLocationIndex} of {locations.length} locations
-                </Typography>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={locations.length > 0 ? (nextLocationIndex / locations.length) * 100 : 0}
-                  sx={{ height: 10, borderRadius: 5 }}
-                />
-                
-                {/* Add Location Button */}
-                {(run.status === 'scheduled' || run.status === 'in_progress') && (
-                  <Button
-                    variant="outlined"
-                    startIcon={<AddLocation />}
-                    onClick={() => setShowAddLocationDialog(true)}
-                    sx={{ mt: 2 }}
+                  <Select
+                    value={newTeamMember}
+                    onChange={(e) => {
+                      setNewTeamMember(e.target.value);
+                      handleAddTeamMember(e.target.value);
+                    }}
+                    displayEmpty
                     size="small"
+                    fullWidth
                   >
-                    Add Location to Route
-                  </Button>
-                )}
-              </Box>
-
-              {/* All Locations List */}
-              <Typography variant="subtitle1" gutterBottom>
-                All Locations:
-              </Typography>
-              <List dense>
-                {locations.map((location, index) => {
-                  const isCompleted = index < nextLocationIndex;
-                  const isCurrent = index === nextLocationIndex;
-                  const isUpcoming = index > nextLocationIndex;
-                  
-                  return (
-                    <ListItem 
-                      key={location?.id || index}
-                      sx={{ 
-                        opacity: isUpcoming ? 0.7 : 1,
-                        bgcolor: isCurrent ? 'action.selected' : 'transparent',
-                        borderRadius: 1,
-                        mb: 0.5
-                      }}
-                    >
-                      <ListItemAvatar>
-                        <Avatar 
-                          size="small"
-                          sx={{ 
-                            bgcolor: isCompleted ? 'success.main' : isCurrent ? 'primary.main' : 'grey.300',
-                            width: 32, 
-                            height: 32 
-                          }}
-                        >
-                          {isCompleted ? (
-                            <CheckCircle sx={{ fontSize: 16 }} />
-                          ) : (
-                            <Typography variant="caption">{index + 1}</Typography>
-                          )}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
-                                textDecoration: isCompleted ? 'line-through' : 'none',
-                                fontWeight: isCurrent ? 'bold' : 'normal'
-                              }}
-                            >
-                              {location?.description || `Location ${index + 1}`}
-                            </Typography>
-                            {isCurrent && (
-                              <Chip size="small" label="CURRENT" color="primary" />
-                            )}
-                          </Box>
+                    <MenuItem value="" disabled>
+                      Select user to add...
+                    </MenuItem>
+                    {users
+                      .filter(u => !run.team?.some(m => m.userId === u.id))
+                      .map(u => (
+                        <MenuItem key={u.id} value={u.id}>
+                          {u.name} ({u.role})
+                        </MenuItem>
+                      ))
+                    }
+                  </Select>
+                </Box>
+              )}
+              
+              {run.team && run.team.length > 0 ? (
+                <List>
+                  {run.team.map((member, index) => {
+                    const memberName = member.name || member.userName || member.user_name || `User ${member.userId || member.user_id}`;
+                    const memberRole = member.role || member.userRole || member.user_role || 'Team Member';
+                    
+                    return (
+                      <ListItem 
+                        key={member.userId || member.user_id || index}
+                        sx={{
+                          bgcolor: 'transparent',
+                          borderRadius: 1,
+                          mb: 0.5
+                        }}
+                        secondaryAction={
+                          editingTeam && (
+                            <Tooltip title="Remove from team">
+                              <IconButton 
+                                edge="end" 
+                                onClick={() => handleRemoveTeamMember(member.userId || member.user_id)}
+                                color="error"
+                                size="small"
+                              >
+                                <Delete />
+                              </IconButton>
+                            </Tooltip>
+                          )
                         }
-                        secondary={location?.notes}
-                      />
-                    </ListItem>
-                  );
-                })}
-              </List>
+                      >
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: 'grey.500' }}>
+                            {memberName?.[0] || '?'}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={memberName}
+                          secondary={memberRole}
+                        />
+                      </ListItem>
+                    );
+                  })}
+                </List>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 3, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Typography color="text.secondary">
+                    No team members assigned yet
+                  </Typography>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Right Column - Locations */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <LocationOn /> Route Locations ({locations.length})
+              </Typography>
+              
+              <LocationsList
+                locations={locations}
+                routeId={run?.routeId}
+                routeName={route?.name}
+                editable={run?.status !== 'completed'}
+                onLocationsChanged={refreshLocations}
+                allRoutes={routes}
+              />
             </CardContent>
           </Card>
         </Grid>
@@ -1193,93 +991,6 @@ export default function RunOverview({ runId, onEdit, onBack }) {
             startIcon={deliveryOutcome === 'delivered' ? <CheckCircle /> : <ThumbDown />}
           >
             {deliveryOutcome === 'delivered' ? 'Confirm Delivery' : 'Record Attempt'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Add Location Dialog */}
-      <Dialog open={showAddLocationDialog} onClose={() => setShowAddLocationDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <AddLocation color="primary" />
-            Add New Location to Route
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-            <Alert severity="info">
-              Adding a new location to route "<strong>{route?.name}</strong>". This location will be available for future runs on this route.
-            </Alert>
-            
-            <TextField
-              label="Location Description *"
-              value={newLocationForm.description}
-              onChange={(e) => setNewLocationForm({ ...newLocationForm, description: e.target.value })}
-              fullWidth
-              required
-              placeholder="e.g., Central Park East Entrance, Downtown Library Steps..."
-              helperText="A clear, descriptive name for this location"
-            />
-            
-            <TextField
-              label="Address"
-              value={newLocationForm.address}
-              onChange={(e) => setNewLocationForm({ ...newLocationForm, address: e.target.value })}
-              fullWidth
-              placeholder="Street address or nearby landmark"
-              helperText="Physical address or recognizable landmark"
-            />
-            
-            <TextField
-              label="Location Notes"
-              value={newLocationForm.notes}
-              onChange={(e) => setNewLocationForm({ ...newLocationForm, notes: e.target.value })}
-              fullWidth
-              multiline
-              rows={3}
-              placeholder="Additional details: accessibility, best approach, safety notes, typical gathering times..."
-            />
-            
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                label="Latitude (Optional)"
-                value={newLocationForm.latitude}
-                onChange={(e) => setNewLocationForm({ ...newLocationForm, latitude: e.target.value })}
-                fullWidth
-                placeholder="e.g., 40.7829"
-                helperText="GPS coordinates if available"
-              />
-              <TextField
-                label="Longitude (Optional)"
-                value={newLocationForm.longitude}
-                onChange={(e) => setNewLocationForm({ ...newLocationForm, longitude: e.target.value })}
-                fullWidth
-                placeholder="e.g., -73.9654"
-                helperText="GPS coordinates if available"
-              />
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setShowAddLocationDialog(false);
-            setNewLocationForm({
-              description: '',
-              address: '',
-              notes: '',
-              latitude: '',
-              longitude: ''
-            });
-          }}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleAddLocation}
-            variant="contained"
-            disabled={!newLocationForm.description.trim()}
-            startIcon={<AddLocation />}
-          >
-            Add Location
           </Button>
         </DialogActions>
       </Dialog>

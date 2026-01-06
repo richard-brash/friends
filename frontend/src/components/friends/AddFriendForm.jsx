@@ -27,7 +27,7 @@ export default function AddFriendForm({ onAdd, locations, routes }) {
   // Filter locations by selected route
   const filteredLocations = selectedRouteId 
     ? locations.filter(loc => loc.routeId === Number(selectedRouteId))
-    : locations.filter(loc => !loc.routeId); // Show unassigned locations when no route selected
+    : locations; // Show all locations when no route selected
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -157,12 +157,12 @@ export default function AddFriendForm({ onAdd, locations, routes }) {
                       value={selectedLocationId}
                       onChange={e => setSelectedLocationId(e.target.value)}
                       label="Initial Location (Optional)"
-                      disabled={!selectedRouteId && locations.filter(loc => !loc.routeId).length === 0}
+                      disabled={false}
                     >
                       <MenuItem value="">No Location</MenuItem>
                       {filteredLocations.map(location => (
                         <MenuItem key={location.id} value={location.id}>
-                          {location.description}
+                          {location.name}
                         </MenuItem>
                       ))}
                     </Select>

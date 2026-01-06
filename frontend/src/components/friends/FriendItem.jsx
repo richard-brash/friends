@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
@@ -25,10 +25,14 @@ import AddLocationIcon from '@mui/icons-material/AddLocation';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
+import friendsApi from '../../config/friendsApi.js';
 
 export default function FriendItem({ friend, locations, routes, onEditFriend, onDeleteFriend, onAddLocationHistory }) {
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(true); // For collapsing friend card
+  const [locationHistoryExpanded, setLocationHistoryExpanded] = useState(false);
+  const [locationHistory, setLocationHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [editData, setEditData] = useState({
     name: friend.name,
     phone: friend.phone || "",
@@ -39,12 +43,35 @@ export default function FriendItem({ friend, locations, routes, onEditFriend, on
   const [newRouteId, setNewRouteId] = useState("");
   const [newLocationId, setNewLocationId] = useState("");
   const [newLocationNotes, setNewLocationNotes] = useState("");
-  const [newLocationDate, setNewLocationDate] = useState(new Date().toISOString().split('T')[0]);
+  // Removed newLocationDate - always use current timestamp
+
+  // Auto-refresh location history when friend's location count changes
+  useEffect(() => {
+    // If location history is expanded and the friend's location count has increased,
+    // refresh the location history to show the new entry
+    if (locationHistoryExpanded && locationHistory.length > 0) {
+      const currentCount = friend.locationHistoryCount || 0;
+      const loadedCount = locationHistory.length;
+      
+      if (currentCount > loadedCount) {
+        // New location history entry was added, refresh the data
+        const refreshHistory = async () => {
+          try {
+            const response = await friendsApi.getLocationHistory(friend.id);
+            setLocationHistory(response.data || []);
+          } catch (error) {
+            console.error('Failed to refresh location history:', error);
+          }
+        };
+        refreshHistory();
+      }
+    }
+  }, [friend.locationHistoryCount, locationHistoryExpanded, locationHistory.length, friend.id]);
 
   // Filter locations by selected route
   const filteredLocations = newRouteId 
     ? locations.filter(loc => loc.routeId === Number(newRouteId))
-    : locations.filter(loc => !loc.routeId);
+    : locations;
 
   const handleSave = () => {
     onEditFriend(friend.id, editData);
@@ -61,14 +88,29 @@ export default function FriendItem({ friend, locations, routes, onEditFriend, on
     setEditing(false);
   };
 
+  // Load location history on-demand
+  const handleLocationHistoryToggle = async () => {
+    if (!locationHistoryExpanded && locationHistory.length === 0 && friend.locationHistoryCount > 0) {
+      setLoadingHistory(true);
+      try {
+        const response = await friendsApi.getLocationHistory(friend.id);
+        setLocationHistory(response.data || []);
+      } catch (error) {
+        console.error('Failed to load location history:', error);
+      } finally {
+        setLoadingHistory(false);
+      }
+    }
+    setLocationHistoryExpanded(!locationHistoryExpanded);
+  };
+
   const handleAddLocation = (e) => {
     e.preventDefault();
     if (newLocationId) {
-      onAddLocationHistory(friend.id, Number(newLocationId), newLocationNotes, newLocationDate + 'T12:00:00.000Z');
+      onAddLocationHistory(friend.id, Number(newLocationId), newLocationNotes); // Always use current timestamp
       setNewRouteId("");
       setNewLocationId("");
       setNewLocationNotes("");
-      setNewLocationDate(new Date().toISOString().split('T')[0]);
       setShowAddLocation(false);
     }
   };
@@ -193,23 +235,27 @@ export default function FriendItem({ friend, locations, routes, onEditFriend, on
             )}
 
             {/* Location History - Always show this section */}
-            <Accordion style={{ marginTop: 16 }}>
+            <Accordion expanded={locationHistoryExpanded} onChange={handleLocationHistoryToggle} style={{ marginTop: 16 }}>
               <AccordionSummary 
                 expandIcon={<ExpandMoreIcon />}
                 style={{ backgroundColor: '#e3f2fd', borderRadius: '4px 4px 0 0' }}
               >
                 <Typography style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1976d2', fontWeight: 500 }}>
                   <LocationOnIcon /> 
-                  {friend.locationHistory && friend.locationHistory.length > 0 
-                    ? `Last seen: ${friend.locationHistory[0]?.locationName} (${formatDate(friend.locationHistory[0]?.dateRecorded)})`
-                    : 'No recent location'
+                  {friend.locationName 
+                    ? `Current: ${friend.locationName}${friend.locationHistoryCount > 0 ? ` (${friend.locationHistoryCount} locations tracked)` : ''}`
+                    : 'No current location'
                   }
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <Box>
-                  {friend.locationHistory && friend.locationHistory.length > 0 ? (
-                    friend.locationHistory
+                  {loadingHistory ? (
+                    <Typography variant="body2" style={{ color: '#666', fontStyle: 'italic', marginBottom: 16 }}>
+                      Loading location history...
+                    </Typography>
+                  ) : locationHistory.length > 0 ? (
+                    locationHistory
                       .sort((a, b) => new Date(b.dateRecorded) - new Date(a.dateRecorded))
                       .map((entry, index) => (
                         <Box 
@@ -236,6 +282,10 @@ export default function FriendItem({ friend, locations, routes, onEditFriend, on
                           )}
                         </Box>
                       ))
+                  ) : friend.locationHistoryCount > 0 ? (
+                    <Typography variant="body2" style={{ color: '#666', fontStyle: 'italic', marginBottom: 16 }}>
+                      {friend.locationHistoryCount} location{friend.locationHistoryCount !== 1 ? 's' : ''} tracked. Click to expand and view history.
+                    </Typography>
                   ) : (
                     <Typography variant="body2" style={{ color: '#666', fontStyle: 'italic', marginBottom: 16 }}>
                       No location history yet. Add the first location below.
@@ -277,7 +327,7 @@ export default function FriendItem({ friend, locations, routes, onEditFriend, on
                               <MenuItem value="">Select Location</MenuItem>
                               {filteredLocations.map(location => (
                                 <MenuItem key={location.id} value={location.id}>
-                                  {location.description}
+                                  {location.name}
                                 </MenuItem>
                               ))}
                             </Select>
@@ -289,14 +339,6 @@ export default function FriendItem({ friend, locations, routes, onEditFriend, on
                             onChange={e => setNewLocationNotes(e.target.value)}
                             label="Notes"
                             size="small"
-                          />
-                          <TextField
-                            value={newLocationDate}
-                            onChange={e => setNewLocationDate(e.target.value)}
-                            label="Date"
-                            type="date"
-                            size="small"
-                            InputLabelProps={{ shrink: true }}
                           />
                           <Button type="submit" variant="contained" size="small">
                             Add

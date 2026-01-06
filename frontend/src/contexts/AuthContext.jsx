@@ -32,19 +32,30 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('authToken');
+      console.log('🔍 Auth check - Token exists:', !!token);
+      console.log('🔍 Auth check - Token preview:', token ? token.substring(0, 20) + '...' : 'none');
+      
       if (!token) {
+        console.log('❌ No token found in localStorage');
         setLoading(false);
         return;
       }
 
+      console.log('🔍 Auth check - Authorization header:', axios.defaults.headers.common['Authorization']);
+
       try {
         const response = await axios.get(`${API_BASE}/auth/me`);
+        console.log('✅ Auth check successful:', response.data.user);
         setUser(response.data.user);
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error('❌ Auth check failed:', error);
+        console.error('❌ Error response:', error.response?.data);
+        console.error('❌ Error status:', error.response?.status);
+        
         // Clear invalid token
         localStorage.removeItem('authToken');
         delete axios.defaults.headers.common['Authorization'];
+        console.log('🧹 Cleared invalid token and auth header');
       } finally {
         setLoading(false);
       }
@@ -63,10 +74,14 @@ export const AuthProvider = ({ children }) => {
       });
 
       const { user: userData, token } = response.data;
+      console.log('✅ Login successful - User:', userData);
+      console.log('✅ Login successful - Token preview:', token.substring(0, 20) + '...');
 
       // Store token and set auth header
       localStorage.setItem('authToken', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('💾 Token stored in localStorage');
+      console.log('🔧 Authorization header set:', axios.defaults.headers.common['Authorization'].substring(0, 30) + '...');
       
       setUser(userData);
       return { success: true };

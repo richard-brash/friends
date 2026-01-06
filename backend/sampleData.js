@@ -870,7 +870,7 @@ export const sampleDeliveryAttempts = [
     attemptDate: new Date('2025-10-13T11:00:00').toISOString(),
     locationId: '24', // University/Hospital Area (Calvin's location)
     userId: '1', // Alex Johnson
-    outcome: 'not_found',
+  outcome: 'not_delivered',
     notes: 'Checked usual spots near university/hospital area. Will try again later.',
     createdAt: new Date('2025-10-13T11:00:00').toISOString()
   },
@@ -880,7 +880,7 @@ export const sampleDeliveryAttempts = [
     attemptDate: new Date('2025-10-12T17:00:00').toISOString(),
     locationId: '8', // Ollie's
     userId: '2', // Sarah Chen
-    outcome: 'not_available',
+  outcome: 'not_delivered',
     notes: 'David was at Ollie\'s but seemed busy. Did not want to interrupt his conversation.',
     createdAt: new Date('2025-10-12T17:00:00').toISOString()
   },
@@ -890,7 +890,7 @@ export const sampleDeliveryAttempts = [
     attemptDate: new Date('2025-10-13T08:30:00').toISOString(),
     locationId: '3', // Riverside Park
     userId: '2', // Sarah Chen
-    outcome: 'not_found',
+  outcome: 'not_delivered',
     notes: 'Checked both her usual morning and evening spots along the river. May need to try different time.',
     createdAt: new Date('2025-10-13T08:30:00').toISOString()
   },
@@ -910,7 +910,7 @@ export const sampleDeliveryAttempts = [
     attemptDate: new Date('2025-10-12T14:30:00').toISOString(),
     locationId: '24', // University/Hospital Area
     userId: '2', // Sarah Chen
-    outcome: 'not_found',
+  outcome: 'not_delivered',
     notes: 'Checked usual spots around university/hospital area. Could not locate Calvin.',
     createdAt: new Date('2025-10-12T14:30:00').toISOString()
   },

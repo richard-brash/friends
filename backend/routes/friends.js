@@ -1,103 +1,107 @@
 import express from 'express';
 import { authenticateToken } from '../src/middleware/auth.js';
-import { 
-  getAllFriends, 
-  addFriend, 
-  updateFriend, 
-  addLocationToFriendHistory,
-  updateLocationHistory,
-  removeLocationHistory,
-  deleteFriend,
-  getFriendsAtLocation,
-  getFriendsLastSeenAt
-} from '../models/friend.js';
-import { locations } from '../models/location.js';
+import friendService from '../services/friendService.js';
 
 const router = express.Router();
 
 // Get all friends
-router.get('/', authenticateToken, (req, res) => {
-  res.json({ friends: getAllFriends(locations) });
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const friends = await friendService.getAllFriends();
+    res.json({ friends });
+  } catch (error) {
+    console.error('Error getting friends:', error);
+    res.status(500).json({ error: 'Failed to get friends' });
+  }
 });
 
-// Get friends at a specific location (ever or currently)
-router.get('/at-location/:locationId', authenticateToken, (req, res) => {
-  const { locationId } = req.params;
-  const { current } = req.query; // ?current=true for last known location only
-  
-  const friends = current === 'true' 
-    ? getFriendsLastSeenAt(Number(locationId))
-    : getFriendsAtLocation(Number(locationId));
-    
-  res.json({ friends: friends.map(f => getAllFriends(locations).find(ef => ef.id === f.id)) });
+// Get friends at a specific location
+router.get('/at-location/:locationId', authenticateToken, async (req, res) => {
+  try {
+    const { locationId } = req.params;
+    const friends = await friendService.getFriendsByLocationId(Number(locationId));
+    res.json({ friends });
+  } catch (error) {
+    console.error('Error getting friends by location:', error);
+    res.status(500).json({ error: 'Failed to get friends by location' });
+  }
+});
+
+// Get a specific friend with details
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const friend = await friendService.getFriendById(Number(id));
+    if (!friend) return res.status(404).json({ error: 'Friend not found' });
+    res.json({ friend });
+  } catch (error) {
+    console.error('Error getting friend:', error);
+    res.status(500).json({ error: 'Failed to get friend' });
+  }
 });
 
 // Add a friend
-router.post('/', authenticateToken, (req, res) => {
-  const { name, phone, email, notes, initialLocationId } = req.body;
-  if (!name) return res.status(400).json({ error: 'Name required' });
-  
-  const friend = addFriend(name, phone, email, notes);
-  
-  // If initial location is provided, add it to history
-  if (initialLocationId) {
-    addLocationToFriendHistory(friend.id, Number(initialLocationId), "Initial location", new Date().toISOString());
+router.post('/', authenticateToken, async (req, res) => {
+  try {
+    const { name, nickname, notes, current_location_id, clothing_sizes, dietary_restrictions } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name required' });
+    
+    const friend = await friendService.createFriend({
+      name,
+      nickname,
+      notes,
+      current_location_id,
+      clothing_sizes,
+      dietary_restrictions
+    });
+    
+    res.status(201).json({ friend });
+  } catch (error) {
+    console.error('Error creating friend:', error);
+    res.status(500).json({ error: 'Failed to create friend' });
   }
-  
-  // Return enriched friend data
-  const enrichedFriend = getAllFriends(locations).find(f => f.id === friend.id);
-  res.status(201).json({ friend: enrichedFriend });
 });
 
 // Update a friend's basic info
-router.patch('/:id', authenticateToken, (req, res) => {
-  const { id } = req.params;
-  const updates = req.body;
-  
-  const friend = updateFriend(Number(id), updates);
-  if (!friend) return res.status(404).json({ error: 'Friend not found' });
-  
-  res.json({ friend });
-});
-
-// Add location to friend's history
-router.post('/:id/locations', authenticateToken, (req, res) => {
-  const { id } = req.params;
-  const { locationId, notes, dateRecorded } = req.body;
-  
-  if (!locationId) return res.status(400).json({ error: 'Location ID required' });
-  
-  const friend = addLocationToFriendHistory(Number(id), Number(locationId), notes, dateRecorded);
-  if (!friend) return res.status(404).json({ error: 'Friend not found' });
-  
-  res.json({ friend: getAllFriends(locations).find(f => f.id === friend.id) });
-});
-
-// Update a specific location history entry
-router.patch('/:id/locations/:historyId', authenticateToken, (req, res) => {
-  const { id, historyId } = req.params;
-  const updates = req.body;
-  
-  const friend = updateLocationHistory(Number(id), Number(historyId), updates);
-  if (!friend) return res.status(404).json({ error: 'Friend or history entry not found' });
-  
-  res.json({ friend: getAllFriends(locations).find(f => f.id === friend.id) });
-});
-
-// Remove a location history entry
-router.delete('/:id/locations/:historyId', authenticateToken, (req, res) => {
-  const { id, historyId } = req.params;
-  
-  const friend = removeLocationHistory(Number(id), Number(historyId));
-  if (!friend) return res.status(404).json({ error: 'Friend or history entry not found' });
-  
-  res.sendStatus(204);
+router.patch('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    const friend = await friendService.updateFriend(Number(id), updates);
+    if (!friend) return res.status(404).json({ error: 'Friend not found' });
+    
+    res.json({ friend });
+  } catch (error) {
+    console.error('Error updating friend:', error);
+    res.status(500).json({ error: 'Failed to update friend' });
+  }
 });
 
 // Delete a friend
-router.delete('/:id', authenticateToken, (req, res) => {
-  deleteFriend(Number(req.params.id));
-  res.sendStatus(204);
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedFriend = await friendService.deleteFriend(Number(id));
+    if (!deletedFriend) return res.status(404).json({ error: 'Friend not found' });
+    
+    res.sendStatus(204);
+  } catch (error) {
+    console.error('Error deleting friend:', error);
+    res.status(500).json({ error: 'Failed to delete friend' });
+  }
+});
+
+// Search friends by name
+router.get('/search/:term', authenticateToken, async (req, res) => {
+  try {
+    const { term } = req.params;
+    const friends = await friendService.searchFriendsByName(term);
+    res.json({ friends });
+  } catch (error) {
+    console.error('Error searching friends:', error);
+    res.status(500).json({ error: 'Failed to search friends' });
+  }
 });
 
 export default router;

@@ -1,15 +1,14 @@
-const { query } = require('../database');
+import { query } from '../database.js';
 
 class RequestService {
   // Get all requests with friend, location, and run info
   async getAllRequests() {
     const result = await query(`
-      SELECT req.*, f.name as friend_name, l.name as location_name, r.name as route_name,
+      SELECT req.*, f.name as friend_name, l.name as location_name,
              run.name as run_name, u.name as taken_by_name, u2.name as delivered_by_name
       FROM requests req
       JOIN friends f ON req.friend_id = f.id
-      JOIN locations l ON f.location_id = l.id
-      JOIN routes r ON l.route_id = r.id
+      LEFT JOIN locations l ON req.location_id = l.id
       LEFT JOIN runs run ON req.run_id = run.id
       LEFT JOIN users u ON req.taken_by = u.id
       LEFT JOIN users u2 ON req.delivered_by = u2.id
@@ -21,12 +20,11 @@ class RequestService {
   // Get requests by status
   async getRequestsByStatus(status) {
     const result = await query(`
-      SELECT req.*, f.name as friend_name, l.name as location_name, r.name as route_name,
+      SELECT req.*, f.name as friend_name, l.name as location_name,
              run.name as run_name, u.name as taken_by_name
       FROM requests req
       JOIN friends f ON req.friend_id = f.id
-      JOIN locations l ON f.location_id = l.id
-      JOIN routes r ON l.route_id = r.id
+      LEFT JOIN locations l ON req.location_id = l.id
       LEFT JOIN runs run ON req.run_id = run.id
       LEFT JOIN users u ON req.taken_by = u.id
       WHERE req.status = $1
@@ -65,15 +63,14 @@ class RequestService {
     return result.rows;
   }
 
-  // Get request by ID
+  // Get request by ID with full details
   async getRequestById(id) {
     const result = await query(`
-      SELECT req.*, f.name as friend_name, l.name as location_name, r.name as route_name,
+      SELECT req.*, f.name as friend_name, l.name as location_name,
              run.name as run_name, u.name as taken_by_name, u2.name as delivered_by_name
       FROM requests req
       JOIN friends f ON req.friend_id = f.id
-      JOIN locations l ON f.location_id = l.id
-      JOIN routes r ON l.route_id = r.id
+      LEFT JOIN locations l ON req.location_id = l.id
       LEFT JOIN runs run ON req.run_id = run.id
       LEFT JOIN users u ON req.taken_by = u.id
       LEFT JOIN users u2 ON req.delivered_by = u2.id
@@ -164,4 +161,4 @@ class RequestService {
   }
 }
 
-module.exports = new RequestService();
+export default new RequestService();

@@ -4,8 +4,8 @@ import {
   AppBar, 
   Toolbar, 
   Typography, 
-  Tabs, 
-  Tab, 
+  Tabs,
+  Tab,
   Box, 
   Paper, 
   BottomNavigation, 
@@ -27,6 +27,7 @@ import {
   Settings,
   Logout
 } from '@mui/icons-material';
+import { BrowserRouter as Router, Routes, Route as RouterRoute, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import FriendSection from './components/FriendSection';
@@ -36,6 +37,8 @@ import RequestsSection from './components/RequestsSection';
 import AppFooter from './components/AppFooter';
 import UserProfile from './components/auth/UserProfile';
 import SettingsPage from './components/SettingsPage';
+import RunPreparationScreen from './components/runs/RunPreparationScreen';
+import ActiveRunScreen from './components/runs/ActiveRunScreen';
 
 
 // Component wrapper for role-based sections
@@ -106,25 +109,43 @@ const getMobileSectionsForUser = (user) => {
   return baseSections;
 };
 
-// Main authenticated app component
-function AuthenticatedApp() {
-  const [tab, setTab] = React.useState(0);
+// Navigation component that works with React Router
+function AppNavigation() {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const allSections = getSectionsForUser(user);
   const mobileSections = getMobileSectionsForUser(user);
   
   // Use appropriate sections based on screen size
   const sections = isMobile ? mobileSections : allSections;
-  
-  // For rendering, always use allSections to handle Profile tab access
-  const Section = allSections[tab]?.Component;
 
-  const handleTabChange = (event, newValue) => {
-    setTab(newValue);
+  // Get current route path and find matching section
+  const getCurrentSectionIndex = () => {
+    const currentPath = location.pathname;
+    if (currentPath === '/' || currentPath === '/runs') return 0;
+    if (currentPath === '/routes') return sections.findIndex(s => s.label === 'Routes');
+    if (currentPath === '/requests') return sections.findIndex(s => s.label === 'Requests');
+    if (currentPath === '/friends') return sections.findIndex(s => s.label === 'Friends');
+    if (currentPath === '/settings') return sections.findIndex(s => s.label === 'Settings');
+    if (currentPath === '/profile') return allSections.findIndex(s => s.label === 'Profile');
+    return 0;
+  };
+
+  const handleNavigation = (sectionLabel) => {
+    switch (sectionLabel) {
+      case 'Runs': navigate('/runs'); break;
+      case 'Routes': navigate('/routes'); break;
+      case 'Requests': navigate('/requests'); break;
+      case 'Friends': navigate('/friends'); break;
+      case 'Settings': navigate('/settings'); break;
+      case 'Profile': navigate('/profile'); break;
+      default: navigate('/runs');
+    }
   };
 
   const handleMenuOpen = (event) => {
@@ -150,12 +171,7 @@ function AuthenticatedApp() {
   };
 
   return (
-    <Box sx={{ 
-      bgcolor: '#f5f5f5', 
-      minHeight: '100vh',
-      paddingBottom: isMobile ? '80px' : '0' // Space for bottom nav on mobile
-    }}>
-      <CssBaseline />
+    <>
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
@@ -193,7 +209,7 @@ function AuthenticatedApp() {
             onClose={handleMenuClose}
             onClick={handleMenuClose}
           >
-            <MenuItem onClick={() => setTab(allSections.findIndex(s => s.label === 'Profile'))}>
+            <MenuItem onClick={() => { handleNavigation('Profile'); handleMenuClose(); }}>
               <Settings sx={{ mr: 2 }} />
               Profile & Settings
             </MenuItem>
@@ -205,47 +221,36 @@ function AuthenticatedApp() {
         </Toolbar>
       </AppBar>
       
-      {/* Desktop Navigation */}
+      {/* Desktop Navigation Tabs */}
       {!isMobile && (
         <Tabs 
-          value={tab} 
-          onChange={handleTabChange} 
+          value={getCurrentSectionIndex()} 
+          onChange={(event, newValue) => {
+            const section = sections[newValue];
+            if (section) handleNavigation(section.label);
+          }}
           centered 
           sx={{ mb: 2, bgcolor: 'background.paper' }}
         >
-          {sections.map((s, index) => (
+          {sections.map((section, index) => (
             <Tab 
-              key={s.label} 
-              label={s.label} 
-              icon={<s.icon />}
+              key={section.label} 
+              label={section.label} 
+              icon={<section.icon />}
               iconPosition="start"
             />
           ))}
         </Tabs>
       )}
       
-      <Box sx={{ 
-        maxWidth: isMobile ? '100%' : 1000, 
-        mx: 'auto', 
-        p: isMobile ? 1 : 2 
-      }}>
-        <Paper sx={{ p: isMobile ? 1 : 2 }} elevation={2}>
-          {Section && (
-            <RoleProtectedSection 
-              Component={Section} 
-              requiredRoles={sections[tab]?.requiredRoles}
-            />
-          )}
-        </Paper>
-      </Box>
-      
-      {!isMobile && <AppFooter />}
-      
       {/* Mobile Bottom Navigation */}
       {isMobile && (
         <BottomNavigation
-          value={tab < sections.length ? tab : 0}
-          onChange={handleTabChange}
+          value={getCurrentSectionIndex()}
+          onChange={(event, newValue) => {
+            const section = sections[newValue];
+            if (section) handleNavigation(section.label);
+          }}
           showLabels
           sx={{
             position: 'fixed',
@@ -267,17 +272,74 @@ function AuthenticatedApp() {
           ))}
         </BottomNavigation>
       )}
+    </>
+  );
+}
+
+// Main authenticated app component with routes
+function AuthenticatedApp() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  return (
+    <Box sx={{ 
+      bgcolor: '#f5f5f5', 
+      minHeight: '100vh',
+      paddingBottom: isMobile ? '80px' : '0' // Space for bottom nav on mobile
+    }}>
+      <CssBaseline />
+      <AppNavigation />
+      
+      <Box sx={{ 
+        maxWidth: isMobile ? '100%' : 1000, 
+        mx: 'auto', 
+        p: isMobile ? 1 : 2 
+      }}>
+        <Paper sx={{ p: isMobile ? 1 : 2 }} elevation={2}>
+          <Routes>
+            <RouterRoute path="/" element={<Navigate to="/runs" replace />} />
+            <RouterRoute path="/runs" element={
+              <RoleProtectedSection Component={RunSection} />
+            } />
+            <RouterRoute path="/runs/:id/prepare" element={
+              <RoleProtectedSection Component={RunPreparationScreen} />
+            } />
+            <RouterRoute path="/runs/:id/active" element={
+              <RoleProtectedSection Component={ActiveRunScreen} />
+            } />
+            <RouterRoute path="/routes" element={
+              <RoleProtectedSection Component={OutreachDashboard} requiredRoles={['admin', 'coordinator']} />
+            } />
+            <RouterRoute path="/requests" element={
+              <RoleProtectedSection Component={RequestsSection} requiredRoles={['admin', 'coordinator']} />
+            } />
+            <RouterRoute path="/friends" element={
+              <RoleProtectedSection Component={FriendSection} requiredRoles={['admin', 'coordinator']} />
+            } />
+            <RouterRoute path="/settings" element={
+              <RoleProtectedSection Component={SettingsPage} requiredRoles={['admin', 'coordinator']} />
+            } />
+            <RouterRoute path="/profile" element={
+              <RoleProtectedSection Component={UserProfile} />
+            } />
+          </Routes>
+        </Paper>
+      </Box>
+      
+      {!isMobile && <AppFooter />}
     </Box>
   );
 }
 
-// Root App component with AuthProvider
+// Root App component with Router and AuthProvider
 export default function App() {
   return (
-    <AuthProvider>
-      <ProtectedRoute>
-        <AuthenticatedApp />
-      </ProtectedRoute>
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <ProtectedRoute>
+          <AuthenticatedApp />
+        </ProtectedRoute>
+      </AuthProvider>
+    </Router>
   );
 }

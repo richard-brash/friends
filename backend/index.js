@@ -9,17 +9,27 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Database imports
-import { testConnection, initializeSchema } from './database.js';
+import { testConnection, initializeSchema, query, pool } from './database.js';
 import { resetAndSeed, seedDatabase, seedSampleData } from './seed.js';
 
 // Route imports
 import authRouter from './src/routes/auth.js';
 import usersRouter from './routes/users.js';
-import friendsRouter from './routes/friends.js';
-import locationsRouter from './routes/locations.js';
-import routesRouter from './routes/routes.js';
-import runsRouter from './routes/runs.js';
-import requestsRouter from './routes/requests.js';
+// import friendsRouter from './routes/friends.js'; // DISABLED - V1 friends broken due to removed current_location_id
+// import locationsRouter from './routes/locations.js'; // DISABLED - V1 locations broken due to removed current_location_id  
+// import routesRouter from './routes/routes.js'; // DISABLED - V1 routes broken due to removed current_location_id
+// import requestsRouter from './routes/requests.js'; // DISABLED - V1 requests may be broken
+
+// V2 Routes (Clean Architecture)
+import runsV2Router from './routes/v2/runs.js';
+import friendsV2Router from './routes/v2/friends.js';
+import locationsV2Router from './routes/v2/locations.js';
+import routesV2Router from './routes/v2/routes.js';
+import requestsV2Router from './routes/v2/requests.js';
+import executionRouter from './routes/v2/execution.js';
+
+// Middleware imports
+import errorHandler from './middleware/errorHandler.js';
 import { 
   sampleUsers, 
   sampleLocations, 
@@ -29,12 +39,7 @@ import {
   sampleRequests,
   sampleDeliveryAttempts 
 } from './cleanSampleData.js';
-import { users } from './routes/users.js';
-import { runs } from './routes/runs.js';
-import { requests, deliveryAttempts } from './routes/requests.js';
-import { seedFriends, clearAllFriends } from './models/friend.js';
-import { seedLocations, clearAllLocations } from './models/location.js';
-import { seedRoutes, clearAllRoutes } from './models/route.js';
+// Database services will handle data persistence
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,14 +49,59 @@ app.use(cors());
 app.use(cookieParser());
 app.use(express.json());
 
+// Make database pool available to routes
+app.locals.db = pool;
+
+// Health check endpoint (no auth required)
+app.get('/api/health', async (req, res) => {
+  try {
+    // Check database counts
+    const userCount = await query('SELECT COUNT(*) FROM users');
+    const runCount = await query('SELECT COUNT(*) FROM runs');
+    const requestCount = await query('SELECT COUNT(*) FROM requests');
+    const friendCount = await query('SELECT COUNT(*) FROM friends');
+    const locationCount = await query('SELECT COUNT(*) FROM locations');
+    const routeCount = await query('SELECT COUNT(*) FROM routes');
+
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      database: 'connected',
+      data_counts: {
+        users: parseInt(userCount.rows[0].count),
+        runs: parseInt(runCount.rows[0].count),
+        requests: parseInt(requestCount.rows[0].count),
+        friends: parseInt(friendCount.rows[0].count),
+        locations: parseInt(locationCount.rows[0].count),
+        routes: parseInt(routeCount.rows[0].count)
+      }
+    });
+  } catch (error) {
+    res.json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      database: 'error',
+      error: error.message
+    });
+  }
+});
+
 // API routes
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
-app.use('/api/friends', friendsRouter);
-app.use('/api/locations', locationsRouter);
-app.use('/api/routes', routesRouter);
-app.use('/api/runs', runsRouter);
-app.use('/api/requests', requestsRouter);
+// app.use('/api/friends', friendsRouter); // DISABLED - V1 friends broken, use V2
+// app.use('/api/locations', locationsRouter); // DISABLED - V1 locations broken
+// app.use('/api/routes', routesRouter); // DISABLED - V1 routes broken  
+// app.use('/api/requests', requestsRouter); // DISABLED - V1 requests may be broken
+
+// V2 API routes (Clean Architecture) - migrated from V1
+app.use('/api/runs', runsV2Router); // Now using V2 as the main endpoint
+app.use('/api/v2/runs', runsV2Router); // Keep V2 endpoint for backward compatibility
+app.use('/api/v2/friends', friendsV2Router); // New V2 friends API
+app.use('/api/v2/locations', locationsV2Router); // New V2 locations API
+app.use('/api/v2/routes', routesV2Router); // New V2 routes API
+app.use('/api/v2/requests', requestsV2Router); // New V2 requests API
+app.use('/api/v2/execution', executionRouter); // Run execution (field operations)
 
 // Database management endpoints
 app.post('/api/seed', async (req, res) => {
@@ -60,51 +110,15 @@ app.post('/api/seed', async (req, res) => {
     await seedSampleData();
     
     res.json({ 
-      message: 'Sample data seeded successfully',
+      message: 'Sample data seeded successfully to database',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('❌ Seeding failed:', error.message);
-    
-    // Fallback to in-memory seeding if database fails
-    try {
-      console.log('⚠️  Database seeding failed, falling back to in-memory...');
-      // Clear existing data first
-      users.length = 0;
-      runs.length = 0;
-      requests.length = 0;
-      deliveryAttempts.length = 0;
-      clearAllFriends();
-      clearAllLocations();
-      clearAllRoutes();
-      
-      // Seed data in the correct order
-      seedLocations(sampleLocations);
-      seedRoutes(sampleRoutes);
-      seedFriends(sampleFriends);
-      users.push(...sampleUsers);
-      runs.push(...sampleRuns);
-      requests.push(...sampleRequests);
-      deliveryAttempts.push(...sampleDeliveryAttempts);
-      
-      res.json({ 
-        message: 'Sample data loaded successfully (in-memory fallback)',
-        data: {
-          users: sampleUsers.length,
-          friends: sampleFriends.length,
-          locations: sampleLocations.length,
-          routes: sampleRoutes.length,
-          runs: sampleRuns.length,
-          requests: sampleRequests.length,
-          deliveryAttempts: sampleDeliveryAttempts.length
-        }
-      });
-    } catch (fallbackError) {
-      res.status(500).json({ 
-        error: 'Failed to load sample data', 
-        details: `Database: ${error.message}, Fallback: ${fallbackError.message}` 
-      });
-    }
+    res.status(500).json({ 
+      error: 'Failed to seed sample data to database', 
+      details: error.message 
+    });
   }
 });
 
@@ -141,6 +155,9 @@ app.get('/api/health', async (req, res) => {
 // Serve static files from frontend dist
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
+// Error handling middleware (must be last)
+app.use(errorHandler);
+
 // Handle React routing - serve index.html for all non-API routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
@@ -154,37 +171,12 @@ async function startServer() {
     
     if (connected) {
       console.log('✅ Database connected successfully');
-      console.log('🔧 Initializing database schema...');
-      await initializeSchema();
-      
-      // Only seed in development, not production
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('🌱 Seeding database with sample data...');
-        await seedDatabase();
-      }
+      // Database schema and seeding should be done manually via:
+      // node populate-database.js
+      // NOT automatically on every server start!
     } else {
-      console.log('⚠️  Database connection failed - falling back to in-memory storage');
-      console.log('Loading initial sample data (in-memory)...');
-      
-      // Clear existing data first
-      users.length = 0;
-      runs.length = 0;
-      requests.length = 0;
-      deliveryAttempts.length = 0;
-      clearAllFriends();
-      clearAllLocations();
-      clearAllRoutes();
-      
-      // Seed data in the correct order
-      seedLocations(sampleLocations);
-      seedRoutes(sampleRoutes);
-      seedFriends(sampleFriends);
-      users.push(...sampleUsers);
-      runs.push(...sampleRuns);
-      requests.push(...sampleRequests);
-      deliveryAttempts.push(...sampleDeliveryAttempts);
-      
-      console.log(`Sample data loaded: ${sampleUsers.length} users, ${sampleFriends.length} friends, ${sampleLocations.length} locations, ${sampleRoutes.length} routes, ${sampleRuns.length} runs, ${sampleRequests.length} requests`);
+      console.error('❌ Database connection failed - server cannot start without database');
+      process.exit(1);
     }
     
     const PORT = process.env.PORT || 4000;

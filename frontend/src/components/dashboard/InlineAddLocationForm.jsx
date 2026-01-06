@@ -13,9 +13,12 @@ export default function InlineAddLocationForm({ onAdd, routeId, routeName }) {
     e.preventDefault();
     if (desc.trim()) {
       onAdd({ 
-        description: desc.trim(), 
-        notes: notes.trim(), 
-        routeId: routeId || null 
+        name: desc.trim(),              // Map description to name
+        address: null,                  // No address field in this simple form
+        type: 'Service Location',       // Default type for locations added via routes
+        notes: notes.trim() || null,    // Notes if provided
+        coordinates: null,              // No coordinates in this simple form
+        routeId: routeId || null        // Route assignment
       });
       setDesc(""); 
       setNotes("");

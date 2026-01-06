@@ -156,6 +156,9 @@ async function seedSampleData() {
   }
   
   try {
+    // Hash passwords for sample users from cleanSampleData.js
+    const { sampleUsers } = await import('./cleanSampleData.js');
+    const usersWithHashedPasswords = await hashPasswords([...sampleUsers]);
     
     // Seed in order (respecting foreign key constraints)
     await seedTable('users', usersWithHashedPasswords);

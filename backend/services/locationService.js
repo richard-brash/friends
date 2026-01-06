@@ -1,16 +1,15 @@
-const { query } = require('../database');
+import { query } from '../database.js';
 
 class LocationService {
   // Get all locations with route info
   async getAllLocations() {
     const result = await query(`
-      SELECT l.*, r.name as route_name, r.color as route_color,
+      SELECT l.*, 
              COUNT(f.id) as friend_count
       FROM locations l
-      JOIN routes r ON l.route_id = r.id
-      LEFT JOIN friends f ON l.id = f.location_id
-      GROUP BY l.id, r.name, r.color
-      ORDER BY r.name, l.order_in_route
+      LEFT JOIN friends f ON l.id = f.current_location_id
+      GROUP BY l.id
+      ORDER BY l.name
     `);
     return result.rows;
   }
@@ -18,12 +17,13 @@ class LocationService {
   // Get locations by route ID
   async getLocationsByRouteId(routeId) {
     const result = await query(`
-      SELECT l.*, COUNT(f.id) as friend_count
+      SELECT l.*, COUNT(f.id) as friend_count, rl.order_in_route
       FROM locations l
-      LEFT JOIN friends f ON l.id = f.location_id
-      WHERE l.route_id = $1
-      GROUP BY l.id
-      ORDER BY l.order_in_route
+      JOIN route_locations rl ON l.id = rl.location_id
+      LEFT JOIN friends f ON l.id = f.current_location_id
+      WHERE rl.route_id = $1
+      GROUP BY l.id, rl.order_in_route
+      ORDER BY rl.order_in_route
     `, [routeId]);
     return result.rows;
   }
@@ -31,15 +31,14 @@ class LocationService {
   // Get location by ID with friends
   async getLocationById(id) {
     const locationResult = await query(`
-      SELECT l.*, r.name as route_name
+      SELECT l.*
       FROM locations l
-      JOIN routes r ON l.route_id = r.id
       WHERE l.id = $1
     `, [id]);
     
     if (locationResult.rows.length === 0) return null;
 
-    const friendsResult = await query('SELECT * FROM friends WHERE location_id = $1 ORDER BY name', [id]);
+    const friendsResult = await query('SELECT * FROM friends WHERE current_location_id = $1 ORDER BY name', [id]);
 
     return {
       ...locationResult.rows[0],
@@ -48,24 +47,24 @@ class LocationService {
   }
 
   // Create new location
-  async createLocation({ route_id, name, address, coordinates, order_in_route }) {
+  async createLocation({ name, address, type, coordinates, notes }) {
     const result = await query(
-      `INSERT INTO locations (route_id, name, address, coordinates, order_in_route)
+      `INSERT INTO locations (name, address, type, coordinates, notes)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [route_id, name, address, coordinates ? JSON.stringify(coordinates) : null, order_in_route]
+      [name, address, type, coordinates ? JSON.stringify(coordinates) : null, notes]
     );
     return result.rows[0];
   }
 
   // Update location
-  async updateLocation(id, { route_id, name, address, coordinates, order_in_route }) {
+  async updateLocation(id, { name, address, type, coordinates, notes }) {
     const result = await query(
       `UPDATE locations 
-       SET route_id = $2, name = $3, address = $4, coordinates = $5, order_in_route = $6
+       SET name = $2, address = $3, type = $4, coordinates = $5, notes = $6
        WHERE id = $1
        RETURNING *`,
-      [id, route_id, name, address, coordinates ? JSON.stringify(coordinates) : null, order_in_route]
+      [id, name, address, type, coordinates ? JSON.stringify(coordinates) : null, notes]
     );
     return result.rows[0];
   }
@@ -79,11 +78,11 @@ class LocationService {
   // Get next order number for a route
   async getNextOrderInRoute(routeId) {
     const result = await query(
-      'SELECT COALESCE(MAX(order_in_route), 0) + 1 as next_order FROM locations WHERE route_id = $1',
+      'SELECT COALESCE(MAX(order_in_route), 0) + 1 as next_order FROM route_locations WHERE route_id = $1',
       [routeId]
     );
     return result.rows[0].next_order;
   }
 }
 
-module.exports = new LocationService();
+export default new LocationService();

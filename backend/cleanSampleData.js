@@ -8,7 +8,7 @@ export const sampleUsers = [
     name: 'Admin User',
     email: 'admin@friendsoutreach.org',
     phone: '555-0101',
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
+    password: 'password', // Will be hashed during population
     role: 'admin',
     permissions: ['all_permissions'],
     active: true,
@@ -19,7 +19,7 @@ export const sampleUsers = [
     name: 'John Coordinator',
     email: 'john@friendsoutreach.org',
     phone: '555-0102',
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
+    password: 'password', // Will be hashed during population
     role: 'coordinator',
     permissions: ['coordinate_runs', 'lead_runs', 'assign_users', 'manage_routes'],
     active: true,
@@ -30,7 +30,7 @@ export const sampleUsers = [
     name: 'Sarah Volunteer',
     email: 'sarah@friendsoutreach.org', 
     phone: '555-0103',
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
+    password: 'password', // Will be hashed during population
     role: 'volunteer',
     permissions: ['participate_runs', 'view_assignments', 'field_operations'],
     active: true,
@@ -47,7 +47,8 @@ export const sampleLocations = [
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Business',
     notes: 'Ice cream shop, regular stop on AACo route',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 1,
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
@@ -56,7 +57,8 @@ export const sampleLocations = [
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Business',
     notes: 'Local establishment on AACo route',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 2,
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
@@ -65,7 +67,8 @@ export const sampleLocations = [
     address: 'Glen Burnie, Anne Arundel County', 
     type: 'Residential Area',
     notes: 'Behind apartment complex, check for friends',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 3,
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
@@ -74,7 +77,8 @@ export const sampleLocations = [
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Gas Station',
     notes: 'Gas station stop on AACo route',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 4,
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
@@ -83,7 +87,8 @@ export const sampleLocations = [
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Restaurant',
     notes: 'Coffee shop stop, good for morning connections',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 5,
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
@@ -92,7 +97,8 @@ export const sampleLocations = [
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Personal',
     notes: 'Annette\'s regular location',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 6,
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
@@ -101,7 +107,9 @@ export const sampleLocations = [
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Business',
     notes: 'Industrial area stop on AACo route',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 7,
+
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
@@ -110,7 +118,9 @@ export const sampleLocations = [
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Store',
     notes: 'David\'s regular location at the store',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 8,
+
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
@@ -119,7 +129,9 @@ export const sampleLocations = [
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Street Area',
     notes: 'Regular stops along New Hampshire Avenue',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 9,
+
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
@@ -128,7 +140,9 @@ export const sampleLocations = [
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Highway Area',
     notes: 'Stops along Ritchie Highway corridor',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 10,
+
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
@@ -137,7 +151,9 @@ export const sampleLocations = [
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Shopping Center',
     notes: 'Shopping plaza with multiple friend connections',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 11,
+
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
@@ -146,7 +162,9 @@ export const sampleLocations = [
     address: 'Glen Burnie, Anne Arundel County',
     type: 'Shopping Area',
     notes: 'Near Marley Station mall, good foot traffic',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 12,
+
     createdAt: new Date('2024-01-20').toISOString()
   },
   {
@@ -155,7 +173,9 @@ export const sampleLocations = [
     address: 'Church St, Anne Arundel County',
     type: 'Business',
     notes: 'Danielle\'s regular location near Village Liquors',
-    routeId: '1',
+    routeId: 1,
+    routeOrder: 13,
+
     createdAt: new Date('2024-01-20').toISOString()
   },
 
@@ -166,7 +186,9 @@ export const sampleLocations = [
     address: 'Baltimore City',
     type: 'Parking Area',
     notes: 'Starting point for Baltimore City 1 route',
-    routeId: '2',
+    routeId: 2,
+    routeOrder: 1,
+
     createdAt: new Date('2024-01-22').toISOString()
   },
   {
@@ -175,7 +197,9 @@ export const sampleLocations = [
     address: 'Gay St, Baltimore City',
     type: 'Service Organization',
     notes: 'On Gay St on way to City Hall Park',
-    routeId: '2',
+    routeId: 2,
+    routeOrder: 2,
+
     createdAt: new Date('2024-01-22').toISOString()
   },
   {
@@ -184,7 +208,9 @@ export const sampleLocations = [
     address: 'Baltimore City',
     type: 'Public Space',
     notes: 'Central park area, good gathering spot',
-    routeId: '2',
+    routeId: 2,
+    routeOrder: 3,
+
     createdAt: new Date('2024-01-22').toISOString()
   },
   {
@@ -193,7 +219,9 @@ export const sampleLocations = [
     address: 'Fallsway, Baltimore City',
     type: 'Underpass',
     notes: 'Check underpass area for friends seeking shelter',
-    routeId: '2',
+    routeId: 2,
+    routeOrder: 4,
+
     createdAt: new Date('2024-01-22').toISOString()
   },
   {
@@ -202,7 +230,9 @@ export const sampleLocations = [
     address: 'Baltimore City',
     type: 'Service Organization',
     notes: 'Healthcare for the Homeless location',
-    routeId: '2',
+    routeId: 2,
+    routeOrder: 5,
+
     createdAt: new Date('2024-01-22').toISOString()
   },
   {
@@ -211,7 +241,9 @@ export const sampleLocations = [
     address: 'Baltimore City',
     type: 'Service Organization',
     notes: 'St. Vincent de Paul services',
-    routeId: '2',
+    routeId: 2,
+    routeOrder: 6,
+
     createdAt: new Date('2024-01-22').toISOString()
   },
   {
@@ -220,7 +252,9 @@ export const sampleLocations = [
     address: 'Baltimore City',
     type: 'Commercial Area',
     notes: 'Coffee shops and business district area',
-    routeId: '2',
+    routeId: 2,
+    routeOrder: 7,
+
     createdAt: new Date('2024-01-22').toISOString()
   },
 
@@ -231,7 +265,9 @@ export const sampleLocations = [
     address: 'Baltimore City',
     type: 'Service Organization',
     notes: 'Health Care for Urban Minorities - route starting point',
-    routeId: '3',
+    routeId: 3,
+    routeOrder: 1,
+
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
@@ -240,7 +276,9 @@ export const sampleLocations = [
     address: 'Presstman St, Baltimore City',
     type: 'School Area',
     notes: 'School area with community connections',
-    routeId: '3',
+    routeId: 3,
+    routeOrder: 2,
+
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
@@ -249,7 +287,9 @@ export const sampleLocations = [
     address: 'Gilmore & Payson, Baltimore City',
     type: 'Corner Store',
     notes: 'Corner store at Gilmore and Payson intersection',
-    routeId: '3',
+    routeId: 3,
+    routeOrder: 3,
+
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
@@ -258,7 +298,9 @@ export const sampleLocations = [
     address: 'University area, Baltimore City',
     type: 'Medical District',
     notes: 'University and hospital district area',
-    routeId: '3',
+    routeId: 3,
+    routeOrder: 4,
+
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
@@ -267,7 +309,9 @@ export const sampleLocations = [
     address: 'MLK Boulevard, Baltimore City',
     type: 'Main Street',
     notes: 'Martin Luther King Jr. Boulevard corridor',
-    routeId: '3',
+    routeId: 3,
+    routeOrder: 5,
+
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
@@ -276,7 +320,9 @@ export const sampleLocations = [
     address: 'Chase & Howard St, Baltimore City',
     type: 'Intersection',
     notes: 'Chase and Howard Street intersection area',
-    routeId: '3',
+    routeId: 3,
+    routeOrder: 6,
+
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
@@ -285,7 +331,9 @@ export const sampleLocations = [
     address: 'MLK area, Baltimore City',
     type: 'Encampment',
     notes: 'Encampment area along MLK - approach with care',
-    routeId: '3',
+    routeId: 3,
+    routeOrder: 7,
+
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
@@ -294,7 +342,9 @@ export const sampleLocations = [
     address: 'Pigtown, Baltimore City',
     type: 'Neighborhood',
     notes: 'Pigtown neighborhood connections',
-    routeId: '3',
+    routeId: 3,
+    routeOrder: 8,
+
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
@@ -303,7 +353,9 @@ export const sampleLocations = [
     address: 'W Cross St, Baltimore City',
     type: 'Museum Area',
     notes: 'B&O Railroad Museum and Mt Clare area',
-    routeId: '3',
+    routeId: 3,
+    routeOrder: 9,
+
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
@@ -312,7 +364,9 @@ export const sampleLocations = [
     address: 'Pratt St & MLK Blvd, Baltimore City',
     type: 'Intersection',
     notes: 'Major intersection with good visibility',
-    routeId: '3',
+    routeId: 3,
+    routeOrder: 10,
+
     createdAt: new Date('2024-01-25').toISOString()
   }
 ];
@@ -320,10 +374,12 @@ export const sampleLocations = [
 export const sampleRoutes = [
   {
     id: '1',
-    name: 'AACo Route',
+    name: 'AACo',
     description: 'Anne Arundel County outreach route covering Glen Burnie area businesses and key locations',
     locationIds: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'],
     estimatedDuration: 240,
+    routeId: 1,
+    routeOrder: 1,
     createdAt: new Date('2024-01-25').toISOString()
   },
   {
@@ -332,6 +388,8 @@ export const sampleRoutes = [
     description: 'Downtown Baltimore route focusing on service organizations and key gathering areas',
     locationIds: ['14', '15', '16', '17', '18', '19', '20'],
     estimatedDuration: 180,
+    routeId: 1,
+    routeOrder: 2,
     createdAt: new Date('2024-02-05').toISOString()
   },
   {
@@ -340,6 +398,8 @@ export const sampleRoutes = [
     description: 'Comprehensive Baltimore route starting at HUM, covering MLK corridor, Pigtown, and multiple neighborhoods',
     locationIds: ['21', '22', '23', '24', '25', '26', '27', '28', '29', '30'],
     estimatedDuration: 300,
+    routeId: 1,
+    routeOrder: 3,
     createdAt: new Date('2024-02-10').toISOString()
   }
 ];
@@ -356,6 +416,8 @@ export const sampleFriends = [
     notes: 'Regular at her location near Church St area. Friendly and appreciative of outreach.',
     lastContact: new Date('2024-10-12').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 1,
     createdAt: new Date('2024-02-01').toISOString()
   },
   {
@@ -367,6 +429,8 @@ export const sampleFriends = [
     notes: 'Usually found at Ollie\'s store. Quiet but appreciative of check-ins.',
     lastContact: new Date('2024-10-11').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 2,
     createdAt: new Date('2024-02-05').toISOString()
   },
   {
@@ -378,6 +442,8 @@ export const sampleFriends = [
     notes: 'Regular near Village Liquors on Church St. Very social and connected to community.',
     lastContact: new Date('2024-10-13').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 3,
     createdAt: new Date('2024-02-08').toISOString()
   },
   {
@@ -389,6 +455,8 @@ export const sampleFriends = [
     notes: 'Often seen near Brusters ice cream shop. Enjoys conversation about local sports.',
     lastContact: new Date('2024-10-10').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 4,
     createdAt: new Date('2024-03-01').toISOString()
   },
   {
@@ -400,6 +468,8 @@ export const sampleFriends = [
     notes: 'Frequents the plaza area. Has been looking for housing assistance.',
     lastContact: new Date('2024-10-09').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 5,
     createdAt: new Date('2024-03-05').toISOString()
   },
 
@@ -413,6 +483,8 @@ export const sampleFriends = [
     notes: 'Regular at City Hall Park. Very knowledgeable about city services.',
     lastContact: new Date('2024-10-08').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 6,
     createdAt: new Date('2024-02-12').toISOString()
   },
   {
@@ -424,6 +496,8 @@ export const sampleFriends = [
     notes: 'Often at HC4H for services. Has diabetes management needs.',
     lastContact: new Date('2024-10-07').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 7,
     createdAt: new Date('2024-02-15').toISOString()
   },
   {
@@ -435,6 +509,8 @@ export const sampleFriends = [
     notes: 'Stays near the underpass. Veteran with PTSD, approach gently.',
     lastContact: new Date('2024-10-06').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 8,
     createdAt: new Date('2024-03-01').toISOString()
   },
   {
@@ -446,6 +522,8 @@ export const sampleFriends = [
     notes: 'Works odd jobs in the coffee district. Very resourceful.',
     lastContact: new Date('2024-10-05').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 9,
     createdAt: new Date('2024-03-10').toISOString()
   },
 
@@ -459,6 +537,8 @@ export const sampleFriends = [
     notes: 'University area regular. Former student, very intelligent.',
     lastContact: new Date('2024-10-04').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 10,
     createdAt: new Date('2024-02-20').toISOString()
   },
   {
@@ -470,6 +550,8 @@ export const sampleFriends = [
     notes: 'MLK Boulevard regular. Part of the community network there.',
     lastContact: new Date('2024-10-03').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 11,
     createdAt: new Date('2024-03-01').toISOString()
   },
   {
@@ -481,6 +563,8 @@ export const sampleFriends = [
     notes: 'Often near hospital entrance. Kind and well-known in the area.',
     lastContact: new Date('2024-10-02').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 12,
     createdAt: new Date('2024-03-05').toISOString()
   },
   {
@@ -492,6 +576,8 @@ export const sampleFriends = [
     notes: 'Chase/Howard intersection regular. Part of a small group there.',
     lastContact: new Date('2024-10-01').toISOString(),
     status: 'active',
+    routeId: 1,
+    routeOrder: 13,
     createdAt: new Date('2024-03-10').toISOString()
   },
   {
@@ -503,6 +589,8 @@ export const sampleFriends = [
     notes: 'B&O Museum area. Friendly and always has interesting stories.',
     lastContact: new Date('2024-09-30').toISOString(),
     status: 'active',
+    routeId: 2,
+    routeOrder: 1,
     createdAt: new Date('2024-03-15').toISOString()
   },
   {
@@ -514,97 +602,178 @@ export const sampleFriends = [
     notes: 'Pratt/MLK intersection regular. Good visibility for outreach.',
     lastContact: new Date('2024-09-28').toISOString(),
     status: 'active',
+    routeId: 2,
+    routeOrder: 2,
     createdAt: new Date('2024-03-20').toISOString()
   }
+];
+
+// Friend location history (tracking where friends have been found over time)
+export const sampleFriendLocationHistory = [
+  // Annette's location history
+  { id: '1', friendId: '1', locationId: '6', dateRecorded: new Date('2024-02-01T10:00:00').toISOString(), notes: 'First contact at her regular spot', recordedBy: '2' },
+  { id: '2', friendId: '1', locationId: '6', dateRecorded: new Date('2024-03-15T11:30:00').toISOString(), notes: 'Still at same location, doing well', recordedBy: '3' },
+  { id: '3', friendId: '1', locationId: '6', dateRecorded: new Date('2024-10-12T09:45:00').toISOString(), notes: 'Regular check-in, appreciative as always', recordedBy: '2' },
+
+  // David's location history (sometimes moves between Ollie's and other stops)
+  { id: '4', friendId: '2', locationId: '8', dateRecorded: new Date('2024-02-05T14:00:00').toISOString(), notes: 'Found at Ollie\'s, quiet but receptive', recordedBy: '1' },
+  { id: '5', friendId: '2', locationId: '7', dateRecorded: new Date('2024-03-20T16:30:00').toISOString(), notes: 'Temporarily at Maisel Bros area', recordedBy: '3' },
+  { id: '6', friendId: '2', locationId: '8', dateRecorded: new Date('2024-10-11T13:15:00').toISOString(), notes: 'Back at Ollie\'s, his preferred spot', recordedBy: '2' },
+
+  // Danielle's location history
+  { id: '7', friendId: '3', locationId: '13', dateRecorded: new Date('2024-02-08T15:45:00').toISOString(), notes: 'Very social, knows many people in the area', recordedBy: '1' },
+  { id: '8', friendId: '3', locationId: '13', dateRecorded: new Date('2024-10-13T12:20:00').toISOString(), notes: 'Still in Village Liquors area, community connector', recordedBy: '3' },
+
+  // Marcus's location history
+  { id: '9', friendId: '4', locationId: '1', dateRecorded: new Date('2024-03-01T11:00:00').toISOString(), notes: 'Enjoys sports conversation, regular at Brusters', recordedBy: '2' },
+  { id: '10', friendId: '4', locationId: '1', dateRecorded: new Date('2024-10-10T10:30:00').toISOString(), notes: 'Still at Brusters, talked about Ravens season', recordedBy: '1' },
+
+  // Jennifer's location history
+  { id: '11', friendId: '5', locationId: '11', dateRecorded: new Date('2024-02-15T13:30:00').toISOString(), notes: 'Looking for housing assistance, plaza area regular', recordedBy: '3' },
+  { id: '12', friendId: '5', locationId: '11', dateRecorded: new Date('2024-10-09T14:45:00').toISOString(), notes: 'Still at plaza, housing search ongoing', recordedBy: '2' },
+
+  // Michael's location history (Baltimore City)
+  { id: '13', friendId: '6', locationId: '16', dateRecorded: new Date('2024-02-12T10:15:00').toISOString(), notes: 'City Hall Park regular, friendly and outgoing', recordedBy: '1' },
+  { id: '14', friendId: '6', locationId: '16', dateRecorded: new Date('2024-10-08T11:30:00').toISOString(), notes: 'Still at park, good health, positive attitude', recordedBy: '3' },
+
+  // Sarah J's location history
+  { id: '15', friendId: '7', locationId: '18', dateRecorded: new Date('2024-02-18T09:00:00').toISOString(), notes: 'Connected with HC4H services, very appreciative', recordedBy: '2' },
+  { id: '16', friendId: '7', locationId: '18', dateRecorded: new Date('2024-10-07T08:45:00').toISOString(), notes: 'Regular at HC4H, helping others navigate services', recordedBy: '1' },
+
+  // Robert's location history (ID 8)
+  { id: '17', friendId: '8', locationId: '3', dateRecorded: new Date('2024-02-20T14:30:00').toISOString(), notes: 'First contact at Metro Centre, reserved but friendly', recordedBy: '1' },
+  { id: '18', friendId: '8', locationId: '3', dateRecorded: new Date('2024-10-06T15:15:00').toISOString(), notes: 'Regular at Metro Centre, warming up to outreach team', recordedBy: '2' },
+
+  // Lisa M.'s location history (ID 9)
+  { id: '19', friendId: '9', locationId: '4', dateRecorded: new Date('2024-02-22T12:00:00').toISOString(), notes: 'Found at Glen Burnie Plaza, looking for work opportunities', recordedBy: '3' },
+
+  // Calvin's location history (ID 10)
+  { id: '20', friendId: '10', locationId: '5', dateRecorded: new Date('2024-02-25T10:45:00').toISOString(), notes: 'Regular at Community Center, participates in programs', recordedBy: '2' },
+
+  // Glen's location history (ID 11)
+  { id: '21', friendId: '11', locationId: '9', dateRecorded: new Date('2024-03-01T13:20:00').toISOString(), notes: 'Found at Crofton area, new to the community', recordedBy: '1' },
+
+  // Vernice's location history (ID 12)
+  { id: '22', friendId: '12', locationId: '10', dateRecorded: new Date('2024-03-05T11:10:00').toISOString(), notes: 'Regular at Arundel Mills area, very social', recordedBy: '3' },
+
+  // Brian's location history (ID 13)
+  { id: '23', friendId: '13', locationId: '12', dateRecorded: new Date('2024-03-08T16:00:00').toISOString(), notes: 'Found at Linthicum Heights, quiet but appreciative', recordedBy: '2' },
+
+  // Peanut's location history (ID 14)
+  { id: '24', friendId: '14', locationId: '15', dateRecorded: new Date('2024-03-10T14:45:00').toISOString(), notes: 'Regular at Hanover area, well-known in community', recordedBy: '1' },
+
+  // Avery's location history (ID 15)
+  { id: '25', friendId: '15', locationId: '17', dateRecorded: new Date('2024-03-12T09:30:00').toISOString(), notes: 'Found at MLK area, connected with local services', recordedBy: '3' }
 ];
 
 // Sample runs with proper route assignments
 export const sampleRuns = [
   {
-    id: '1',
-    routeId: '2', // Baltimore City 1
-    leadId: '1', // Admin User leading
-    coordinatorId: '2', // John Coordinator created the run
-    assignedUserIds: ['1', '3'], // Admin User and Sarah Volunteer
-    scheduledDate: new Date('2024-10-20T09:00:00').toISOString(), // Upcoming run
-    mealsCount: 30,
-    coordinatorNotes: 'Baltimore City 1 route. Focus on service organization connections.',
+    id: 1,
+    route_id: 1, // AACo Route
+    name: 'AACo Friday 2025-10-24', // Auto-generated format
+    scheduled_date: '2025-10-24',
+    start_time: '09:00:00',
+    end_time: null,
+    meal_count: 35,
     status: 'scheduled',
-    currentLocationIndex: 0,
-    actualDuration: null,
-    leadNotes: null,
-    contactsMade: null,
-    completedAt: null,
-    createdAt: new Date('2024-10-12').toISOString()
+    notes: 'Regular Friday run for Anne Arundel County route. Check with Annette, David, and Danielle.',
+    created_by: 2, // John Coordinator
+    created_at: new Date('2025-10-17T10:00:00').toISOString()
   },
   {
-    id: '2',
-    routeId: '1', // AACo Route
-    leadId: '3', // Sarah Volunteer leading
-    coordinatorId: '2', // John Coordinator coordinating
-    assignedUserIds: ['3', '2'], // Sarah Volunteer and John Coordinator
-    scheduledDate: new Date('2024-10-18T11:00:00').toISOString(), // Upcoming run
-    mealsCount: 35,
-    coordinatorNotes: 'Anne Arundel County route. Check with Annette, David, and Danielle.',
+    id: 2,
+    route_id: 2, // Baltimore City 1
+    name: 'Baltimore City 1 Monday 2025-10-20', 
+    scheduled_date: '2025-10-20',
+    start_time: '10:00:00',
+    end_time: null,
+    meal_count: 40,
     status: 'scheduled',
-    currentLocationIndex: 0,
-    actualDuration: null,
-    leadNotes: null,
-    contactsMade: null,
-    completedAt: null,
-    createdAt: new Date('2024-10-10').toISOString()
+    notes: 'Baltimore City 1 route. Focus on service organization connections.',
+    created_by: 2, // John Coordinator
+    created_at: new Date('2025-10-15T14:00:00').toISOString()
   },
   {
-    id: '3',
-    routeId: '3', // Baltimore City 2 - Completed Run
-    leadId: '1', // Admin User led this run
-    coordinatorId: '2', // John Coordinator coordinated
-    assignedUserIds: ['1', '2'], // Admin User and John Coordinator
-    scheduledDate: new Date('2024-10-10T14:00:00').toISOString(), // Past completed run
-    mealsCount: 40,
-    coordinatorNotes: 'Successful Baltimore City 2 run. Great turnout at MLK area.',
-    status: 'completed',
-    currentLocationIndex: 10, // Completed all locations
-    actualDuration: 285, // Slightly under estimated time
-    leadNotes: 'Excellent engagement at University area and MLK corridor. Calvin and Glen were very appreciative.',
-    contactsMade: 18,
-    completedAt: new Date('2024-10-10T18:45:00').toISOString(),
-    createdAt: new Date('2024-10-08').toISOString()
+    id: 3,
+    route_id: 3, // Baltimore City 2
+    name: 'Baltimore City 2 Wednesday 2025-10-22',
+    scheduled_date: '2025-10-22',
+    start_time: '14:00:00',
+    end_time: null,
+    meal_count: 45,
+    status: 'scheduled',
+    notes: 'Afternoon run through MLK corridor and University area.',
+    created_by: 1, // Admin User
+    created_at: new Date('2025-10-16T09:00:00').toISOString()
   },
   {
-    id: '4',
-    routeId: '1', // AACo Route - Another completed run
-    leadId: '2', // John Coordinator leading
-    coordinatorId: '2', // John Coordinator also coordinated
-    assignedUserIds: ['2', '1'], // John Coordinator and Admin User
-    scheduledDate: new Date('2024-10-05T09:30:00').toISOString(), // Past run
-    mealsCount: 32,
-    coordinatorNotes: 'Follow-up AACo run. Focus on Danielle and David connections.',
-    status: 'completed',
-    currentLocationIndex: 13, // Completed all locations
-    actualDuration: 245,
-    leadNotes: 'Good connections made. David at Ollie\'s was particularly grateful for the winter items.',
-    contactsMade: 12,
-    completedAt: new Date('2024-10-05T13:35:00').toISOString(),
-    createdAt: new Date('2024-10-03').toISOString()
-  },
-  {
-    id: '5',
-    routeId: '3', // Baltimore City 2 - Today's In-Progress Run
-    leadId: '1', // Admin User leading
-    coordinatorId: '2', // John Coordinator coordinating
-    assignedUserIds: ['1', '3'], // Admin User and Sarah Volunteer
-    scheduledDate: new Date('2025-10-15T14:00:00').toISOString(), // Today - in progress
-    mealsCount: 40,
-    coordinatorNotes: 'Active Baltimore City 2 run! Focus on MLK corridor and University area connections.',
+    id: 4,
+    route_id: 2, // Baltimore City 1
+    name: 'Baltimore City 1 Wednesday 2025-10-15',
+    scheduled_date: '2025-10-15',
+    start_time: '10:00:00',
+    end_time: '13:30:00',
+    meal_count: 38,
     status: 'in_progress',
-    currentLocationIndex: 4, // Currently at MLK Boulevard Area (location 25)
-    actualDuration: null,
-    leadNotes: null,
-    contactsMade: null,
-    completedAt: null,
-    createdAt: new Date('2025-10-14').toISOString()
+    notes: 'Currently running! Great turnout so far at Grace & Hope.',
+    created_by: 2, // John Coordinator
+    created_at: new Date('2025-10-14T16:00:00').toISOString()
+  },
+  {
+    id: 5,
+    route_id: 1, // AACo Route
+    name: 'AACo Friday 2025-10-10',
+    scheduled_date: '2025-10-10',
+    start_time: '09:00:00',
+    end_time: '13:15:00',
+    meal_count: 32,
+    status: 'completed',
+    notes: 'Completed AACo run. David at Ollie\'s was particularly grateful for the winter items.',
+    created_by: 2, // John Coordinator
+    created_at: new Date('2025-10-08T11:00:00').toISOString()
+  },
+  {
+    id: 6,
+    route_id: 3, // Baltimore City 2
+    name: 'Baltimore City 2 Monday 2025-10-06',
+    scheduled_date: '2025-10-06',
+    start_time: '14:00:00',
+    end_time: '18:30:00',
+    meal_count: 42,
+    status: 'completed',
+    notes: 'Excellent engagement at University area and MLK corridor. Calvin and Glen were very appreciative.',
+    created_by: 1, // Admin User
+    created_at: new Date('2025-10-04T13:00:00').toISOString()
   }
+];
+
+// Team members for runs - First added is the lead
+export const sampleRunTeamMembers = [
+  // Run 1 (AACo Friday 2025-10-24) - Scheduled
+  { run_id: 1, user_id: 2, created_at: new Date('2025-10-17T10:01:00').toISOString() }, // John is lead (first)
+  { run_id: 1, user_id: 3, created_at: new Date('2025-10-17T10:02:00').toISOString() }, // Sarah
+  { run_id: 1, user_id: 1, created_at: new Date('2025-10-17T10:03:00').toISOString() }, // Admin
+  
+  // Run 2 (Baltimore City 1 Monday 2025-10-20) - Scheduled
+  { run_id: 2, user_id: 1, created_at: new Date('2025-10-15T14:01:00').toISOString() }, // Admin is lead (first)
+  { run_id: 2, user_id: 3, created_at: new Date('2025-10-15T14:02:00').toISOString() }, // Sarah
+  
+  // Run 3 (Baltimore City 2 Wednesday 2025-10-22) - Scheduled
+  { run_id: 3, user_id: 3, created_at: new Date('2025-10-16T09:01:00').toISOString() }, // Sarah is lead (first)
+  { run_id: 3, user_id: 2, created_at: new Date('2025-10-16T09:02:00').toISOString() }, // John
+  
+  // Run 4 (Baltimore City 1 Wednesday 2025-10-15) - In Progress
+  { run_id: 4, user_id: 1, created_at: new Date('2025-10-14T16:01:00').toISOString() }, // Admin is lead (first)
+  { run_id: 4, user_id: 2, created_at: new Date('2025-10-14T16:02:00').toISOString() }, // John
+  
+  // Run 5 (AACo Friday 2025-10-10) - Completed
+  { run_id: 5, user_id: 2, created_at: new Date('2025-10-08T11:01:00').toISOString() }, // John is lead (first)
+  { run_id: 5, user_id: 1, created_at: new Date('2025-10-08T11:02:00').toISOString() }, // Admin
+  
+  // Run 6 (Baltimore City 2 Monday 2025-10-06) - Completed
+  { run_id: 6, user_id: 1, created_at: new Date('2025-10-04T13:01:00').toISOString() }, // Admin is lead (first)
+  { run_id: 6, user_id: 3, created_at: new Date('2025-10-04T13:02:00').toISOString() }  // Sarah
 ];
 
 // Requests that properly match friends at their actual locations
@@ -625,6 +794,8 @@ export const sampleRequests = [
     status: 'delivered',
     specialInstructions: 'David prefers darker colors if available',
     takenByUserId: '1', // Admin User
+    routeId: 1,
+    routeOrder: 1,
     createdAt: new Date('2024-10-12T11:30:00').toISOString(),
     updatedAt: new Date('2024-10-15T10:00:00').toISOString()
   },
@@ -644,6 +815,8 @@ export const sampleRequests = [
     specialInstructions: 'Has job interview next week, needs professional clothing - conservative colors preferred',
     deliveryAttempts: 1,
     takenByUserId: '2', // John Coordinator
+    routeId: 1,
+    routeOrder: 2,
     createdAt: new Date('2025-10-14T14:15:00').toISOString(),
     updatedAt: new Date('2025-10-14T14:15:00').toISOString()
   },
@@ -663,6 +836,8 @@ export const sampleRequests = [
     specialInstructions: 'Jennifer has been sleeping rough, winters are getting harsh.',
     deliveryAttempts: 0,
     takenByUserId: '3', // Sarah Volunteer
+    routeId: 1,
+    routeOrder: 3,
     createdAt: new Date('2025-10-13T16:20:00').toISOString(),
     updatedAt: new Date('2025-10-13T09:45:00').toISOString()
   },
@@ -684,6 +859,8 @@ export const sampleRequests = [
     specialInstructions: 'Sarah has diabetes and needs to monitor blood sugar regularly',
     deliveryAttempts: 0,
     takenByUserId: '1', // Admin User
+    routeId: 1,
+    routeOrder: 4,
     createdAt: new Date('2025-10-14T14:45:00').toISOString(),
     updatedAt: new Date('2025-10-14T14:45:00').toISOString()
   },
@@ -703,6 +880,8 @@ export const sampleRequests = [
     specialInstructions: 'Michael spends long hours outside, needs base layers for warmth',
     deliveryAttempts: 0,
     takenByUserId: '3', // Sarah Volunteer
+    routeId: 1,
+    routeOrder: 5,
     createdAt: new Date('2025-10-13T12:30:00').toISOString(),
     updatedAt: new Date('2025-10-13T12:30:00').toISOString()
   },
@@ -724,6 +903,8 @@ export const sampleRequests = [
     specialInstructions: 'Calvin is very particular about hygiene - travel-size items preferred',
     deliveryAttempts: 1,
     takenByUserId: '1', // Admin User
+    routeId: 1,
+    routeOrder: 6,
     createdAt: new Date('2025-10-12T16:00:00').toISOString(),
     updatedAt: new Date('2025-10-13T08:00:00').toISOString()
   },
@@ -743,6 +924,8 @@ export const sampleRequests = [
     specialInstructions: 'Glen got a construction job opportunity, needs safety boots',
     deliveryAttempts: 0,
     takenByUserId: '2', // John Coordinator
+    routeId: 1,
+    routeOrder: 7,
     createdAt: new Date('2025-10-13T10:00:00').toISOString(),
     updatedAt: new Date('2025-10-13T10:00:00').toISOString()
   },
@@ -762,6 +945,8 @@ export const sampleRequests = [
     specialInstructions: 'Peanut has regular medical appointments downtown',
     deliveryAttempts: 1,
     takenByUserId: '1', // Admin User
+    routeId: 1,
+    routeOrder: 8,
     createdAt: new Date('2025-10-12T11:30:00').toISOString(),
     updatedAt: new Date('2025-10-13T15:30:00').toISOString()
   },
@@ -781,6 +966,8 @@ export const sampleRequests = [
     specialInstructions: 'Avery is exposed to weather at the intersection, needs warm coat',
     deliveryAttempts: 2,
     takenByUserId: '3', // Sarah Volunteer
+    routeId: 1,
+    routeOrder: 9,
     createdAt: new Date('2025-10-11T14:00:00').toISOString(),
     updatedAt: new Date('2025-10-12T16:45:00').toISOString()
   }
@@ -796,6 +983,8 @@ export const sampleDeliveryAttempts = [
     userId: '1', // Admin User
     outcome: 'delivered',
     notes: 'Found David at Ollie\'s as usual. Very grateful for the jacket.',
+    routeId: 1,
+    routeOrder: 1,
     createdAt: new Date('2024-10-15T10:00:00').toISOString()
   },
   {
@@ -804,8 +993,10 @@ export const sampleDeliveryAttempts = [
     attemptDate: new Date('2025-10-14T11:00:00').toISOString(),
     locationId: '13', // Village Liquors/Church St
     userId: '2', // John Coordinator
-    outcome: 'not_found',
+  outcome: 'not_delivered',
     notes: 'Checked around Village Liquors and Church St area. Will try again later.',
+    routeId: 1,
+    routeOrder: 2,
     createdAt: new Date('2025-10-14T11:00:00').toISOString()
   },
   {
@@ -814,8 +1005,10 @@ export const sampleDeliveryAttempts = [
     attemptDate: new Date('2025-10-12T17:00:00').toISOString(),
     locationId: '24', // University/Hospital Area
     userId: '1', // Admin User
-    outcome: 'not_available',
+  outcome: 'not_delivered',
     notes: 'Calvin was at university area but in a meeting. Did not want to interrupt.',
+    routeId: 1,
+    routeOrder: 3,
     createdAt: new Date('2025-10-12T17:00:00').toISOString()
   },
   {
@@ -826,6 +1019,8 @@ export const sampleDeliveryAttempts = [
     userId: '1', // Admin User
     outcome: 'delivered',
     notes: 'Found Peanut near the museum. He was very excited about the bus pass for his appointments.',
+    routeId: 1,
+    routeOrder: 4,
     createdAt: new Date('2025-10-13T15:30:00').toISOString()
   },
   {
@@ -834,8 +1029,10 @@ export const sampleDeliveryAttempts = [
     attemptDate: new Date('2025-10-12T14:30:00').toISOString(),
     locationId: '30', // Pratt/MLK Intersection
     userId: '3', // Sarah Volunteer
-    outcome: 'not_found',
+  outcome: 'not_delivered',
     notes: 'Checked Pratt/MLK intersection. Avery may have left for the day.',
+    routeId: 1,
+    routeOrder: 5,
     createdAt: new Date('2025-10-12T14:30:00').toISOString()
   },
   {
@@ -846,6 +1043,10 @@ export const sampleDeliveryAttempts = [
     userId: '3', // Sarah Volunteer
     outcome: 'delivered',
     notes: 'Found Avery at the intersection during evening. He was very grateful for the warm coat.',
+    routeId: 1,
+    routeOrder: 6,
     createdAt: new Date('2025-10-12T16:45:00').toISOString()
   }
 ];
+
+

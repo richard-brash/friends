@@ -6,24 +6,24 @@ import DoneIcon from '@mui/icons-material/Done';
 
 export default function LocationItem({ location, route, routes, onEditLocation, onDeleteLocation, onMoveLocation, onReorderLocations, locations }) {
   const [editing, setEditing] = useState(false);
-  const [desc, setDesc] = useState(location.description);
+  const [desc, setDesc] = useState(location.name || "");
   const [notes, setNotes] = useState(location.notes || "");
   const [moveTo, setMoveTo] = useState(location.routeId || "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   
   // Update local state when location prop changes
   useEffect(() => {
-    setDesc(location.description);
+    setDesc(location.name || "");
     setNotes(location.notes || "");
     setMoveTo(location.routeId || "");
-  }, [location.description, location.notes, location.routeId]);
+  }, [location.name, location.notes, location.routeId]);
   const idx = locations.findIndex(l => l.id === location.id);
   const canMoveUp = idx > 0;
   const canMoveDown = idx < locations.length - 1;
 
   const handleSave = () => {
-    if (desc.trim() && (desc !== location.description || notes !== (location.notes || ""))) {
-      onEditLocation(location.id, { description: desc.trim(), notes });
+    if (desc.trim() && (desc !== location.name || notes !== (location.notes || ""))) {
+      onEditLocation(location.id, { name: desc.trim(), notes });
     }
     setEditing(false);
   };
@@ -45,11 +45,11 @@ export default function LocationItem({ location, route, routes, onEditLocation, 
           <input value={desc} onChange={e => setDesc(e.target.value)} style={{ flex: 1 }} />
           <input value={notes} onChange={e => setNotes(e.target.value)} style={{ flex: 2 }} />
           <IconButton onClick={handleSave} color="primary" size="small"><DoneIcon /></IconButton>
-          <IconButton onClick={() => { setEditing(false); setDesc(location.description); setNotes(location.notes || ""); }} size="small"><DoneIcon style={{ transform: 'rotate(180deg)' }} /></IconButton>
+          <IconButton onClick={() => { setEditing(false); setDesc(location.name || ""); setNotes(location.notes || ""); }} size="small"><DoneIcon style={{ transform: 'rotate(180deg)' }} /></IconButton>
         </>
       ) : (
         <>
-          <span style={{ flex: 1 }}>{location.description}</span>
+          <span style={{ flex: 1 }}>{location.name}</span>
           <span style={{ flex: 2, color: '#888' }}>{location.notes}</span>
           <IconButton onClick={() => setEditing(true)} size="small"><EditIcon /></IconButton>
           {confirmDelete ? (

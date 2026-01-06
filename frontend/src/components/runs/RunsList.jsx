@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   CardContent,
-  CardActions,
   Grid,
   Chip,
   Avatar,
@@ -21,8 +20,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  Snackbar
 } from '@mui/material';
+import ConfirmDialog from '../common/ConfirmDialog';
 import {
   Add,
   MoreVert,
@@ -38,6 +39,9 @@ import {
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 import { API_BASE } from '../../config/api.js';
 import { usePermissions } from '../../hooks/usePermissions';
+import runsApi from '../../config/runsApi.js';
+
+// Using V2 API with clean architecture and proper date formatting
 
 export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
   const permissions = usePermissions();
@@ -48,6 +52,8 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
   const [error, setError] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedRun, setSelectedRun] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     fetchData();
@@ -57,14 +63,19 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
     try {
       setLoading(true);
       
-      // Fetch runs and routes (all users can access these)
+      // Fetch runs using V2 API with clean architecture
+      // Use includeTeam query param to get full team member details
+      console.log('🔄 Using V2 Clean Architecture API');
       const [runsRes, routesRes] = await Promise.all([
-        axios.get(`${API_BASE}/runs`),
-        axios.get(`${API_BASE}/routes`)
+        axios.get(`${API_BASE}/v2/runs?includeTeam=true`),
+        axios.get(`${API_BASE}/v2/routes`)
       ]);
-
-      setRuns(runsRes.data.runs || []);
-      setRoutes(routesRes.data.routes || []);
+      
+      const runs = runsRes.data?.data || runsRes.data || [];
+      const routes = routesRes.data?.data || routesRes.data?.routes || [];
+      console.log('✅ V2 API runs received:', runs.length, runs[0]);
+      setRuns(runs);
+      setRoutes(routes);
 
       // Try to fetch users (only admins/coordinators can access)
       try {
@@ -104,7 +115,9 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
   };
 
   const getDateLabel = (dateString) => {
+    if (!dateString) return 'No Date';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
     if (isToday(date)) return 'Today';
     if (isTomorrow(date)) return 'Tomorrow';
     if (isPast(date)) return 'Past';
@@ -112,10 +125,14 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
   };
 
   const getUserById = (id) => {
-    const user = users.find(u => u.id.toString() === id.toString());
+    if (!id) return { id, name: `User ${id}`, email: '' };
+    const user = users.find(u => u.id && u.id.toString() === id.toString());
     return user || { id, name: `User ${id}`, email: '' }; // Fallback for volunteers
   };
-  const getRouteById = (id) => routes.find(r => r.id.toString() === id.toString());
+  const getRouteById = (id) => {
+    if (!id) return null;
+    return routes.find(r => r.id && r.id.toString() === id.toString());
+  };
 
   const handleMenuOpen = (event, run) => {
     setAnchorEl(event.currentTarget);
@@ -124,19 +141,33 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedRun(null);
+    // Don't clear selectedRun here - it's needed for the confirmation dialog
   };
 
-  const handleDeleteRun = async () => {
+  const handleDeleteClick = () => {
+    handleMenuClose();
+    setConfirmDelete(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     if (!selectedRun) return;
     
     try {
-      await axios.delete(`${API_BASE}/runs/${selectedRun.id}`);
+      await axios.delete(`${API_BASE}/v2/runs/${selectedRun.id}`);
       setRuns(runs.filter(r => r.id !== selectedRun.id));
-      handleMenuClose();
+      setConfirmDelete(false);
+      setSelectedRun(null); // Clear after successful delete
+      setSnackbar({ open: true, message: 'Run deleted successfully', severity: 'success' });
     } catch (err) {
-      setError('Failed to delete run');
+      setConfirmDelete(false);
+      setSelectedRun(null); // Clear after error
+      setSnackbar({ open: true, message: 'Failed to delete run', severity: 'error' });
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setConfirmDelete(false);
+    setSelectedRun(null); // Clear on cancel
   };
 
   // Separate active runs (scheduled/in_progress) from completed/cancelled
@@ -189,10 +220,15 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
         </Typography>
         <Grid container spacing={3}>
           {activeRuns.map((run) => {
-          const route = getRouteById(run.routeId);
-          const lead = getUserById(run.leadId);
-          const coordinator = getUserById(run.coordinatorId);
-          const assignedCount = run.assignedUserIds?.length || 0;
+          // Get full route object from routes array (run.route only has name/color)
+          const route = routes.find(r => r.id === run.routeId);
+          
+          // V2 API list endpoint returns aggregate data, not full team array
+          const leadName = run.createdByName || 'Unassigned';
+          const teamCount = run.teamSize || 0;
+          
+          // Get location count from full route object
+          const locationCount = route?.locationCount || 0;
           
           return (
             <Grid item xs={12} sm={6} lg={4} key={run.id}>
@@ -207,11 +243,25 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
                 onClick={() => onViewRun(run.id)}
               >
                 <CardContent sx={{ flex: 1 }}>
-                  {/* Header */}
+                  {/* Header - Route Name and Date */}
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Box>
+                    <Box sx={{ flex: 1 }}>
                       <Typography variant="h6" gutterBottom>
-                        {route?.name || 'Unknown Route'}
+                        {route?.name || 'Unnamed Route'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        {(() => {
+                          try {
+                            const date = new Date(run.scheduledDate);
+                            if (isNaN(date.getTime())) {
+                              return 'Invalid date';
+                            }
+                            return format(date, 'EEEE, MMM d, yyyy');
+                          } catch (error) {
+                            console.error('Date formatting error:', error);
+                            return 'Date error';
+                          }
+                        })()}
                       </Typography>
                       <Chip
                         icon={getStatusIcon(run.status)}
@@ -231,39 +281,41 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
                     </IconButton>
                   </Box>
 
-                  {/* Date and Time */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <Schedule color="action" />
-                    <Box>
-                      <Typography variant="body2">
-                        {getDateLabel(run.scheduledDate)} • {format(new Date(run.scheduledDate), 'h:mm a')}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {format(new Date(run.scheduledDate), 'EEEE, MMM d')}
-                      </Typography>
+                  {/* Team Members */}
+                  {run.team && run.team.length > 0 && (
+                    <Box sx={{ mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Group color="action" />
+                        <Typography variant="body2" fontWeight="medium">
+                          Team ({run.team.length})
+                        </Typography>
+                      </Box>
+                      <Box component="ul" sx={{ 
+                        pl: 4, 
+                        my: 0,
+                        '& li': { 
+                          fontSize: '0.875rem',
+                          color: 'text.secondary',
+                          lineHeight: 1.6
+                        }
+                      }}>
+                        {run.team.map((member, index) => {
+                          const memberName = member.name || member.userName || member.user_name || `User ${member.userId || member.user_id}`;
+                          return (
+                            <li key={member.userId || member.user_id || index}>
+                              {memberName}
+                            </li>
+                          );
+                        })}
+                      </Box>
                     </Box>
-                  </Box>
-
-                  {/* Lead and Team */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <Person color="action" />
-                    <Typography variant="body2">
-                      Lead: {lead?.name || 'Unassigned'}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <Group color="action" />
-                    <Typography variant="body2">
-                      Team: {assignedCount} member{assignedCount !== 1 ? 's' : ''}
-                    </Typography>
-                  </Box>
+                  )}
 
                   {/* Meals */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <RestaurantMenu color="action" />
                     <Typography variant="body2">
-                      {run.mealsCount} meals
+                      {run.mealCount || 0} meal{(run.mealCount || 0) !== 1 ? 's' : ''}
                     </Typography>
                   </Box>
 
@@ -271,21 +323,21 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <LocationOn color="action" />
                     <Typography variant="body2">
-                      {route?.locationIds?.length || 0} location{(route?.locationIds?.length || 0) !== 1 ? 's' : ''}
+                      {locationCount} location{locationCount !== 1 ? 's' : ''}
                     </Typography>
                   </Box>
 
                   {/* Progress for in-progress/completed runs */}
-                  {(run.status === 'in_progress' || run.status === 'completed') && (
+                  {(run.status === 'in_progress' || run.status === 'completed') && locationCount > 0 && (
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="caption" color="text.secondary">
-                        Progress: {run.currentLocationIndex || 0} / {route?.locationIds?.length || 0}
+                        Progress: {run.currentLocationIndex || 0} / {locationCount}
                       </Typography>
                       <LinearProgress
                         variant="determinate"
                         value={
-                          route?.locationIds?.length > 0 
-                            ? ((run.currentLocationIndex || 0) / route.locationIds.length) * 100 
+                          locationCount > 0 
+                            ? ((run.currentLocationIndex || 0) / locationCount) * 100 
                             : 0
                         }
                         sx={{ mt: 0.5, height: 4, borderRadius: 2 }}
@@ -294,21 +346,12 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
                   )}
 
                   {/* Coordinator Notes Preview */}
-                  {run.coordinatorNotes && (
+                  {run.notes && (
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontStyle: 'italic' }}>
-                      "{run.coordinatorNotes.substring(0, 80)}{run.coordinatorNotes.length > 80 ? '...' : ''}"
+                      "{run.notes.substring(0, 80)}{run.notes.length > 80 ? '...' : ''}"
                     </Typography>
                   )}
                 </CardContent>
-
-                <CardActions>
-                  <Button size="small" onClick={(e) => { e.stopPropagation(); onViewRun(run.id); }}>
-                    View Details
-                  </Button>
-                  <Button size="small" onClick={(e) => { e.stopPropagation(); onEditRun(run.id); }}>
-                    Edit
-                  </Button>
-                </CardActions>
               </Card>
             </Grid>
           );
@@ -357,16 +400,22 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
               </TableHead>
               <TableBody>
                 {completedRuns.map((run) => {
-                  const route = getRouteById(run.routeId);
-                  const lead = getUserById(run.leadId);
-                  const assignedCount = run.assignedUserIds?.length || 0;
+                  // Get full route object from routes array
+                  const route = routes.find(r => r.id === run.routeId);
+                  const leadName = run.createdByName || 'Unassigned';
+                  const teamCount = run.teamSize || 0;
                   
                   return (
                     <TableRow key={run.id} hover onClick={() => onViewRun(run.id)} sx={{ cursor: 'pointer' }}>
                       <TableCell>
                         <Typography variant="body2" fontWeight="medium">
-                          {route?.name || 'Unknown Route'}
+                          {run.name || route?.name || 'Unnamed Run'}
                         </Typography>
+                        {route?.name && run.name !== route.name && (
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Route: {route.name}
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
@@ -378,7 +427,7 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {lead?.name || 'Unassigned'}
+                          {leadName}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -391,7 +440,7 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {assignedCount} member{assignedCount !== 1 ? 's' : ''}
+                          {teamCount} member{teamCount !== 1 ? 's' : ''}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -425,16 +474,40 @@ export default function RunsList({ onCreateRun, onViewRun, onEditRun }) {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => { onEditRun(selectedRun?.id); handleMenuClose(); }}>
-          Edit Run
-        </MenuItem>
         <MenuItem onClick={() => { onViewRun(selectedRun?.id); handleMenuClose(); }}>
           View Details
         </MenuItem>
-        <MenuItem onClick={handleDeleteRun} sx={{ color: 'error.main' }}>
+        <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main' }}>
           Delete Run
         </MenuItem>
       </Menu>
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete Run?"
+        message={`Are you sure you want to delete this run? This action cannot be undone.`}
+        confirmText="Delete"
+        confirmColor="error"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
+
+      {/* Snackbar for feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

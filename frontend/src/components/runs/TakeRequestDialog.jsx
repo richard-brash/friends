@@ -123,18 +123,19 @@ export default function TakeRequestDialog({
     setLoading(true);
     try {
       const [friendsRes, locationsRes, routesRes] = await Promise.all([
-        axios.get(`${API_BASE}/friends`),
-        axios.get(`${API_BASE}/locations`),
-        axios.get(`${API_BASE}/routes`)
+        axios.get(`${API_BASE}/v2/friends`),
+        axios.get(`${API_BASE}/v2/locations`),
+        axios.get(`${API_BASE}/v2/routes`)
       ]);
       
-      const friendsData = friendsRes.data;
-      const locationsData = locationsRes.data;
-      const routesData = routesRes.data;
+      // V2 API returns data directly or wrapped in { data: ... }
+      const friends = friendsRes.data?.data || friendsRes.data?.friends || friendsRes.data || [];
+      const locations = locationsRes.data?.data || locationsRes.data?.locations || locationsRes.data || [];
+      const routes = routesRes.data?.data || routesRes.data?.routes || routesRes.data || [];
       
-      setFriends(friendsData.friends || []);
-      setLocations(locationsData.locations || []);
-      setRoutes(routesData.routes || []);
+      setFriends(friends);
+      setLocations(locations);
+      setRoutes(routes);
     } catch (err) {
       setError('Failed to load data: ' + err.message);
     } finally {
@@ -167,7 +168,7 @@ export default function TakeRequestDialog({
 
   const updateFriendLocation = async (friend, newLocationId) => {
     try {
-      await axios.put(`${API_BASE}/friends/${friend.id}`, {
+      await axios.put(`${API_BASE}/v2/friends/${friend.id}`, {
         ...friend,
         locationId: newLocationId,
         lastSeenAt: new Date().toISOString()
@@ -211,12 +212,12 @@ export default function TakeRequestDialog({
     
     try {
       // 1. Create the new location
-      const locationResponse = await axios.post(`${API_BASE}/locations`, {
+      const locationResponse = await axios.post(`${API_BASE}/v2/locations`, {
         ...newLocation,
         routeId: requestData.routeId || run?.routeId
       });
 
-      const createdLocation = locationResponse.data.location;
+      const createdLocation = locationResponse.data.location || locationResponse.data.data;
       
       // 2. Add location to the current route's locationIds array
       if (run?.routeId) {
@@ -224,7 +225,7 @@ export default function TakeRequestDialog({
         if (currentRoute) {
           const updatedLocationIds = [...(currentRoute.locationIds || []), createdLocation.id];
           
-          await axios.put(`${API_BASE}/routes/${run.routeId}`, {
+          await axios.put(`${API_BASE}/v2/routes/${run.routeId}`, {
             ...currentRoute,
             locationIds: updatedLocationIds
           });
@@ -258,13 +259,13 @@ export default function TakeRequestDialog({
     
     try {
       // First create the new friend
-      const friendResponse = await axios.post(`${API_BASE}/friends`, {
+      const friendResponse = await axios.post(`${API_BASE}/v2/friends`, {
         ...newFriend,
         locationId: requestData.locationId,
         lastSeenAt: new Date().toISOString()
       });
       
-      const createdFriend = friendResponse.data;
+      const createdFriend = friendResponse.data.friend || friendResponse.data.data;
       
       // Then create the request with the new friend
       await createRequest(createdFriend);
@@ -279,17 +280,13 @@ export default function TakeRequestDialog({
     if (!submitting) setSubmitting(true);
     
     try {
-      const response = await axios.post(`${API_BASE}/requests`, {
+      const response = await axios.post(`${API_BASE}/v2/requests`, {
         ...requestData,
         friendId: friend.id,
         runId: run.id
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to create request');
-      }
-      
-      const request = response.data;
+      const request = response.data.request || response.data.data;
       
       // Notify parent component
       if (onRequestTaken) {

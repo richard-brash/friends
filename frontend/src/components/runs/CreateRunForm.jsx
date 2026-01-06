@@ -26,10 +26,11 @@ export default function CreateRunForm({ onRunCreated, onCancel }) {
   const [users, setUsers] = useState([]);
   const [formData, setFormData] = useState({
     routeId: '',
-    leadId: '',
     scheduledDate: new Date(),
-    mealsCount: '',
-    coordinatorNotes: ''
+    startTime: '',
+    endTime: '',
+    mealCount: '',
+    notes: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,14 +42,14 @@ export default function CreateRunForm({ onRunCreated, onCancel }) {
   const fetchData = async () => {
     try {
       const [routesRes, usersRes] = await Promise.all([
-        axios.get(`${API_BASE}/routes`),
+        axios.get(`${API_BASE}/v2/routes`),
         axios.get(`${API_BASE}/users`)
       ]);
       
       const routesData = routesRes.data;
       const usersData = usersRes.data;
       
-      setRoutes(routesData.routes || []);
+      setRoutes(routesData.data || routesData.routes || []);
       setUsers(usersData.users || []);
     } catch (err) {
       setError('Failed to load data');
@@ -57,8 +58,8 @@ export default function CreateRunForm({ onRunCreated, onCancel }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.routeId || !formData.leadId || !formData.mealsCount) {
-      setError('Please fill in all required fields');
+    if (!formData.routeId) {
+      setError('Please select a route');
       return;
     }
 
@@ -66,27 +67,32 @@ export default function CreateRunForm({ onRunCreated, onCancel }) {
     setError('');
 
     try {
-      const response = await axios.post(`${API_BASE}/runs`, {
-        ...formData,
-        coordinatorId: '2', // TODO: Get from current user context
-        assignedUserIds: [formData.leadId], // Lead is initially assigned
-        mealsCount: parseInt(formData.mealsCount),
-        scheduledDate: formData.scheduledDate.toISOString()
+      // Format the date as YYYY-MM-DD
+      const scheduledDate = formData.scheduledDate instanceof Date 
+        ? formData.scheduledDate.toISOString().split('T')[0]
+        : formData.scheduledDate;
+
+      const response = await axios.post(`${API_BASE}/v2/runs`, {
+        routeId: parseInt(formData.routeId),
+        scheduledDate: scheduledDate,
+        startTime: formData.startTime || null,
+        endTime: formData.endTime || null,
+        mealCount: formData.mealCount ? parseInt(formData.mealCount) : 0,
+        notes: formData.notes || null
       });
 
-      // Axios automatically throws on error status codes
-      onRunCreated(response.data);
+      // V2 API returns { success: true, data: run }
+      const newRun = response.data.data || response.data;
+      onRunCreated(newRun);
     } catch (err) {
-      setError('Network error: ' + err.message);
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      setError('Failed to create run: ' + errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
   const selectedRoute = routes.find(r => r.id.toString() === formData.routeId);
-  const eligibleLeads = users.filter(u => 
-    u.permissions && (u.permissions.includes('lead_runs') || u.permissions.includes('coordinate_runs'))
-  );
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -94,6 +100,10 @@ export default function CreateRunForm({ onRunCreated, onCancel }) {
         <Typography variant="h6" sx={{ mb: 3 }}>
           Schedule New Run
         </Typography>
+
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Run name will be auto-generated as: <strong>{`"{route_name} {day_of_week} {YYYY-MM-DD}"`}</strong>
+        </Alert>
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -121,25 +131,8 @@ export default function CreateRunForm({ onRunCreated, onCancel }) {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Assign Lead</InputLabel>
-                <Select
-                  value={formData.leadId}
-                  onChange={(e) => setFormData({...formData, leadId: e.target.value})}
-                  label="Assign Lead"
-                >
-                  {eligibleLeads.map(user => (
-                    <MenuItem key={user.id} value={user.id}>
-                      {user.name} ({user.role})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
               <DateTimePicker
-                label="Scheduled Date & Time *"
+                label="Scheduled Date *"
                 value={formData.scheduledDate}
                 onChange={(newValue) => setFormData({...formData, scheduledDate: newValue})}
                 renderInput={(params) => <TextField {...params} fullWidth required />}
@@ -147,26 +140,49 @@ export default function CreateRunForm({ onRunCreated, onCancel }) {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="Start Time"
+                type="time"
+                value={formData.startTime}
+                onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                InputLabelProps={{ shrink: true }}
+                helperText="Optional"
+              />
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="End Time"
+                type="time"
+                value={formData.endTime}
+                onChange={(e) => setFormData({...formData, endTime: e.target.value})}
+                InputLabelProps={{ shrink: true }}
+                helperText="Optional"
+              />
+            </Grid>
+
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
                 label="Number of Meals"
-                type="number"
-                required
-                value={formData.mealsCount}
-                onChange={(e) => setFormData({...formData, mealsCount: e.target.value})}
-                inputProps={{ min: 1, max: 200 }}
+                value={formData.mealCount}
+                onChange={(e) => setFormData({...formData, mealCount: e.target.value})}
+                placeholder="0"
+                helperText="Total meals to deliver"
               />
             </Grid>
 
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Coordinator Notes"
+                label="Notes"
                 multiline
                 rows={3}
-                value={formData.coordinatorNotes}
-                onChange={(e) => setFormData({...formData, coordinatorNotes: e.target.value})}
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
                 placeholder="Instructions for the team, special considerations, goals for this run..."
               />
             </Grid>
@@ -182,9 +198,6 @@ export default function CreateRunForm({ onRunCreated, onCancel }) {
                       {selectedRoute.description}
                     </Typography>
                     <Typography variant="body2" sx={{ mt: 1 }}>
-                      Estimated Duration: {selectedRoute.estimatedDuration} minutes
-                    </Typography>
-                    <Typography variant="body2">
                       Locations: {selectedRoute.locationIds?.length || 0}
                     </Typography>
                   </CardContent>

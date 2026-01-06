@@ -5,12 +5,13 @@ class RouteService {
   async getAllRoutes() {
     const result = await query(`
       SELECT r.*, 
-             COUNT(l.id) as location_count,
-             COUNT(f.id) as friend_count
+             COUNT(DISTINCT rl.location_id) as location_count,
+             COUNT(DISTINCT f.id) as friend_count
       FROM routes r
-      LEFT JOIN locations l ON r.id = l.route_id
-      LEFT JOIN friends f ON l.id = f.location_id
-      GROUP BY r.id
+      LEFT JOIN route_locations rl ON r.id = rl.route_id
+      LEFT JOIN locations l ON rl.location_id = l.id
+      LEFT JOIN friends f ON l.id = f.current_location_id
+      GROUP BY r.id, r.name, r.description, r.color, r.created_at
       ORDER BY r.name
     `);
     return result.rows;
@@ -22,11 +23,13 @@ class RouteService {
     if (routeResult.rows.length === 0) return null;
 
     const locationsResult = await query(`
-      SELECT l.*, COUNT(f.id) as friend_count
-      FROM locations l
-      LEFT JOIN friends f ON l.id = f.location_id
-      WHERE l.route_id = $1
-      ORDER BY l.order_in_route
+      SELECT l.*, rl.order_in_route, COUNT(f.id) as friend_count
+      FROM route_locations rl
+      JOIN locations l ON rl.location_id = l.id
+      LEFT JOIN friends f ON l.id = f.current_location_id
+      WHERE rl.route_id = $1
+      GROUP BY l.id, l.name, l.address, l.type, l.coordinates, l.notes, l.created_at, rl.order_in_route
+      ORDER BY rl.order_in_route
     `, [id]);
 
     return {

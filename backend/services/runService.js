@@ -1,10 +1,14 @@
-const { query } = require('../database');
+import { query } from '../database.js';
 
 class RunService {
   // Get all runs with route and team info
   async getAllRuns() {
     const result = await query(`
-      SELECT r.*, rt.name as route_name, rt.color as route_color,
+      SELECT r.id, r.route_id as routeId, r.name, r.status, r.notes,
+             r.scheduled_date || 'T' || COALESCE(r.start_time, '09:00:00') as scheduledDate,
+             r.start_time as startTime, r.end_time as endTime,
+             r.created_by as createdBy, r.created_at as createdAt, r.updated_at as updatedAt,
+             rt.name as route_name, rt.color as route_color,
              u.name as created_by_name,
              COUNT(DISTINCT rtm.user_id) as team_size,
              COUNT(DISTINCT req.id) as request_count
@@ -13,7 +17,7 @@ class RunService {
       LEFT JOIN users u ON r.created_by = u.id
       LEFT JOIN run_team_members rtm ON r.id = rtm.run_id
       LEFT JOIN requests req ON r.id = req.run_id
-      GROUP BY r.id, rt.name, rt.color, u.name
+      GROUP BY r.id, r.route_id, r.name, r.status, r.notes, r.scheduled_date, r.start_time, r.end_time, r.created_by, r.created_at, r.updated_at, rt.name, rt.color, u.name
       ORDER BY r.scheduled_date DESC, r.start_time
     `);
     return result.rows;
@@ -120,4 +124,4 @@ class RunService {
   }
 }
 
-module.exports = new RunService();
+export default new RunService();

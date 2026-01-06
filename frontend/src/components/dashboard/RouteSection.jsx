@@ -100,9 +100,11 @@ export default function RouteSection({ route, locations, routes, onEditRoute, on
         <CardContent sx={{ pt: 1 }}>
           <LocationList
             locations={
-              route && route.locationIds
-                ? [...locations].sort((a, b) => route.locationIds.indexOf(a.id) - route.locationIds.indexOf(b.id))
-                : locations
+              route
+                ? [...locations]
+                    .filter(l => l.routeId === route.id)
+                    .sort((a, b) => (a.routeOrder ?? 0) - (b.routeOrder ?? 0))
+                : locations.filter(l => !l.routeId)
             }
             route={route}
             routes={routes}

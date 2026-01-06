@@ -1,80 +1,66 @@
 import express from 'express';
 import { authenticateToken, authorizeRoles } from '../src/middleware/auth.js';
+import requestService from '../services/requestService.js';
 const router = express.Router();
 
-// In-memory storage for requests and delivery attempts
-export let requests = [];
-export let deliveryAttempts = [];
-
 // Get all requests with optional filtering (Authenticated users)
-router.get('/', authenticateToken, (req, res) => {
-  let filteredRequests = [...requests];
-  
-  // Filter by status
-  if (req.query.status) {
-    filteredRequests = filteredRequests.filter(r => r.status === req.query.status);
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    let requests;
+    
+    // Filter by status
+    if (req.query.status) {
+      requests = await requestService.getRequestsByStatus(req.query.status);
+    }
+    // Filter by friend ID
+    else if (req.query.friendId) {
+      requests = await requestService.getRequestsByFriendId(req.query.friendId);
+    }
+    // Filter by run ID
+    else if (req.query.runId) {
+      requests = await requestService.getRequestsByRunId(req.query.runId);
+    }
+    // Get all requests
+    else {
+      requests = await requestService.getAllRequests();
+    }
+    
+    res.json({ requests });
+  } catch (error) {
+    console.error('Error fetching requests:', error);
+    res.status(500).json({ error: 'Failed to fetch requests' });
   }
-  
-  // Filter by friend ID
-  if (req.query.friendId) {
-    filteredRequests = filteredRequests.filter(r => r.friendId === req.query.friendId);
-  }
-  
-  // Filter by route ID (requests for locations in this route)
-  if (req.query.routeId) {
-    filteredRequests = filteredRequests.filter(r => r.routeId === req.query.routeId);
-  }
-  
-  // Filter by location ID
-  if (req.query.locationId) {
-    filteredRequests = filteredRequests.filter(r => r.locationId === req.query.locationId);
-  }
-  
-  // Include delivery attempts if requested
-  if (req.query.include === 'deliveryAttempts') {
-    filteredRequests = filteredRequests.map(request => ({
-      ...request,
-      deliveryAttempts: deliveryAttempts.filter(da => da.requestId === request.id)
-    }));
-  }
-  
-  res.json({ requests: filteredRequests });
 });
 
 // Get a single request by ID
-router.get('/:id', authenticateToken, (req, res) => {
-  const request = requests.find(r => r.id === req.params.id);
-  if (!request) return res.status(404).json({ error: 'Request not found' });
-  
-  // Include delivery attempts
-  const requestWithAttempts = {
-    ...request,
-    deliveryAttempts: deliveryAttempts.filter(da => da.requestId === request.id)
-  };
-  
-  res.json(requestWithAttempts);
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const request = await requestService.getRequestById(Number(req.params.id));
+    if (!request) return res.status(404).json({ error: 'Request not found' });
+    res.json({ request });
+  } catch (error) {
+    console.error('Error fetching request:', error);
+    res.status(500).json({ error: 'Failed to fetch request' });
+  }
 });
 
 // Create a new request - volunteers can create during runs
-router.post('/', authenticateToken, authorizeRoles('admin', 'coordinator', 'volunteer'), (req, res) => {
-  const request = {
-    id: Date.now().toString(),
-    friendId: req.body.friendId,
-    runId: req.body.runId,
-    routeId: req.body.routeId,
-    locationId: req.body.locationId,
-    itemRequested: req.body.itemRequested,
-    quantity: req.body.quantity || 1,
-    urgency: req.body.urgency || 'medium',
-    specialInstructions: req.body.specialInstructions || '',
-    status: req.body.status || 'pending',
-    dateRequested: req.body.dateRequested || new Date().toISOString().split('T')[0],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  
-  requests.push(request);
-  res.status(201).json(request);
+router.post('/', authenticateToken, authorizeRoles('admin', 'coordinator', 'volunteer'), async (req, res) => {
+  try {
+    const request = await requestService.createRequest({
+      friend_id: req.body.friendId,
+      category: req.body.category || 'general',
+      item_name: req.body.itemRequested,
+      description: req.body.specialInstructions || '',
+      quantity: req.body.quantity || 1,
+      priority: req.body.urgency || 'medium',
+      notes: req.body.notes || ''
+    });
+    res.status(201).json(request);
+  } catch (error) {
+    console.error('Error creating request:', error);
+    res.status(500).json({ error: 'Failed to create request' });
+  }
 });
 
 // Update a request

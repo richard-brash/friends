@@ -178,9 +178,10 @@ router.get('/me', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (!user.active) {
-      return res.status(401).json({ error: 'Account is inactive' });
-    }
+    // Note: Active status check removed - not implemented in current schema
+    // if (!user.active) {
+    //   return res.status(401).json({ error: 'Account is inactive' });
+    // }
 
     res.json({ user: sanitizeUser(user) });
 

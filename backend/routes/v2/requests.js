@@ -1,0 +1,91 @@
+// V2 Requests API routes
+import express from 'express';
+import RequestRepository from '../../repositories/requestRepository.js';
+import CleanRequestService from '../../services/cleanRequestService.js';
+
+const router = express.Router();
+const requestService = new CleanRequestService(new RequestRepository());
+
+// POST /api/v2/requests/:id/status-history
+router.post('/:id/status-history', async (req, res) => {
+  try {
+    const historyEntry = await requestService.addStatusHistory(req.params.id, req.body);
+    res.status(201).json({ statusHistory: historyEntry });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/v2/requests
+router.get('/', async (req, res) => {
+  try {
+    const includeStatusHistory = req.query.include === 'statusHistory';
+    const requests = await requestService.getAll({ includeStatusHistory });
+    res.json({ requests });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/v2/requests/:id
+router.get('/:id', async (req, res) => {
+  try {
+    const includeStatusHistory = req.query.include === 'statusHistory';
+    const request = await requestService.getById(req.params.id, { includeStatusHistory });
+    if (!request) return res.status(404).json({ error: 'Request not found' });
+    res.json({ request });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/v2/requests
+router.post('/', async (req, res) => {
+  try {
+    const newRequest = await requestService.create(req.body);
+    res.status(201).json({ request: newRequest });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// PUT /api/v2/requests/:id
+router.put('/:id', async (req, res) => {
+  try {
+    const updated = await requestService.update(req.params.id, req.body);
+    res.json({ request: updated });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// DELETE /api/v2/requests/:id
+router.delete('/:id', async (req, res) => {
+  try {
+    await requestService.delete(req.params.id);
+    res.status(204).end();
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/v2/requests/:id/status-history
+router.get('/:id/status-history', async (req, res) => {
+  try {
+    const history = await requestService.getStatusHistory(req.params.id);
+    res.json({ statusHistory: history });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/v2/requests/:id/delivery-attempts (for backward compatibility, returns only delivery attempts)
+router.get('/:id/delivery-attempts', async (req, res) => {
+  try {
+    const attempts = await requestService.getDeliveryAttempts(req.params.id);
+    res.json({ deliveryAttempts: attempts });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+export default router;
