@@ -123,7 +123,7 @@ class OfflineSyncQueue {
   async executeAction(item) {
     const { type, payload } = item;
     
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken');
     if (!token) {
       throw new Error('Not authenticated');
     }

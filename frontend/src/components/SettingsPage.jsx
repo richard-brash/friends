@@ -60,7 +60,7 @@ const DEFAULT_PRIORITIES = [
   { id: 'high', label: 'High', color: 'error', description: 'Urgent priority request' }
 ];
 
-const DEFAULT_CATEGORIES = [
+export const DEFAULT_CATEGORIES = [
   { id: 'clothing', label: 'Clothing', description: 'Clothing items and accessories' },
   { id: 'non-clothing', label: 'Non-Clothing', description: 'Food, household items, and other necessities' }
 ];

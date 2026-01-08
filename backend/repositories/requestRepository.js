@@ -62,11 +62,41 @@ class RequestRepository {
   }
 
   async create(requestData) {
-    // Simplified: assumes all fields present
-    const { friendId, locationId, itemRequested, itemDetails, itemCategory, urgency, status } = requestData;
+    // Map camelCase API fields to snake_case database fields
+    const { 
+      friendId, 
+      locationId, 
+      runId,
+      category,
+      item_name,
+      description, 
+      quantity,
+      priority,
+      status,
+      notes,
+      takenBy,
+      deliveredBy
+    } = requestData;
+    
     const result = await query(
-      'INSERT INTO requests (friend_id, location_id, item_requested, item_details, item_category, urgency, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [friendId, locationId, itemRequested, itemDetails, itemCategory, urgency, status]
+      `INSERT INTO requests (
+        friend_id, location_id, run_id, category, item_name, description, 
+        quantity, priority, status, notes, taken_by, delivered_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+      [
+        friendId, 
+        locationId, 
+        runId || null,
+        category, 
+        item_name, 
+        description || null, 
+        quantity || 1,
+        priority || 'medium',
+        status || 'pending',
+        notes || null,
+        takenBy || null,
+        deliveredBy || null
+      ]
     );
     return result.rows[0];
   }

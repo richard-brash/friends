@@ -33,10 +33,10 @@ router.get('/:id/preparation', async (req, res, next) => {
 });
 
 /**
- * GET /api/v2/runs/:id/execution
+ * GET /api/v2/execution/:id
  * Get full execution context for active run
  */
-router.get('/:id/execution', async (req, res, next) => {
+router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const service = new RunExecutionService(req.app.locals.db);

@@ -36,9 +36,12 @@ import {
   Alert,
   Tooltip,
   Menu,
-  Badge
+  Badge,
+  Autocomplete,
+  CircularProgress
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
+import { DEFAULT_CATEGORIES } from './SettingsPage';
 import axios from 'axios';
 import {
   Search,
@@ -93,6 +96,25 @@ export default function RequestsSection() {
   const [statusChangeNotes, setStatusChangeNotes] = useState('');
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState(null);
+  
+  // Add Request Dialog
+  const [showAddRequest, setShowAddRequest] = useState(false);
+  const [newRequest, setNewRequest] = useState({
+    friendId: '',
+    locationId: '',
+    category: DEFAULT_CATEGORIES[0].id,
+    itemName: '',
+    description: '',
+    quantity: 1,
+    priority: 'medium'
+  });
+  const [locationRouteFilter, setLocationRouteFilter] = useState('all');
+  const [originalLocationId, setOriginalLocationId] = useState(null);
+  // Friend search state for Add Request Dialog
+  const [dialogFriendSearch, setDialogFriendSearch] = useState('');
+  const [dialogSearchResults, setDialogSearchResults] = useState([]);
+  const [dialogSearchLoading, setDialogSearchLoading] = useState(false);
+  const [dialogNewFriendPhone, setDialogNewFriendPhone] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -130,6 +152,50 @@ export default function RequestsSection() {
       setError('Failed to load data: ' + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddRequest = async () => {
+    try {
+      // If location changed from friend's last known location, update friend history
+      if (originalLocationId && newRequest.locationId && originalLocationId !== newRequest.locationId) {
+        try {
+          await axios.post(`${API_BASE}/v2/friends/${newRequest.friendId}/history`, {
+            locationId: parseInt(newRequest.locationId),
+            spottedAt: new Date().toISOString(),
+            notes: 'Location updated via request creation'
+          });
+        } catch (err) {
+          console.warn('Failed to update friend location history:', err);
+        }
+      }
+
+      await axios.post(`${API_BASE}/v2/requests`, {
+        friendId: parseInt(newRequest.friendId),
+        locationId: parseInt(newRequest.locationId),
+        category: newRequest.category,
+        item_name: newRequest.itemName,
+        description: newRequest.description,
+        quantity: parseInt(newRequest.quantity),
+        priority: newRequest.priority,
+        status: 'pending'
+      });
+      
+      setShowAddRequest(false);
+      setNewRequest({
+        friendId: '',
+        locationId: '',
+        category: DEFAULT_CATEGORIES[0].id,
+        itemName: '',
+        description: '',
+        quantity: 1,
+        priority: 'medium'
+      });
+      setLocationRouteFilter('all');
+      fetchData();
+    } catch (err) {
+      console.error('Failed to create request:', err.response?.data || err.message);
+      setError('Failed to create request: ' + (err.response?.data?.error || err.message));
     }
   };
 
@@ -483,43 +549,6 @@ export default function RequestsSection() {
   };
 
   // Status Change Dialog
-  const StatusChangeDialog = () => (
-    <Dialog open={showStatusDialog} onClose={() => setShowStatusDialog(false)} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {pendingStatus === 'delivery_attempt_failed' 
-          ? 'Record Failed Delivery Attempt' 
-          : 'Update Request Status'}
-      </DialogTitle>
-      <DialogContent dividers>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {pendingStatus === 'delivery_attempt_failed' 
-            ? 'Record that you attempted delivery but were unsuccessful. The request will stay as "Ready for Delivery".'
-            : `Change status to: ${pendingStatus?.replace(/_/g, ' ')?.toUpperCase()}`}
-        </Typography>
-        <TextField
-          label="Notes (Optional)"
-          fullWidth
-          multiline
-          minRows={3}
-          value={statusChangeNotes}
-          onChange={e => setStatusChangeNotes(e.target.value)}
-          placeholder="Add any relevant details..."
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => { setShowStatusDialog(false); setStatusChangeNotes(''); setPendingStatus(null); }}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={() => handleStatusUpdate(selectedRequest?.id, pendingStatus, statusChangeNotes)}
-        >
-          Confirm
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-
   const handleRequestClick = (request) => {
     setSelectedRequest(request);
     setShowRequestDetails(true);
@@ -780,13 +809,22 @@ export default function RequestsSection() {
         <Typography variant="h4" gutterBottom>
           Requests Management
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Refresh />}
-          onClick={fetchData}
-        >
-          Refresh
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => setShowAddRequest(true)}
+          >
+            Add Request
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={fetchData}
+          >
+            Refresh
+          </Button>
+        </Box>
       </Box>
 
       {/* Statistics Cards */}
@@ -872,8 +910,11 @@ export default function RequestsSection() {
                 <InputLabel>Category</InputLabel>
                 <Select value={categoryFilter} label="Category" onChange={(e) => setCategoryFilter(e.target.value)}>
                   <MenuItem value="all">All Categories</MenuItem>
-                  <MenuItem value="clothing">Clothing</MenuItem>
-                  <MenuItem value="non-clothing">Non-Clothing</MenuItem>
+                  {DEFAULT_CATEGORIES.map(category => (
+                    <MenuItem key={category.id} value={category.id}>
+                      {category.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
@@ -1026,11 +1067,317 @@ export default function RequestsSection() {
         </MenuItem>
       </Menu>
 
+      {/* Add Request Dialog */}
+      {(() => {
+        // Filter locations based on route
+        const filteredLocations = locations.filter(location => {
+          const matchesRoute = locationRouteFilter === 'all' || location.routeId === parseInt(locationRouteFilter);
+          return matchesRoute;
+        });
+
+        const selectedFriend = friends.find(f => f.id === newRequest.friendId);
+        const selectedLocation = locations.find(l => l.id === newRequest.locationId);
+
+        const searchFriendsForDialog = async (query) => {
+          if (!query || query.trim().length === 0) {
+            setDialogSearchResults([]);
+            return;
+          }
+
+          try {
+            setDialogSearchLoading(true);
+            const response = await axios.get(`${API_BASE}/v2/friends`, {
+              params: { search: query }
+            });
+            const friendsData = response.data?.data || response.data?.friends || [];
+            setDialogSearchResults(friendsData);
+          } catch (err) {
+            console.error('Error searching friends:', err);
+            setDialogSearchResults([]);
+          } finally {
+            setDialogSearchLoading(false);
+          }
+        };
+
+        const handleSelectExistingFriend = (friend) => {
+          setNewRequest({ 
+            ...newRequest, 
+            friendId: friend.id,
+            // Pre-populate with friend's last known location (backend returns currentLocationId)
+            locationId: friend.currentLocationId || friend.locationId || ''
+          });
+          // Store original location to detect changes later
+          setOriginalLocationId(friend.currentLocationId || friend.locationId || null);
+          setDialogFriendSearch('');
+          setDialogSearchResults([]);
+        };
+
+        const handleAddNewFriend = async () => {
+          if (!dialogFriendSearch.trim()) return;
+
+          try {
+            const response = await axios.post(`${API_BASE}/v2/friends`, {
+              name: dialogFriendSearch.trim(),
+              phone: dialogNewFriendPhone.trim() || null,
+              locationId: null
+            });
+
+            const newFriend = response.data?.data || response.data?.friend;
+            setFriends(prev => [...prev, newFriend]);
+            setNewRequest({ ...newRequest, friendId: newFriend.id });
+            setDialogFriendSearch('');
+            setDialogNewFriendPhone('');
+            setDialogSearchResults([]);
+            setOriginalLocationId(null);
+          } catch (err) {
+            console.error('Error adding new friend:', err);
+            alert('Failed to add new friend');
+          }
+        };
+
+        const handleCloseDialog = () => {
+          setShowAddRequest(false);
+          setLocationRouteFilter('all');
+          setDialogFriendSearch('');
+          setDialogSearchResults([]);
+          setDialogNewFriendPhone('');
+          setOriginalLocationId(null);
+          setNewRequest({
+            friendId: '',
+            locationId: '',
+            category: DEFAULT_CATEGORIES[0].id,
+            itemName: '',
+            description: '',
+            quantity: 1,
+            priority: 'medium'
+          });
+        };
+
+        return (
+          <Dialog open={showAddRequest} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+            <DialogTitle>Add New Request</DialogTitle>
+            <DialogContent>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12}>
+                  <TextField
+                    autoFocus
+                    fullWidth
+                    label="Friend Name"
+                    value={dialogFriendSearch}
+                    onChange={(e) => {
+                      setDialogFriendSearch(e.target.value);
+                      searchFriendsForDialog(e.target.value);
+                    }}
+                    placeholder="Start typing to search..."
+                    helperText={selectedFriend ? `Selected: ${selectedFriend.name}` : 'Search for existing friend or add new'}
+                  />
+
+                  {dialogSearchLoading && (
+                    <Box display="flex" justifyContent="center" p={2}>
+                      <CircularProgress size={24} />
+                    </Box>
+                  )}
+
+                  {!dialogSearchLoading && dialogSearchResults.length > 0 && (
+                    <Paper elevation={2} sx={{ mt: 1, maxHeight: 200, overflow: 'auto' }}>
+                      <List>
+                        {dialogSearchResults.map((friend) => (
+                          <ListItem
+                            key={friend.id}
+                            button
+                            onClick={() => handleSelectExistingFriend(friend)}
+                            selected={selectedFriend?.id === friend.id}
+                          >
+                            <ListItemText
+                              primary={friend.name}
+                              secondary={
+                                <>
+                                  {friend.phone && `${friend.phone} • `}
+                                  {friend.locationName ? `Last seen: ${friend.locationName}` : 'No location'}
+                                </>
+                              }
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Paper>
+                  )}
+
+                  {!dialogSearchLoading && dialogFriendSearch.trim().length > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="subtitle2" color="primary" gutterBottom>
+                        {dialogSearchResults.length > 0 ? 'Or add as new friend:' : 'Add as new friend:'}
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        label="Phone Number (optional)"
+                        value={dialogNewFriendPhone}
+                        onChange={(e) => setDialogNewFriendPhone(e.target.value)}
+                        placeholder="(555) 123-4567"
+                        sx={{ mb: 1 }}
+                      />
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={handleAddNewFriend}
+                      >
+                        Add "{dialogFriendSearch}" as New Friend
+                      </Button>
+                    </Box>
+                  )}
+                </Grid>
+
+                <Grid item xs={12}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Filter by Route</InputLabel>
+                    <Select
+                      value={locationRouteFilter}
+                      label="Filter by Route"
+                      onChange={(e) => setLocationRouteFilter(e.target.value)}
+                    >
+                      <MenuItem value="all">All Routes</MenuItem>
+                      {routes.map(route => (
+                        <MenuItem key={route.id} value={route.id}>
+                          {route.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Autocomplete
+                    options={filteredLocations}
+                    value={selectedLocation || null}
+                    onChange={(event, newValue) => {
+                      setNewRequest({ ...newRequest, locationId: newValue?.id || '' });
+                    }}
+                    getOptionLabel={(option) => option.name}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Search Location"
+                        placeholder="Type to search locations..."
+                        required
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Category</InputLabel>
+                    <Select
+                      value={newRequest.category}
+                      label="Category"
+                      onChange={(e) => setNewRequest({ ...newRequest, category: e.target.value })}
+                    >
+                      {DEFAULT_CATEGORIES.map(category => (
+                        <MenuItem key={category.id} value={category.id}>
+                          {category.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    required
+                    label="Item Name"
+                    value={newRequest.itemName}
+                    onChange={(e) => setNewRequest({ ...newRequest, itemName: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    label="Description"
+                    value={newRequest.description}
+                    onChange={(e) => setNewRequest({ ...newRequest, description: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Quantity"
+                    value={newRequest.quantity}
+                    onChange={(e) => setNewRequest({ ...newRequest, quantity: e.target.value })}
+                    InputProps={{ inputProps: { min: 1 } }}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Priority</InputLabel>
+                    <Select
+                      value={newRequest.priority}
+                      label="Priority"
+                      onChange={(e) => setNewRequest({ ...newRequest, priority: e.target.value })}
+                    >
+                      <MenuItem value="low">Low</MenuItem>
+                      <MenuItem value="medium">Medium</MenuItem>
+                      <MenuItem value="high">High</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseDialog}>Cancel</Button>
+              <Button 
+                variant="contained" 
+                onClick={handleAddRequest}
+                disabled={!newRequest.friendId || !newRequest.locationId || !newRequest.itemName}
+              >
+                Add Request
+              </Button>
+            </DialogActions>
+          </Dialog>
+        );
+      })()}
+
       {/* Request Details Dialog */}
       <RequestDetailsDialog />
       
       {/* Status Change Dialog */}
-      <StatusChangeDialog />
+      <Dialog open={showStatusDialog} onClose={() => setShowStatusDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {pendingStatus === 'delivery_attempt_failed' 
+            ? 'Record Failed Delivery Attempt' 
+            : 'Update Request Status'}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {pendingStatus === 'delivery_attempt_failed' 
+              ? 'Record that you attempted delivery but were unsuccessful. The request will stay as "Ready for Delivery".'
+              : `Change status to: ${pendingStatus?.replace(/_/g, ' ')?.toUpperCase()}`}
+          </Typography>
+          <TextField
+            label="Notes (Optional)"
+            fullWidth
+            multiline
+            minRows={3}
+            value={statusChangeNotes}
+            onChange={e => setStatusChangeNotes(e.target.value)}
+            placeholder="Add any relevant details..."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setShowStatusDialog(false); setStatusChangeNotes(''); setPendingStatus(null); }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => handleStatusUpdate(selectedRequest?.id, pendingStatus, statusChangeNotes)}
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

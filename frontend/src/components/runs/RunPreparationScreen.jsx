@@ -25,6 +25,7 @@ import {
   PlayArrow as PlayArrowIcon,
   ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
+import axios from 'axios';
 import { API_BASE } from '../../config/api';
 import syncQueue from '../../utils/offlineSync';
 
@@ -40,6 +41,8 @@ export default function RunPreparationScreen() {
     utensils: false,
     requests: false
   });
+  const [loadedRequests, setLoadedRequests] = useState(new Set());
+  const [loadingRequestId, setLoadingRequestId] = useState(null);
 
   useEffect(() => {
     fetchPreparationData();
@@ -57,20 +60,9 @@ export default function RunPreparationScreen() {
   const fetchPreparationData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       
-      const response = await fetch(`${API_BASE}/v2/execution/${id}/preparation`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch preparation data');
-      }
-
-      const result = await response.json();
-      setData(result.data);
+      const response = await axios.get(`${API_BASE}/v2/execution/${id}/preparation`);
+      setData(response.data.data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -85,20 +77,46 @@ export default function RunPreparationScreen() {
     }));
   };
 
+  const handleToggleRequestLoaded = async (requestId) => {
+    try {
+      setLoadingRequestId(requestId);
+      
+      // Mark as taken (loaded onto vehicle)
+      await axios.post(`${API_BASE}/v2/requests/${requestId}/status-history`, {
+        status: 'taken',
+        notes: 'Loaded onto vehicle'
+      });
+
+      // Update local state
+      setLoadedRequests(prev => {
+        const newSet = new Set(prev);
+        newSet.add(requestId);
+        return newSet;
+      });
+
+      // Check if all requests are now loaded
+      if (data && loadedRequests.size + 1 >= data.requests.length) {
+        setChecklist(prev => ({ ...prev, requests: true }));
+      }
+    } catch (err) {
+      console.error('Error marking request as loaded:', err);
+      setError('Failed to mark request as loaded');
+    } finally {
+      setLoadingRequestId(null);
+    }
+  };
+
   const handleStartRun = async () => {
     try {
       setStarting(true);
 
-      // Queue the action (will sync immediately if online, or queue if offline)
-      await syncQueue.queueAction({
-        type: 'START_RUN',
-        payload: { runId: parseInt(id) }
-      });
+      // Start the run (wait for completion)
+      await axios.post(`${API_BASE}/v2/execution/${id}/start`);
 
       // Navigate to active run screen
       navigate(`/runs/${id}/active`);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message);
       setStarting(false);
     }
   };
@@ -151,14 +169,18 @@ export default function RunPreparationScreen() {
         </Box>
       </Box>
 
-      {/* Checklist */}
+      {/* Loading Checklist - Combined */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Loading Checklist
           </Typography>
+          
+          {/* Meals Section */}
+          <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+            Meals
+          </Typography>
           <List>
-            {/* Meals */}
             <ListItem
               button
               onClick={() => handleChecklistToggle('meals')}
@@ -185,7 +207,6 @@ export default function RunPreparationScreen() {
               />
             </ListItem>
 
-            {/* Utensils */}
             <ListItem
               button
               onClick={() => handleChecklistToggle('utensils')}
@@ -208,65 +229,68 @@ export default function RunPreparationScreen() {
               </ListItemIcon>
               <ListItemText
                 primary={`${supplies.utensils} Utensil Sets`}
-                secondary={`Forks, napkins (1 per meal)`}
-              />
-            </ListItem>
-
-            {/* Requests */}
-            <ListItem
-              button
-              onClick={() => handleChecklistToggle('requests')}
-              sx={{
-                bgcolor: checklist.requests ? 'action.selected' : 'transparent',
-                borderRadius: 1
-              }}
-            >
-              <ListItemIcon>
-                <Checkbox
-                  edge="start"
-                  checked={checklist.requests}
-                  tabIndex={-1}
-                  disableRipple
-                />
-              </ListItemIcon>
-              <ListItemIcon>
-                <AssignmentIcon />
-              </ListItemIcon>
-              <ListItemText
-                primary={`${supplies.requests} Delivery Requests`}
-                secondary="Special items for friends"
+                secondary="Forks, napkins (1 per meal)"
               />
             </ListItem>
           </List>
-        </CardContent>
-      </Card>
 
-      {/* Requests List */}
-      {requests.length > 0 && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6">
-                Requests to Deliver
-              </Typography>
-              <Chip label={`${requests.length} items`} size="small" />
-            </Box>
-            <List dense>
+          {/* Special Requests Section */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" mt={2} mb={1}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Special Requests
+            </Typography>
+            {requests.length > 0 && (
+              <Chip 
+                label={`${loadedRequests.size}/${requests.length} loaded`} 
+                size="small"
+                color={loadedRequests.size === requests.length ? 'success' : 'default'}
+              />
+            )}
+          </Box>
+          {requests.length === 0 ? (
+            <Alert severity="info" sx={{ mb: 1 }}>
+              No special requests for this run.
+            </Alert>
+          ) : (
+            <List>
               {requests.map((request, index) => (
                 <Box key={request.id}>
-                  <ListItem>
+                  <ListItem
+                    button
+                    onClick={() => !loadedRequests.has(request.id) && handleToggleRequestLoaded(request.id)}
+                    disabled={loadedRequests.has(request.id) || loadingRequestId === request.id}
+                    sx={{
+                      bgcolor: loadedRequests.has(request.id) ? 'action.selected' : 'transparent',
+                      borderRadius: 1,
+                      mb: index < requests.length - 1 ? 1 : 0
+                    }}
+                  >
+                    <ListItemIcon>
+                      {loadingRequestId === request.id ? (
+                        <CircularProgress size={24} />
+                      ) : (
+                        <Checkbox
+                          edge="start"
+                          checked={loadedRequests.has(request.id)}
+                          tabIndex={-1}
+                          disableRipple
+                        />
+                      )}
+                    </ListItemIcon>
+                    <ListItemIcon>
+                      <AssignmentIcon />
+                    </ListItemIcon>
                     <ListItemText
                       primary={`${request.itemName} for ${request.friendName}`}
                       secondary={`${request.category} • ${request.locationName} • Priority: ${request.priority}`}
                     />
                   </ListItem>
-                  {index < requests.length - 1 && <Divider />}
                 </Box>
               ))}
             </List>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       {/* Notes */}
       {run.notes && (

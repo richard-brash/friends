@@ -33,7 +33,8 @@ class RunExecutionService {
 
       const run = this.#transformRunFromDb(runResult.rows[0]);
 
-      // Get all requests assigned to this run
+      // Get all requests assigned to this run OR unassigned but at a location on this route
+      // For preparation: only show ready_for_delivery (items that need to be loaded)
       const requestsQuery = `
         SELECT req.*, 
                f.name as friend_name,
@@ -41,10 +42,11 @@ class RunExecutionService {
         FROM requests req
         JOIN friends f ON req.friend_id = f.id
         JOIN locations l ON req.location_id = l.id
-        WHERE req.run_id = $1
+        WHERE (req.run_id = $1 OR (req.run_id IS NULL AND l.route_id = $2))
+          AND req.status = 'ready_for_delivery'
         ORDER BY l.route_order NULLS LAST, f.name
       `;
-      const requestsResult = await this.db.query(requestsQuery, [runId]);
+      const requestsResult = await this.db.query(requestsQuery, [runId, run.routeId]);
       const requests = requestsResult.rows.map(row => this.#transformRequestFromDb(row));
 
       // Calculate supplies needed
@@ -128,15 +130,18 @@ class RunExecutionService {
         });
       });
 
-      // Get requests by location
+      // Get requests by location (assigned to this run OR unassigned but on this route)
+      // For active run: only show taken (items loaded on vehicle ready to deliver)
       const requestsQuery = `
-        SELECT req.*, f.name as friend_name
+        SELECT req.*, f.name as friend_name, l.route_id
         FROM requests req
         JOIN friends f ON req.friend_id = f.id
-        WHERE req.run_id = $1
+        JOIN locations l ON req.location_id = l.id
+        WHERE (req.run_id = $1 OR (req.run_id IS NULL AND l.route_id = $2))
+          AND req.status = 'taken'
         ORDER BY req.location_id, req.priority DESC
       `;
-      const requestsResult = await this.db.query(requestsQuery, [runId]);
+      const requestsResult = await this.db.query(requestsQuery, [runId, run.routeId]);
       
       // Group requests by location
       const requestsByLocation = {};

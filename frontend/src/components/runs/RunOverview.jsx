@@ -522,23 +522,32 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     );
   };
 
-  // Get route location IDs for filtering
-  const routeLocationIds = route?.locationIds || [];
+  // Get route location IDs for filtering (from the filtered locations array)
+  const routeLocationIds = locations.map(loc => loc.id);
 
   // Get ready for delivery requests (only for locations on this route)
   // Handle both string and number locationIds in route data
-  const readyForDeliveryRequests = requests.filter(r => 
-    r.status === 'ready_for_delivery' && 
-    r.friendId && 
-    (routeLocationIds.includes(r.locationId?.toString()) || 
-     routeLocationIds.includes(Number(r.locationId)))
-  );
+  // Support both snake_case (friend_id, location_id) and camelCase (friendId, locationId)
+  const readyForDeliveryRequests = requests.filter(r => {
+    const friendId = r.friendId || r.friend_id;
+    const locationId = r.locationId || r.location_id;
+    
+    return r.status === 'ready_for_delivery' && 
+      friendId && 
+      (routeLocationIds.includes(locationId?.toString()) || 
+       routeLocationIds.includes(Number(locationId)));
+  });
   
 
 
   // Get requests for current location
+  // Support both snake_case and camelCase field names
   const currentLocationRequests = nextLocation 
-    ? requests.filter(r => r.locationId === nextLocation.id && r.status !== 'delivered' && r.friendId)
+    ? requests.filter(r => {
+        const friendId = r.friendId || r.friend_id;
+        const locationId = r.locationId || r.location_id;
+        return locationId === nextLocation.id && r.status !== 'delivered' && friendId;
+      })
     : [];
 
   if (loading) {
@@ -733,9 +742,15 @@ export default function RunOverview({ runId, onEdit, onBack }) {
               {readyForDeliveryRequests.length > 0 ? (
                 <List dense>
                   {readyForDeliveryRequests.map((request) => {
-                    const friend = getFriendById(request.friendId);
-                    const location = getLocationById(request.locationId);
-                    if (!friend && !request.friendId) return null;
+                    // Support both snake_case and camelCase field names
+                    const friendId = request.friendId || request.friend_id;
+                    const locationId = request.locationId || request.location_id;
+                    const itemRequested = request.itemRequested || request.item_name;
+                    const urgency = request.urgency || request.priority;
+                    
+                    const friend = getFriendById(friendId);
+                    const location = getLocationById(locationId);
+                    if (!friend && !friendId) return null;
                     
                     return (
                       <ListItem 
@@ -755,7 +770,7 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                         </ListItemAvatar>
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                            {request.itemRequested} (x{request.quantity || 1})
+                            {itemRequested} (x{request.quantity || 1})
                           </Typography>
                           <Typography variant="caption" display="block">
                             for {friend?.name || 'Unknown Friend'}
@@ -764,14 +779,14 @@ export default function RunOverview({ runId, onEdit, onBack }) {
                             <Chip 
                               size="small" 
                               icon={<LocationOn />} 
-                              label={location?.description || 'Unknown Location'} 
+                              label={location?.description || location?.name || 'Unknown Location'} 
                               variant="outlined"
                             />
-                            {request.urgency && request.urgency !== 'medium' && (
+                            {urgency && urgency !== 'medium' && (
                               <Chip 
                                 size="small" 
-                                label={request.urgency?.toUpperCase()} 
-                                color={request.urgency === 'high' ? 'error' : 'default'}
+                                label={urgency?.toUpperCase()} 
+                                color={urgency === 'high' ? 'error' : 'default'}
                                 variant="outlined"
                               />
                             )}
