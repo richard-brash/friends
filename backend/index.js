@@ -180,7 +180,7 @@ async function startServer() {
       console.log('🔄 Auto-resetting and reseeding database...');
       await resetAndSeed();
       console.log('✅ Database reset and seeded successfully!');
-      console.log('👤 Test users: admin@friendsoutreach.org / admin123, coordinator@friendsoutreach.org / coord123');
+      console.log('👤 Test users: admin@friendsoutreach.org / password, coordinator@friendsoutreach.org / password');
     } else {
       console.error('❌ Database connection failed - server cannot start without database');
       process.exit(1);

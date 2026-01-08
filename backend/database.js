@@ -47,6 +47,8 @@ async function dropAllTables() {
   try {
     console.log('🗑️  Dropping all tables...');
     await pool.query(`
+      DROP TABLE IF EXISTS run_stop_deliveries CASCADE;
+      DROP TABLE IF EXISTS request_status_history CASCADE;
       DROP TABLE IF EXISTS delivery_attempts CASCADE;
       DROP TABLE IF EXISTS requests CASCADE;
       DROP TABLE IF EXISTS run_team_members CASCADE;
