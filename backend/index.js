@@ -10,7 +10,7 @@ dotenv.config();
 
 // Database imports
 import { testConnection, initializeSchema, query, pool } from './database.js';
-import { resetAndSeed, seedDatabase, seedSampleData } from './seed.js';
+import { resetAndSeed, seedSampleData } from './seed.js';
 
 // Route imports
 import authRouter from './src/routes/auth.js';
