@@ -175,9 +175,12 @@ async function startServer() {
     
     if (connected) {
       console.log('✅ Database connected successfully');
-      // Database schema and seeding should be done manually via:
-      // node populate-database.js
-      // NOT automatically on every server start!
+      
+      // TEMPORARY: Auto-reset and reseed on every startup for deployment testing
+      console.log('🔄 Auto-resetting and reseeding database...');
+      await resetAndSeed();
+      console.log('✅ Database reset and seeded successfully!');
+      console.log('👤 Test users: admin@friendsoutreach.org / admin123, coordinator@friendsoutreach.org / coord123');
     } else {
       console.error('❌ Database connection failed - server cannot start without database');
       process.exit(1);
