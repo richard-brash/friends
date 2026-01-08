@@ -9,7 +9,7 @@ const sampleUsers = [
   {
     username: 'admin',
     email: 'admin@friendsoutreach.org',
-    password: 'admin123', // Will be hashed during seeding
+    password: 'password', // Will be hashed during seeding
     name: 'Admin User',
     phone: '410-555-0001',
     role: 'admin'
@@ -17,7 +17,7 @@ const sampleUsers = [
   {
     username: 'coordinator',
     email: 'coordinator@friendsoutreach.org',
-    password: 'coord123',
+    password: 'password',
     name: 'Sarah Johnson',
     phone: '410-555-0002',
     role: 'coordinator'
@@ -25,7 +25,7 @@ const sampleUsers = [
   {
     username: 'volunteer',
     email: 'volunteer@friendsoutreach.org',
-    password: 'volunteer123',
+    password: 'password',
     name: 'Mike Chen',
     phone: '410-555-0003',
     role: 'volunteer'
@@ -33,7 +33,7 @@ const sampleUsers = [
   {
     username: 'volunteer2',
     email: 'volunteer2@friendsoutreach.org',
-    password: 'volunteer123',
+    password: 'password',
     name: 'Emily Rodriguez',
     phone: '410-555-0004',
     role: 'volunteer'
