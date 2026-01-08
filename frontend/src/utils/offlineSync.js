@@ -8,6 +8,7 @@ const DB_NAME = 'friendsOutreachOffline';
 const DB_VERSION = 1;
 const QUEUE_STORE = 'syncQueue';
 const RETRY_INTERVAL = 30000; // 30 seconds
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
 
 class OfflineSyncQueue {
   constructor() {
@@ -99,7 +100,15 @@ class OfflineSyncQueue {
           await this.removeItem(item.id);
           this.notifyListeners({ type: 'synced', itemId: item.id });
         } catch (error) {
-          // Update retry count
+          // Check if it's a non-retriable error (400 validation error)
+          if (error.response && error.response.status === 400) {
+            console.warn('Non-retriable validation error, removing from queue:', error.message);
+            await this.removeItem(item.id);
+            this.notifyListeners({ type: 'syncError', itemId: item.id, error, removed: true });
+            continue;
+          }
+          
+          // Update retry count for retriable errors
           await this.updateItemError(item.id, error.message);
           this.notifyListeners({ type: 'syncError', itemId: item.id, error });
           
@@ -137,28 +146,28 @@ class OfflineSyncQueue {
 
     switch (type) {
       case 'START_RUN':
-        response = await fetch(`/api/v2/execution/${payload.runId}/start`, {
+        response = await fetch(`${API_BASE}/api/v2/execution/${payload.runId}/start`, {
           method: 'POST',
           headers
         });
         break;
 
       case 'ADVANCE_STOP':
-        response = await fetch(`/api/v2/execution/${payload.runId}/advance`, {
+        response = await fetch(`${API_BASE}/api/v2/execution/${payload.runId}/advance`, {
           method: 'POST',
           headers
         });
         break;
 
       case 'PREVIOUS_STOP':
-        response = await fetch(`/api/v2/execution/${payload.runId}/previous`, {
+        response = await fetch(`${API_BASE}/api/v2/execution/${payload.runId}/previous`, {
           method: 'POST',
           headers
         });
         break;
 
       case 'RECORD_DELIVERY':
-        response = await fetch(`/api/v2/execution/${payload.runId}/stop-delivery`, {
+        response = await fetch(`${API_BASE}/api/v2/execution/${payload.runId}/stop-delivery`, {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -170,7 +179,7 @@ class OfflineSyncQueue {
         break;
 
       case 'SPOT_FRIEND':
-        response = await fetch(`/api/v2/execution/${payload.runId}/spot-friend`, {
+        response = await fetch(`${API_BASE}/api/v2/execution/${payload.runId}/spot-friend`, {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -182,7 +191,7 @@ class OfflineSyncQueue {
         break;
 
       case 'MARK_DELIVERED':
-        response = await fetch(`/api/v2/requests/${payload.requestId}/status`, {
+        response = await fetch(`${API_BASE}/api/v2/requests/${payload.requestId}/status`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({

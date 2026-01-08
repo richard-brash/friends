@@ -21,7 +21,8 @@ class RunRepository {
       JOIN routes rt ON r.route_id = rt.id
       LEFT JOIN users u ON r.created_by = u.id
       LEFT JOIN run_team_members rtm ON r.id = rtm.run_id
-      LEFT JOIN requests req ON r.id = req.run_id
+      LEFT JOIN locations l ON rt.id = l.route_id
+      LEFT JOIN requests req ON l.id = req.location_id AND req.status IN ('ready_for_delivery', 'taken')
       WHERE 1=1
     `;
     

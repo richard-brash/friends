@@ -112,7 +112,6 @@ CREATE TABLE IF NOT EXISTS requests (
     id SERIAL PRIMARY KEY,
     friend_id INTEGER NOT NULL REFERENCES friends(id) ON DELETE CASCADE,
     location_id INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
-    run_id INTEGER REFERENCES runs(id) ON DELETE CASCADE, -- NULL if not assigned to a run yet
     category VARCHAR(50) NOT NULL,
     item_name VARCHAR(100) NOT NULL,
     description TEXT,
@@ -147,7 +146,6 @@ CREATE INDEX IF NOT EXISTS idx_runs_route_id ON runs(route_id);
 CREATE INDEX IF NOT EXISTS idx_runs_date ON runs(scheduled_date);
 CREATE INDEX IF NOT EXISTS idx_requests_friend_id ON requests(friend_id);
 CREATE INDEX IF NOT EXISTS idx_requests_location_id ON requests(location_id);
-CREATE INDEX IF NOT EXISTS idx_requests_run_id ON requests(run_id);
 CREATE INDEX IF NOT EXISTS idx_requests_status ON requests(status);
 CREATE INDEX IF NOT EXISTS idx_request_status_history_request ON request_status_history(request_id);
 CREATE INDEX IF NOT EXISTS idx_request_status_history_status ON request_status_history(status);

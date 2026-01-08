@@ -532,7 +532,7 @@ export default function RunOverview({ runId, onEdit, onBack }) {
     const friendId = r.friendId || r.friend_id;
     const locationId = r.locationId || r.location_id;
     
-    return r.status === 'ready_for_delivery' && 
+    return (r.status === 'ready_for_delivery' || r.status === 'taken') && 
       friendId && 
       (routeLocationIds.includes(locationId?.toString()) || 
        routeLocationIds.includes(Number(locationId)));

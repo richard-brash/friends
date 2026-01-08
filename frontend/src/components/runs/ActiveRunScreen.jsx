@@ -127,7 +127,7 @@ export default function ActiveRunScreen() {
         setMealsDelivered(currentStop.delivery.mealsDelivered);
         setDeliveryNotes(currentStop.delivery.notes || '');
       } else {
-        setMealsDelivered(0);
+        setMealsDelivered(null); // Force user to enter a value (even 0)
         setDeliveryNotes('');
       }
     } catch (err) {

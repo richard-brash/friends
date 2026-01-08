@@ -50,6 +50,12 @@ class CleanRunService {
         run.team = teamMembers;
       }
 
+      // Optionally include requests (ready_for_delivery + taken)
+      if (options.includeRequests) {
+        const requests = await this.#getRequestsForRun(run);
+        run.requests = requests;
+      }
+
       return this.#transformFromDb(run);
     } catch (error) {
       if (error instanceof ValidationError || error instanceof NotFoundError) {
@@ -273,6 +279,38 @@ class CleanRunService {
       this.logger.error('CleanRunService.removeTeamMember failed', { error, runId, userId });
       throw new DatabaseError('Failed to remove team member', error);
     }
+  }
+
+  async #getRequestsForRun(run) {
+    const query = `
+      SELECT req.*, 
+             f.name as friend_name,
+             l.name as location_name,
+             l.route_order
+      FROM requests req
+      JOIN friends f ON req.friend_id = f.id
+      JOIN locations l ON req.location_id = l.id
+      WHERE l.route_id = $1
+        AND req.status IN ('ready_for_delivery', 'taken')
+      ORDER BY l.route_order NULLS LAST, f.name
+    `;
+    const result = await this.repository.db.query(query, [run.route_id]);
+    return result.rows.map(row => ({
+      id: row.id,
+      friendId: row.friend_id,
+      friendName: row.friend_name,
+      locationId: row.location_id,
+      locationName: row.location_name,
+      category: row.category,
+      itemName: row.item_name,
+      description: row.description,
+      quantity: row.quantity,
+      priority: row.priority,
+      status: row.status,
+      notes: row.notes,
+      createdAt: row.created_at?.toISOString(),
+      updatedAt: row.updated_at?.toISOString()
+    }));
   }
 
   #transformTeamMemberFromDb(dbRow) {

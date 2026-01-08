@@ -21,9 +21,13 @@ async function seedTable(tableName, data, returningColumn = 'id') {
   const results = [];
   
   for (const item of data) {
-    // Filter out undefined values
+    // Filter out undefined values and null run_id (removed from schema)
     const cleanItem = Object.fromEntries(
-      Object.entries(item).filter(([_, v]) => v !== undefined)
+      Object.entries(item).filter(([k, v]) => {
+        if (v === undefined) return false;
+        if (k === 'run_id' && v === null) return false; // run_id removed from schema
+        return true;
+      })
     );
     
     const columns = Object.keys(cleanItem);

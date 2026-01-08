@@ -346,7 +346,7 @@ const sampleRequests = [
   {
     friend_id: 1, // James Wilson
     location_id: 1, // Glen Burnie Plaza
-    run_id: 1,
+    run_id: null, // Requests have no run_id - inferred by location→route
     category: 'non-clothing',
     item_name: 'Hot meal',
     description: 'Hot meal with water',
@@ -360,7 +360,7 @@ const sampleRequests = [
   {
     friend_id: 2, // Maria Garcia
     location_id: 2, // Marley Station
-    run_id: 1,
+    run_id: null,
     category: 'clothing',
     item_name: 'Winter coat',
     description: 'Winter coat (size L) with gloves',
@@ -374,7 +374,7 @@ const sampleRequests = [
   {
     friend_id: 3, // Robert Johnson
     location_id: 3, // Sawmill Creek
-    run_id: 1,
+    run_id: null,
     category: 'non-clothing',
     item_name: 'Hot meal',
     description: 'Hot meal with coffee',
@@ -390,7 +390,7 @@ const sampleRequests = [
   {
     friend_id: 6, // Jennifer Brown
     location_id: 11, // Patterson Park
-    run_id: 2,
+    run_id: null,
     category: 'non-clothing',
     item_name: 'Diabetes supplies',
     description: 'Diabetes supplies including glucose meter',
@@ -404,7 +404,7 @@ const sampleRequests = [
   {
     friend_id: 7, // Michael Taylor
     location_id: 12, // Canton Waterfront
-    run_id: 2,
+    run_id: null,
     category: 'non-clothing',
     item_name: 'Hot meal',
     description: 'Hot meal with soup',
@@ -420,7 +420,7 @@ const sampleRequests = [
   {
     friend_id: 11, // Thomas Harris
     location_id: 21, // Lexington Market
-    run_id: 3,
+    run_id: null,
     category: 'non-clothing',
     item_name: 'Hot meal',
     description: 'Hot meal with bread',
@@ -434,7 +434,7 @@ const sampleRequests = [
   {
     friend_id: 12, // Patricia Clark
     location_id: 22, // Poppleton
-    run_id: 3,
+    run_id: null,
     category: 'non-clothing',
     item_name: 'Hygiene kit',
     description: 'Hygiene kit with toiletries',
@@ -448,7 +448,7 @@ const sampleRequests = [
   {
     friend_id: 13, // Daniel Lewis
     location_id: 23, // Hollins Market
-    run_id: 3,
+    run_id: null,
     category: 'non-clothing',
     item_name: 'Hot meal',
     description: 'Hot meal with coffee',

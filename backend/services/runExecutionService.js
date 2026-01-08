@@ -33,8 +33,8 @@ class RunExecutionService {
 
       const run = this.#transformRunFromDb(runResult.rows[0]);
 
-      // Get all requests assigned to this run OR unassigned but at a location on this route
-      // For preparation: only show ready_for_delivery (items that need to be loaded)
+      // Get all requests for locations on this route (ready_for_delivery + taken)
+      // Requests are inferred by location→route, NOT by run_id
       const requestsQuery = `
         SELECT req.*, 
                f.name as friend_name,
@@ -42,11 +42,11 @@ class RunExecutionService {
         FROM requests req
         JOIN friends f ON req.friend_id = f.id
         JOIN locations l ON req.location_id = l.id
-        WHERE (req.run_id = $1 OR (req.run_id IS NULL AND l.route_id = $2))
-          AND req.status = 'ready_for_delivery'
+        WHERE l.route_id = $1
+          AND req.status IN ('ready_for_delivery', 'taken')
         ORDER BY l.route_order NULLS LAST, f.name
       `;
-      const requestsResult = await this.db.query(requestsQuery, [runId, run.routeId]);
+      const requestsResult = await this.db.query(requestsQuery, [run.routeId]);
       const requests = requestsResult.rows.map(row => this.#transformRequestFromDb(row));
 
       // Calculate supplies needed
@@ -93,6 +93,23 @@ class RunExecutionService {
 
       const run = this.#transformRunFromDb(runResult.rows[0]);
 
+      // Fix inconsistent state: if current_location_id is null but current_stop_number > 0
+      if (!run.currentLocationId && run.currentStopNumber > 0) {
+        this.logger.warn('Fixing inconsistent run state', { runId, currentStopNumber: run.currentStopNumber });
+        const fixQuery = `
+          SELECT id FROM locations 
+          WHERE route_id = $1 
+          ORDER BY route_order 
+          LIMIT 1 OFFSET $2
+        `;
+        const fixResult = await this.db.query(fixQuery, [run.routeId, run.currentStopNumber - 1]);
+        if (fixResult.rows.length > 0) {
+          const correctLocationId = fixResult.rows[0].id;
+          await this.db.query('UPDATE runs SET current_location_id = $1 WHERE id = $2', [correctLocationId, runId]);
+          run.currentLocationId = correctLocationId;
+        }
+      }
+
       // Get ordered stops on this route
       const stopsQuery = `
         SELECT l.*
@@ -130,18 +147,19 @@ class RunExecutionService {
         });
       });
 
-      // Get requests by location (assigned to this run OR unassigned but on this route)
+      // Get requests by location (for locations on this route)
       // For active run: only show taken (items loaded on vehicle ready to deliver)
+      // Requests are inferred by location→route, NOT by run_id
       const requestsQuery = `
         SELECT req.*, f.name as friend_name, l.route_id
         FROM requests req
         JOIN friends f ON req.friend_id = f.id
         JOIN locations l ON req.location_id = l.id
-        WHERE (req.run_id = $1 OR (req.run_id IS NULL AND l.route_id = $2))
+        WHERE l.route_id = $1
           AND req.status = 'taken'
         ORDER BY req.location_id, req.priority DESC
       `;
-      const requestsResult = await this.db.query(requestsQuery, [runId, run.routeId]);
+      const requestsResult = await this.db.query(requestsQuery, [run.routeId]);
       
       // Group requests by location
       const requestsByLocation = {};
@@ -411,11 +429,13 @@ class RunExecutionService {
       const runResult = await this.db.query(runQuery, [runId]);
       const run = runResult.rows.length > 0 ? this.#transformRunFromDb(runResult.rows[0]) : null;
 
-      // Get request updates
+      // Get request updates (via location→route, not run_id)
       const requestsQuery = `
-        SELECT * FROM requests 
-        WHERE run_id = $1 AND updated_at > $2
-        ORDER BY updated_at DESC
+        SELECT req.* FROM requests req
+        JOIN locations l ON req.location_id = l.id
+        JOIN runs r ON l.route_id = r.route_id
+        WHERE r.id = $1 AND req.updated_at > $2
+        ORDER BY req.updated_at DESC
       `;
       const requestsResult = await this.db.query(requestsQuery, [runId, sinceTimestamp]);
       const updatedRequests = requestsResult.rows.map(row => this.#transformRequestFromDb(row));
