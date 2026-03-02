@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       return { success: true };
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Login failed';
+      const errorMessage = error.response?.data?.error?.message || 'Login failed';
       setError(errorMessage);
       return { success: false, error: errorMessage };
     }
@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.post(`${API_BASE}/auth/register`, userData);
       return { success: true, user: response.data.user };
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Registration failed';
+      const errorMessage = error.response?.data?.error?.message || 'Registration failed';
       setError(errorMessage);
       return { success: false, error: errorMessage };
     }
@@ -129,7 +129,7 @@ export const AuthProvider = ({ children }) => {
       });
       return { success: true };
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Password change failed';
+      const errorMessage = error.response?.data?.error?.message || 'Password change failed';
       setError(errorMessage);
       return { success: false, error: errorMessage };
     }
@@ -141,7 +141,7 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.get(`${API_BASE}/auth/users`);
       return { success: true, users: response.data.users };
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Failed to fetch users';
+      const errorMessage = error.response?.data?.error?.message || 'Failed to fetch users';
       return { success: false, error: errorMessage };
     }
   };

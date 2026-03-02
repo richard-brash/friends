@@ -12,7 +12,7 @@ const routesApi = {
    * Get all routes with location and friend counts
    */
   async getAll() {
-    const url = `${API_BASE}/v2/routes`;
+    const url = `${API_BASE}/routes`;
     
     const response = await fetch(url, {
       headers: {
@@ -32,7 +32,7 @@ const routesApi = {
    * Get route by ID with detailed location information
    */
   async getById(id) {
-    const url = `${API_BASE}/v2/routes/${id}`;
+    const url = `${API_BASE}/routes/${id}`;
     
     const response = await fetch(url, {
       headers: {
@@ -52,7 +52,7 @@ const routesApi = {
    * Create new route
    */
   async create(routeData) {
-    const url = `${API_BASE}/v2/routes`;
+    const url = `${API_BASE}/routes`;
     
     const response = await fetch(url, {
       method: 'POST',
@@ -74,7 +74,7 @@ const routesApi = {
    * Update route
    */
   async update(id, routeData) {
-    const url = `${API_BASE}/v2/routes/${id}`;
+    const url = `${API_BASE}/routes/${id}`;
     
     const response = await fetch(url, {
       method: 'PUT',
@@ -96,7 +96,7 @@ const routesApi = {
    * Delete route
    */
   async delete(id) {
-    const url = `${API_BASE}/v2/routes/${id}`;
+    const url = `${API_BASE}/routes/${id}`;
     
     const response = await fetch(url, {
       method: 'DELETE',
@@ -117,7 +117,7 @@ const routesApi = {
    * Add location to route
    */
   async addLocation(routeId, locationId, orderInRoute = null) {
-    const url = `${API_BASE}/v2/routes/${routeId}/locations`;
+    const url = `${API_BASE}/routes/${routeId}/locations`;
     
     const response = await fetch(url, {
       method: 'POST',
@@ -142,7 +142,7 @@ const routesApi = {
    * Remove location from route
    */
   async removeLocation(routeId, locationId) {
-    const url = `${API_BASE}/v2/routes/${routeId}/locations/${locationId}`;
+    const url = `${API_BASE}/routes/${routeId}/locations/${locationId}`;
     
     const response = await fetch(url, {
       method: 'DELETE',
@@ -163,7 +163,7 @@ const routesApi = {
    * Reorder locations in route
    */
   async reorderLocations(routeId, locationOrders) {
-    const url = `${API_BASE}/v2/routes/${routeId}/locations/reorder`;
+    const url = `${API_BASE}/locations/reorder`;
     
     const response = await fetch(url, {
       method: 'PUT',

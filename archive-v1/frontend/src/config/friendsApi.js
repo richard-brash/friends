@@ -10,7 +10,7 @@ const friendsApi = {
     if (filters.locationId) params.append('locationId', filters.locationId);
     if (filters.search) params.append('search', filters.search);
     
-    const url = `${API_BASE}/v2/friends${params.toString() ? '?' + params.toString() : ''}`;
+    const url = `${API_BASE}/friends${params.toString() ? '?' + params.toString() : ''}`;
     
     const response = await fetch(url, {
       headers: {
@@ -29,7 +29,7 @@ const friendsApi = {
 
   // Get single friend by ID with full details
   async getById(id) {
-    const response = await fetch(`${API_BASE}/v2/friends/${id}`, {
+    const response = await fetch(`${API_BASE}/friends/${id}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         'Content-Type': 'application/json'
@@ -46,7 +46,7 @@ const friendsApi = {
 
   // Create new friend
   async create(friendData) {
-    const response = await fetch(`${API_BASE}/v2/friends`, {
+    const response = await fetch(`${API_BASE}/friends`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -65,7 +65,7 @@ const friendsApi = {
 
   // Update existing friend
   async update(id, friendData) {
-    const response = await fetch(`${API_BASE}/v2/friends/${id}`, {
+    const response = await fetch(`${API_BASE}/friends/${id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -84,7 +84,7 @@ const friendsApi = {
 
   // Delete friend (soft delete)
   async delete(id) {
-    const response = await fetch(`${API_BASE}/v2/friends/${id}`, {
+    const response = await fetch(`${API_BASE}/friends/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -102,7 +102,7 @@ const friendsApi = {
 
   // Search friends by name or nickname
   async search(searchTerm) {
-    const response = await fetch(`${API_BASE}/v2/friends/search/${encodeURIComponent(searchTerm)}`, {
+    const response = await fetch(`${API_BASE}/friends?search=${encodeURIComponent(searchTerm)}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         'Content-Type': 'application/json'
@@ -119,7 +119,7 @@ const friendsApi = {
 
   // Get location history for a specific friend (for tooltips/on-demand)
   async getLocationHistory(friendId) {
-    const response = await fetch(`${API_BASE}/v2/friends/${friendId}/location-history`, {
+    const response = await fetch(`${API_BASE}/friends/${friendId}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         'Content-Type': 'application/json'
@@ -131,12 +131,14 @@ const friendsApi = {
       throw new Error(error.error?.message || 'Failed to get location history');
     }
 
-    return await response.json();
+    const data = await response.json();
+    // Return the locationHistory array from the getById response
+    return { locationHistory: data.locationHistory || [] };
   },
 
   // Add location history entry for a friend
   async addLocationHistory(friendId, locationData) {
-    const response = await fetch(`${API_BASE}/v2/friends/${friendId}/location-history`, {
+    const response = await fetch(`${API_BASE}/friends/${friendId}/sightings`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,

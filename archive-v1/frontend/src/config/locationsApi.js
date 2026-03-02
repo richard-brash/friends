@@ -10,7 +10,7 @@ const locationsApi = {
     if (filters.type) params.append('type', filters.type);
     if (filters.search) params.append('search', filters.search);
     
-    const url = `${API_BASE}/v2/locations${params.toString() ? '?' + params.toString() : ''}`;
+    const url = `${API_BASE}/locations${params.toString() ? '?' + params.toString() : ''}`;
     
     const response = await fetch(url, {
       headers: {
@@ -29,7 +29,7 @@ const locationsApi = {
 
   // Get single location by ID with full details
   async getById(id) {
-    const response = await fetch(`${API_BASE}/v2/locations/${id}`, {
+    const response = await fetch(`${API_BASE}/locations/${id}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         'Content-Type': 'application/json'
@@ -46,7 +46,7 @@ const locationsApi = {
 
   // Create new location
   async create(locationData) {
-    const response = await fetch(`${API_BASE}/v2/locations`, {
+    const response = await fetch(`${API_BASE}/locations`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -65,7 +65,7 @@ const locationsApi = {
 
   // Update existing location
   async update(id, locationData) {
-    const response = await fetch(`${API_BASE}/v2/locations/${id}`, {
+    const response = await fetch(`${API_BASE}/locations/${id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -84,7 +84,7 @@ const locationsApi = {
 
   // Delete location
   async delete(id) {
-    const response = await fetch(`${API_BASE}/v2/locations/${id}`, {
+    const response = await fetch(`${API_BASE}/locations/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -102,7 +102,7 @@ const locationsApi = {
 
   // Search locations by name or address
   async search(searchTerm) {
-    const response = await fetch(`${API_BASE}/v2/locations/search/${encodeURIComponent(searchTerm)}`, {
+    const response = await fetch(`${API_BASE}/locations?search=${encodeURIComponent(searchTerm)}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         'Content-Type': 'application/json'

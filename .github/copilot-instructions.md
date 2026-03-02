@@ -60,24 +60,32 @@ This file tracks the setup and progress for the Friends Outreach CRM project. Fo
 - [x] Polling for multi-user real-time updates (20s interval)
 - [x] Integration with RunOverview ("Prepare Run" and "Continue Run" buttons)
 
-## Current Status
-- **Backend: All services migrated to Clean Architecture (V2 API) + Field Execution ✅**
-- **Runs V2 Rebuild: Complete and tested (31/31 tests passing) ✅**
-- **Frontend Runs Integration: COMPLETE - Ready for Testing! ✅**
-- **Field Execution Mode: COMPLETE - Ready for Testing! ✅**
-- Requests, Friends, Locations, Routes, and Runs all use Clean Architecture pattern
-- JWT-based authentication with role-based permissions (Admin/Coordinator/Volunteer)
-- Complete status history system for request lifecycle tracking
-- Mobile-responsive design optimized for field use
-- Auto-generated run names: "{route_name} {day_of_week} {YYYY-MM-DD}"
-- Team lead identification via timestamp (first member = lead)
-- Meal count tracking with validation
-- **NEW: Field execution with offline-first capabilities, stop-by-stop navigation, meal tracking, friend spotting**
-- All frontend components updated: ManageTeamDialog, RunOverview, RunsList, CreateRunForm
-- Active run polling (20s) for multi-device coordination
+## MVP Must-Haves (Revised - January 9, 2026)
+1. **Authentication** - Login with email/phone + password, JWT tokens
+2. **Friends** - CRUD + quick add in field + spotting + location history
+3. **Runs** - Create, team assignment, preparation checklist, field execution (stop-by-stop), completion
+4. **Requests** - Full lifecycle: pending → ready_for_delivery → taken → delivered (with status history)
 
-**Ready for field testing! Features:**
-- Pre-run preparation screen with loading checklist
+**Deferred to Phase 2:**
+- Locations & Routes CRUD (use seed data for MVP)
+- Offline capability
+- Fine-grained permissions (MVP: authenticated = full access)
+
+## Current Status
+- **Backend V2 (slim-backend): COMPLETE ✅**
+  - All 6 API modules: Auth, Friends, Routes, Locations, Requests, Runs
+  - Clean Architecture pattern with Repository → Service → API layers
+  - Full test coverage (31/31 tests passing)
+  - JWT authentication with bcrypt password hashing
+  - Status history audit trail for requests
+  - Auto-generated run names: "{route_name} {day_of_week} {YYYY-MM-DD}"
+  - Team management, preparation checklist, field execution endpoints
+  - Seed data with 3 routes, 31 locations, 15 friends, 10 requests
+
+- **Frontend V2: STARTING NOW**
+  - Building new React + Vite + Material-UI frontend from scratch
+  - Mobile-first design for field workers
+  - Focus on core MVP workflows only
 - Active run screen with stop-by-stop navigation
 - Meal counter per location with notes
 - Friend spotting (expected + quick-add new)
