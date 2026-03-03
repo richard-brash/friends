@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { NeedStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FriendsService } from '../friends/friends.service';
 import { CreateNeedDto } from './dto/create-need.dto';
 import type { RequestContext } from '../common/types/request-context';
+import type { NeedStatus } from '../common/types/domain-types';
 import {
   isTerminalStatus,
   validateNeedTransition,
@@ -26,7 +26,7 @@ export class NeedsService {
         category: dto.category,
         description: dto.description,
         priority: dto.priority,
-        status: NeedStatus.open,
+        status: 'open',
       },
     });
   }

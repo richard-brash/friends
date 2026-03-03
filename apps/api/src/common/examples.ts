@@ -3,7 +3,7 @@
  * Demonstrating how foundational guardrails enforce architectural discipline
  */
 
-import { NeedStatus, UserRole } from '@prisma/client';
+import { NEED_STATUSES, USER_ROLES } from './types/domain-types';
 import {
   validateNeedTransition,
   isTerminalStatus,
@@ -15,22 +15,22 @@ import {
 // ============================================================================
 
 // Valid transition: open → in_review
-validateNeedTransition(NeedStatus.open, NeedStatus.in_review); // ✓ Success
+validateNeedTransition(NEED_STATUSES[0], NEED_STATUSES[1]); // ✓ Success
 
 // Valid transition: open → attempted_not_found
-validateNeedTransition(NeedStatus.open, NeedStatus.attempted_not_found); // ✓ Success
+validateNeedTransition(NEED_STATUSES[0], NEED_STATUSES[6]); // ✓ Success
 
 // Invalid transition: open → delivered (skips intermediate states)
-// validateNeedTransition(NeedStatus.open, NeedStatus.delivered);
+// validateNeedTransition(NEED_STATUSES[0], NEED_STATUSES[5]);
 // ✗ Throws: "Invalid status transition: open → delivered"
 
 // Terminal state check
-isTerminalStatus(NeedStatus.delivered); // true
-isTerminalStatus(NeedStatus.open); // false
+isTerminalStatus(NEED_STATUSES[5]); // true
+isTerminalStatus(NEED_STATUSES[0]); // false
 
 // Get valid next statuses
-getValidNextStatuses(NeedStatus.open); // ['in_review', 'attempted_not_found']
-getValidNextStatuses(NeedStatus.delivered); // [] (terminal)
+getValidNextStatuses(NEED_STATUSES[0]); // ['in_review', 'attempted_not_found']
+getValidNextStatuses(NEED_STATUSES[5]); // [] (terminal)
 
 // ============================================================================
 // Example 2: BaseService Pattern (pseudocode - not executable)
@@ -68,7 +68,7 @@ class FriendsService extends BaseService {
 export class NeedsController {
   // Only admin and manager can change status to 'sourcing'
   @Patch(':id/status')
-  @Roles(UserRole.admin, UserRole.manager)
+  @Roles(USER_ROLES[0], USER_ROLES[1])
   @UseGuards(JwtAuthGuard, RolesGuard)
   async updateStatus(
     @Param('id') id: string,
@@ -82,7 +82,7 @@ export class NeedsController {
 
   // Volunteers can mark as delivered
   @Patch(':id/delivered')
-  @Roles(UserRole.volunteer, UserRole.manager, UserRole.admin)
+  @Roles(USER_ROLES[2], USER_ROLES[1], USER_ROLES[0])
   @UseGuards(JwtAuthGuard, RolesGuard)
   async markDelivered(
     @Param('id') id: string,

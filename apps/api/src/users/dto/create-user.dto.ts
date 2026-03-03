@@ -1,5 +1,5 @@
-import { IsEmail, IsEnum, IsUUID, IsNotEmpty } from 'class-validator';
-import { UserRole } from '@prisma/client';
+import { IsEmail, IsIn, IsUUID, IsNotEmpty } from 'class-validator';
+import { USER_ROLES, type UserRole } from '../../common/types/domain-types';
 
 export class CreateUserDto {
   @IsUUID()
@@ -10,7 +10,7 @@ export class CreateUserDto {
   @IsNotEmpty()
   email: string;
 
-  @IsEnum(UserRole)
+  @IsIn(USER_ROLES)
   @IsNotEmpty()
   role: UserRole;
 

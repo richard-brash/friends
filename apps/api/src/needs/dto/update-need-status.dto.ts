@@ -1,7 +1,7 @@
-import { NeedStatus } from '@prisma/client';
-import { IsEnum } from 'class-validator';
+import { IsIn } from 'class-validator';
+import { NEED_STATUSES, type NeedStatus } from '../../common/types/domain-types';
 
 export class UpdateNeedStatusDto {
-  @IsEnum(NeedStatus)
+  @IsIn(NEED_STATUSES)
   status: NeedStatus;
 }

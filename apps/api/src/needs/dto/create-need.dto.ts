@@ -1,5 +1,5 @@
-import { Priority } from '@prisma/client';
-import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
+import { PRIORITIES, type Priority } from '../../common/types/domain-types';
 
 export class CreateNeedDto {
   @IsUUID()
@@ -12,6 +12,6 @@ export class CreateNeedDto {
   @IsString()
   description?: string;
 
-  @IsEnum(Priority)
+  @IsIn(PRIORITIES)
   priority: Priority;
 }

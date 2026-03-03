@@ -1,5 +1,6 @@
 // Types
 export * from './types/request-context';
+export * from './types/domain-types';
 
 // Decorators
 export * from './decorators/current-user.decorator';

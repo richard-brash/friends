@@ -1,8 +1,8 @@
-import { NeedStatus } from '@prisma/client';
-import { IsEnum, IsOptional } from 'class-validator';
+import { IsIn, IsOptional } from 'class-validator';
+import { NEED_STATUSES, type NeedStatus } from '../../common/types/domain-types';
 
 export class FindNeedsQueryDto {
   @IsOptional()
-  @IsEnum(NeedStatus)
+  @IsIn(NEED_STATUSES)
   status?: NeedStatus;
 }

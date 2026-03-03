@@ -1,5 +1,5 @@
-import { NeedStatus } from '@prisma/client';
 import { BadRequestException } from '@nestjs/common';
+import { type NeedStatus } from '../types/domain-types';
 
 /**
  * Need Lifecycle State Machine
@@ -17,14 +17,14 @@ import { BadRequestException } from '@nestjs/common';
  */
 
 const VALID_TRANSITIONS: Record<NeedStatus, NeedStatus[]> = {
-  [NeedStatus.open]: [NeedStatus.in_review, NeedStatus.attempted_not_found],
-  [NeedStatus.in_review]: [NeedStatus.sourcing],
-  [NeedStatus.sourcing]: [NeedStatus.ready],
-  [NeedStatus.ready]: [NeedStatus.out_for_delivery],
-  [NeedStatus.out_for_delivery]: [NeedStatus.delivered],
-  [NeedStatus.attempted_not_found]: [NeedStatus.closed_unable],
-  [NeedStatus.delivered]: [], // Terminal state
-  [NeedStatus.closed_unable]: [], // Terminal state
+  open: ['in_review', 'attempted_not_found'],
+  in_review: ['sourcing'],
+  sourcing: ['ready'],
+  ready: ['out_for_delivery'],
+  out_for_delivery: ['delivered'],
+  attempted_not_found: ['closed_unable'],
+  delivered: [], // Terminal state
+  closed_unable: [], // Terminal state
 };
 
 /**

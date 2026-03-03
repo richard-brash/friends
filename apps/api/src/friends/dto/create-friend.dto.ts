@@ -1,5 +1,8 @@
-import { IsEnum, IsOptional, IsString, IsArray } from 'class-validator';
-import { ConsentScope } from '@prisma/client';
+import { IsIn, IsOptional, IsString, IsArray } from 'class-validator';
+import {
+  CONSENT_SCOPES,
+  type ConsentScope,
+} from '../../common/types/domain-types';
 
 export class CreateFriendDto {
   @IsOptional()
@@ -15,6 +18,6 @@ export class CreateFriendDto {
   @IsString()
   identifying_notes?: string;
 
-  @IsEnum(ConsentScope)
+  @IsIn(CONSENT_SCOPES)
   consent_scope: ConsentScope;
 }
