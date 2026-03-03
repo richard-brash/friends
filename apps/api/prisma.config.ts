@@ -1,21 +1,12 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
+import { defineConfig } from 'prisma/config';
 
-@Injectable()
-export class PrismaService
-  implements OnModuleInit, OnModuleDestroy
-{
-  private readonly prisma = new PrismaClient();
-
-  async onModuleInit() {
-    await this.prisma.$connect();
-  }
-
-  async onModuleDestroy() {
-    await this.prisma.$disconnect();
-  }
-
-  get client() {
-    return this.prisma;
-  }
-}
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  migrations: {
+    path: 'prisma/migrations',
+  },
+  datasource: {
+    url: process.env['DATABASE_URL'],
+  },
+});
