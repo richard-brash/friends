@@ -1,0 +1,136 @@
+// Outreach Platform MVP - Database Schema
+// Authoritative definition per MVP-Architecture.md Section 6
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum UserRole {
+  admin
+  manager
+  volunteer
+}
+
+enum ConsentScope {
+  verbal
+  limited
+  none
+}
+
+enum Priority {
+  low
+  medium
+  high
+}
+
+enum NeedStatus {
+  open
+  in_review
+  sourcing
+  ready
+  out_for_delivery
+  delivered
+  attempted_not_found
+  closed_unable
+}
+
+// Tables
+model Organization {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  created_at DateTime @default(now())
+
+  users              User[]
+  friends            Friend[]
+  encounters         Encounter[]
+  needs              Need[]
+  fulfillment_events FulfillmentEvent[]
+
+  @@map("organizations")
+}
+
+model User {
+  id         String   @id @default(uuid()) @db.Uuid
+  org_id     String   @db.Uuid
+  email      String   @unique
+  role       UserRole
+  created_at DateTime @default(now())
+
+  organization Organization @relation(fields: [org_id], references: [id])
+  encounters   Encounter[]
+
+  @@map("users")
+}
+
+model Friend {
+  id                String        @id @default(uuid()) @db.Uuid
+  org_id            String        @db.Uuid
+  preferred_name    String?
+  aliases           Json          @default("[]")
+  identifying_notes String?
+  consent_scope     ConsentScope
+  created_at        DateTime      @default(now())
+
+  organization Organization @relation(fields: [org_id], references: [id])
+  encounters   Encounter[]
+  needs        Need[]
+
+  @@index([org_id, id])
+  @@map("friends")
+}
+
+model Encounter {
+  id            String   @id @default(uuid()) @db.Uuid
+  org_id        String   @db.Uuid
+  friend_id     String   @db.Uuid
+  user_id       String   @db.Uuid
+  location_text String?
+  occurred_at   DateTime
+  created_at    DateTime @default(now())
+
+  organization       Organization       @relation(fields: [org_id], references: [id])
+  friend             Friend             @relation(fields: [friend_id], references: [id])
+  user               User               @relation(fields: [user_id], references: [id])
+  fulfillment_events FulfillmentEvent[]
+
+  @@map("encounters")
+}
+
+model Need {
+  id          String     @id @default(uuid()) @db.Uuid
+  org_id      String     @db.Uuid
+  friend_id   String     @db.Uuid
+  category    String
+  description String?
+  priority    Priority
+  status      NeedStatus
+  created_at  DateTime   @default(now())
+
+  organization       Organization       @relation(fields: [org_id], references: [id])
+  friend             Friend             @relation(fields: [friend_id], references: [id])
+  fulfillment_events FulfillmentEvent[]
+
+  @@index([org_id, status])
+  @@map("needs")
+}
+
+model FulfillmentEvent {
+  id           String    @id @default(uuid()) @db.Uuid
+  org_id       String    @db.Uuid
+  need_id      String    @db.Uuid
+  encounter_id String?   @db.Uuid
+  event_type   String
+  notes        String?
+  created_at   DateTime  @default(now())
+
+  organization Organization @relation(fields: [org_id], references: [id])
+  need         Need         @relation(fields: [need_id], references: [id])
+  encounter    Encounter?   @relation(fields: [encounter_id], references: [id])
+
+  @@map("fulfillment_events")
+}
