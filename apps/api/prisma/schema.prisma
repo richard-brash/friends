@@ -92,6 +92,7 @@ model Encounter {
   user_id       String   @db.Uuid
   location_text String?
   occurred_at   DateTime
+  notes         String?
   created_at    DateTime @default(now())
 
   organization       Organization       @relation(fields: [org_id], references: [id])
@@ -99,6 +100,7 @@ model Encounter {
   user               User               @relation(fields: [user_id], references: [id])
   fulfillment_events FulfillmentEvent[]
 
+  @@index([org_id, friend_id])
   @@map("encounters")
 }
 
