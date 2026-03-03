@@ -2,7 +2,6 @@
   "dependencies": {
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
-    "@prisma/adapter-pg": "^7.4.2",
     "bcryptjs": "^3.0.3",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
