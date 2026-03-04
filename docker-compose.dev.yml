@@ -1,0 +1,18 @@
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/javascript-node:20
+    volumes:
+      - .:/workspace:cached
+    working_dir: /workspace
+    command: sleep infinity
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: friends
+    ports:
+      - "5432:5432"
