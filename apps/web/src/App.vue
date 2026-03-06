@@ -24,6 +24,9 @@
           <RouterLink to="/dashboard" class="text-sm font-medium text-slate-700 hover:text-slate-900">
             Dashboard
           </RouterLink>
+          <RouterLink to="/help" class="text-sm font-medium text-slate-700 hover:text-slate-900">
+            Help
+          </RouterLink>
         </nav>
       </div>
     </header>

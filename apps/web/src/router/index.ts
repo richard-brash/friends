@@ -5,6 +5,7 @@ import LocationPage from "../features/locations/LocationPage.vue";
 import EncounterForm from "../features/encounters/EncounterForm.vue";
 import WarehouseQueue from "../features/warehouse/WarehouseQueue.vue";
 import Dashboard from "../features/dashboard/Dashboard.vue";
+import HelpPage from "../features/help/HelpPage.vue";
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -38,6 +39,11 @@ export const router = createRouter({
       path: "/dashboard",
       name: "dashboard",
       component: Dashboard,
+    },
+    {
+      path: "/help",
+      name: "help",
+      component: HelpPage,
     },
   ],
 });
