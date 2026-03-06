@@ -15,12 +15,7 @@ import {
 export class RoutesController {
   @Get('routes')
   async listRoutes(@Query('organizationId') organizationId?: string) {
-    const normalizedOrganizationId = organizationId?.trim();
-    if (!normalizedOrganizationId) {
-      throw new BadRequestException('organizationId query parameter is required');
-    }
-
-    return getRoutesForOrganization(normalizedOrganizationId);
+    return getRoutesForOrganization(organizationId);
   }
 
   @Get('routes/:id')

@@ -23,10 +23,25 @@ export type RouteDetails = {
 };
 
 export async function getRoutesForOrganization(
-  organizationId: string,
+  organizationId?: string,
 ): Promise<RouteListItem[]> {
+  const normalizedOrganizationId = organizationId?.trim();
+  let resolvedOrganizationId = normalizedOrganizationId;
+
+  if (!resolvedOrganizationId) {
+    const organization = await prisma.organization.findFirst({
+      select: { id: true },
+      orderBy: { created_at: "asc" },
+    });
+    resolvedOrganizationId = organization?.id;
+  }
+
+  if (!resolvedOrganizationId) {
+    return [];
+  }
+
   const routes = await prisma.route.findMany({
-    where: { organization_id: organizationId },
+    where: { organization_id: resolvedOrganizationId },
     select: {
       id: true,
       name: true,

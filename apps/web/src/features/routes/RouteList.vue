@@ -23,8 +23,12 @@ onMounted(async () => {
 <template>
   <section class="mx-auto w-full max-w-2xl p-4 sm:p-6">
     <header class="mb-5">
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900">Routes</h1>
-      <p class="mt-1 text-sm text-slate-600">Choose a route to view stops.</p>
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900">Routes</h1>
+          <p class="mt-1 text-sm text-slate-600">Choose a route to view stops.</p>
+        </div>
+      </div>
     </header>
 
     <p v-if="loading" class="rounded-xl bg-white p-4 text-slate-600 shadow-sm">Loading routes...</p>
@@ -35,7 +39,7 @@ onMounted(async () => {
         v-for="route in routes"
         :key="route.id"
         :to="`/routes/${route.id}`"
-        class="block rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-sky-300 hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+        class="block min-h-[44px] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-sky-300 hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
       >
         <p class="text-lg font-semibold text-slate-900">{{ route.name }}</p>
         <p class="mt-1 text-sm text-slate-600">{{ route.stopCount }} stops</p>

@@ -25,13 +25,15 @@ export type PersonSummary = {
 };
 
 export type RequestItem = {
-  id?: string;
+  id: string;
   description: string;
   quantityRequested: number;
+  quantityDelivered?: number;
 };
 
 export type RequestSummary = {
   id: string;
+  status: "REQUESTED" | "PREPARING" | "READY" | "DELIVERED" | "CANCELLED";
   person?: {
     displayName: string | null;
   };

@@ -9,6 +9,10 @@ import { HealthController } from './health/health.controller';
 import { RoutesController } from './routes.controller';
 import { LocationsController } from './locations.controller';
 import { EncountersController } from './encounters.controller';
+import { RequestsController } from './requests.controller';
+import { DeliveryAttemptsController } from './delivery-attempts.controller';
+import { MeController } from './me.controller';
+import { DashboardController } from './dashboard.controller';
 
 @Module({
   imports: [
@@ -27,6 +31,10 @@ import { EncountersController } from './encounters.controller';
     RoutesController,
     LocationsController,
     EncountersController,
+    RequestsController,
+    DeliveryAttemptsController,
+    MeController,
+    DashboardController,
   ],
   providers: [AppService],
 })

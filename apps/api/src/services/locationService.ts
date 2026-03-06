@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, RequestStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -8,12 +8,15 @@ export type LocationPerson = {
 };
 
 export type LocationRequestItem = {
+  id: string;
   description: string;
   quantityRequested: number;
+  quantityDelivered: number;
 };
 
 export type LocationRequest = {
   id: string;
+  status: RequestStatus;
   person: {
     displayName: string | null;
   };
@@ -50,7 +53,9 @@ export async function getLocationById(
       },
       requests: {
         orderBy: { created_at: "desc" },
-        include: {
+        select: {
+          id: true,
+          status: true,
           person: {
             select: {
               display_name: true,
@@ -58,6 +63,7 @@ export async function getLocationById(
           },
           items: {
             select: {
+              id: true,
               description: true,
               quantity_requested: true,
               quantity_delivered: true,
@@ -88,19 +94,17 @@ export async function getLocationById(
   }
 
   const requests: LocationRequest[] = location.requests
-    .filter((request) =>
-      request.items.some(
-        (item) => item.quantity_delivered < item.quantity_requested,
-      ),
-    )
     .map((request) => ({
       id: request.id,
+      status: request.status,
       person: {
         displayName: request.person.display_name,
       },
       items: request.items.map((item) => ({
+        id: item.id,
         description: item.description,
         quantityRequested: item.quantity_requested,
+        quantityDelivered: item.quantity_delivered,
       })),
     }));
 
