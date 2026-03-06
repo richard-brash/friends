@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const ORG_NAME = "Friend Helper Outreach";
+const ADMIN_EMAIL = "admin@friendhelper.org";
 
 const routeDefinitions: Record<string, string[]> = {
   "Baltimore City 1": [
@@ -117,10 +118,16 @@ function dateWithOffset(base: Date, offsetMinutes: number): Date {
 }
 
 async function main(): Promise<void> {
+  const existingRoutes = await prisma.route.count();
+
+  if (existingRoutes > 0) {
+    console.log("Database already seeded, skipping");
+    return;
+  }
+
   const now = new Date();
 
   const organizationId = deterministicUuid(`organization:${ORG_NAME}`);
-  const defaultUserId = deterministicUuid("user:default-seed-user");
 
   const organization = await prisma.organization.upsert({
     where: { id: organizationId },
@@ -132,17 +139,15 @@ async function main(): Promise<void> {
   });
 
   const defaultUser = await prisma.user.upsert({
-    where: { id: defaultUserId },
+    where: { email: ADMIN_EMAIL },
     update: {
       organization_id: organization.id,
-      email: "seed.user@friendhelper.org",
-      name: "Seed User",
+      name: "Admin User",
     },
     create: {
-      id: defaultUserId,
       organization_id: organization.id,
-      email: "seed.user@friendhelper.org",
-      name: "Seed User",
+      email: ADMIN_EMAIL,
+      name: "Admin User",
     },
   });
 

@@ -199,6 +199,7 @@ model Request {
 
   @@index([person_id])
   @@index([location_id])
+  @@index([status])
   @@index([location_id, status])
   @@index([taken_by_user_id])
   @@map("requests")
