@@ -5,13 +5,10 @@ import { AppService } from './app.service';
 import { validate } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { OrganizationsModule } from './organizations/organizations.module';
-import { UsersModule } from './users/users.module';
-import { AuthModule } from './auth/auth.module';
-import { FriendsModule } from './friends/friends.module';
-import { EncountersModule } from './encounters/encounters.module';
-import { NeedsModule } from './needs/needs.module';
 import { HealthController } from './health/health.controller';
-import { UsersController } from './users/users.controller';
+import { RoutesController } from './routes.controller';
+import { LocationsController } from './locations.controller';
+import { EncountersController } from './encounters.controller';
 
 @Module({
   imports: [
@@ -23,13 +20,14 @@ import { UsersController } from './users/users.controller';
     }),
     PrismaModule,
     OrganizationsModule,
-    UsersModule,
-    AuthModule,
-    FriendsModule,
-    EncountersModule,
-    NeedsModule,
   ],
-  controllers: [AppController, HealthController, UsersController],
+  controllers: [
+    AppController,
+    HealthController,
+    RoutesController,
+    LocationsController,
+    EncountersController,
+  ],
   providers: [AppService],
 })
 export class AppModule {}

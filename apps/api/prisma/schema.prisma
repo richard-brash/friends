@@ -1,6 +1,3 @@
-// Outreach Platform MVP - Database Schema
-// Authoritative definition per MVP-Architecture.md Section 6
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,131 +7,257 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums
-enum UserRole {
-  admin
-  manager
-  volunteer
+enum RequestStatus {
+  REQUESTED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
 }
 
-enum ConsentScope {
-  verbal
-  limited
-  none
+enum DeliveryOutcome {
+  DELIVERED
+  PERSON_NOT_FOUND
+  DECLINED
+  LOCATION_EMPTY
 }
 
-enum Priority {
-  low
-  medium
-  high
-}
-
-enum NeedStatus {
-  open
-  in_review
-  sourcing
-  ready
-  out_for_delivery
-  delivered
-  attempted_not_found
-  closed_unable
-}
-
-// Tables
 model Organization {
   id         String   @id @default(uuid()) @db.Uuid
   name       String
   created_at DateTime @default(now())
 
-  users              User[]
-  friends            Friend[]
-  encounters         Encounter[]
-  needs              Need[]
-  fulfillment_events FulfillmentEvent[]
+  users     User[]
+  people    Person[]
+  locations Location[]
+  routes    Route[]
 
   @@map("organizations")
 }
 
 model User {
-  id            String   @id @default(uuid()) @db.Uuid
-  org_id        String   @db.Uuid
-  email         String   @unique
-  password_hash String
-  role          UserRole
-  created_at    DateTime @default(now())
+  id              String   @id @default(uuid()) @db.Uuid
+  organization_id String   @db.Uuid
+  email           String   @unique
+  name            String
+  created_at      DateTime @default(now())
 
-  organization Organization @relation(fields: [org_id], references: [id])
-  encounters   Encounter[]
+  organization              Organization    @relation(fields: [organization_id], references: [id])
+  userRoles                 UserRole[]
+  observedPersonLocations   PersonLocation[] @relation("PersonLocationObservedBy")
+  takenRequests             Request[]        @relation("RequestTakenBy")
+  fulfilledRequestItems     RequestItem[]    @relation("RequestItemFulfilledBy")
+  deliveryAttempts          DeliveryAttempt[]
+  observations              Observation[]
+
+  @@index([organization_id])
 
   @@map("users")
 }
 
-model Friend {
-  id                String        @id @default(uuid()) @db.Uuid
-  org_id            String        @db.Uuid
-  preferred_name    String?
-  aliases           Json          @default("[]")
-  identifying_notes String?
-  consent_scope     ConsentScope
-  created_at        DateTime      @default(now())
+model Role {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String   @unique
+  created_at DateTime @default(now())
 
-  organization Organization @relation(fields: [org_id], references: [id])
-  encounters   Encounter[]
-  needs        Need[]
+  userRoles UserRole[]
 
-  @@index([org_id, id])
-  @@map("friends")
+  @@map("roles")
 }
 
-model Encounter {
-  id            String   @id @default(uuid()) @db.Uuid
-  org_id        String   @db.Uuid
-  friend_id     String   @db.Uuid
-  user_id       String   @db.Uuid
-  location_text String?
-  occurred_at   DateTime
-  notes         String?
-  created_at    DateTime @default(now())
+model UserRole {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  role_id    String   @db.Uuid
+  created_at DateTime @default(now())
 
-  organization       Organization       @relation(fields: [org_id], references: [id])
-  friend             Friend             @relation(fields: [friend_id], references: [id])
-  user               User               @relation(fields: [user_id], references: [id])
-  fulfillment_events FulfillmentEvent[]
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [role_id], references: [id], onDelete: Cascade)
 
-  @@index([org_id, friend_id])
-  @@map("encounters")
+  @@unique([user_id, role_id])
+  @@index([user_id])
+  @@index([role_id])
+  @@map("user_roles")
 }
 
-model Need {
-  id          String     @id @default(uuid()) @db.Uuid
-  org_id      String     @db.Uuid
-  friend_id   String     @db.Uuid
-  category    String
-  description String?
-  priority    Priority
-  status      NeedStatus
-  created_at  DateTime   @default(now())
+model Person {
+  id              String   @id @default(uuid()) @db.Uuid
+  organization_id String   @db.Uuid
+  display_name    String?
+  normalized_name String?
+  last_seen_at    DateTime?
+  notes           String?
+  created_at      DateTime @default(now())
 
-  organization       Organization       @relation(fields: [org_id], references: [id])
-  friend             Friend             @relation(fields: [friend_id], references: [id])
-  fulfillment_events FulfillmentEvent[]
+  organization    Organization     @relation(fields: [organization_id], references: [id])
+  aliases         PersonAlias[]
+  locationHistory PersonLocation[]
+  requests        Request[]
+  observations    Observation[]
 
-  @@index([org_id, status])
-  @@map("needs")
+  @@index([organization_id])
+  @@index([normalized_name])
+  @@map("people")
 }
 
-model FulfillmentEvent {
-  id           String    @id @default(uuid()) @db.Uuid
-  org_id       String    @db.Uuid
-  need_id      String    @db.Uuid
-  encounter_id String?   @db.Uuid
-  event_type   String
-  notes        String?
-  created_at   DateTime  @default(now())
+model PersonAlias {
+  id         String   @id @default(uuid()) @db.Uuid
+  person_id  String   @db.Uuid
+  alias      String
+  created_at DateTime @default(now())
 
-  organization Organization @relation(fields: [org_id], references: [id])
-  need         Need         @relation(fields: [need_id], references: [id])
-  encounter    Encounter?   @relation(fields: [encounter_id], references: [id])
+  person Person @relation(fields: [person_id], references: [id], onDelete: Cascade)
 
-  @@map("fulfillment_events")
+  @@index([person_id])
+  @@unique([person_id, alias])
+  @@map("person_aliases")
+}
+
+model Location {
+  id              String   @id @default(uuid()) @db.Uuid
+  organization_id String   @db.Uuid
+  name            String
+  description     String?
+  is_active       Boolean  @default(true)
+  latitude        Decimal? @db.Decimal(9, 6)
+  longitude       Decimal? @db.Decimal(9, 6)
+  created_at      DateTime @default(now())
+
+  organization    Organization    @relation(fields: [organization_id], references: [id])
+  personLocations PersonLocation[]
+  routeLocations  RouteLocation[]
+  requests        Request[]
+  observations    Observation[]
+
+  @@index([organization_id])
+  @@map("locations")
+}
+
+model PersonLocation {
+  id                  String   @id @default(uuid()) @db.Uuid
+  person_id           String   @db.Uuid
+  location_id         String   @db.Uuid
+  observed_at         DateTime
+  observed_by_user_id String?  @db.Uuid
+  created_at          DateTime @default(now())
+
+  person         Person @relation(fields: [person_id], references: [id], onDelete: Cascade)
+  location       Location @relation(fields: [location_id], references: [id], onDelete: Cascade)
+  observedByUser User?    @relation("PersonLocationObservedBy", fields: [observed_by_user_id], references: [id], onDelete: SetNull)
+
+  @@index([person_id])
+  @@index([location_id])
+  @@index([observed_by_user_id])
+  @@index([observed_at])
+  @@map("person_locations")
+}
+
+model Route {
+  id              String   @id @default(uuid()) @db.Uuid
+  organization_id String   @db.Uuid
+  name            String
+  description     String?
+  created_at      DateTime @default(now())
+
+  organization Organization   @relation(fields: [organization_id], references: [id])
+  stops        RouteLocation[]
+
+  @@index([organization_id])
+  @@map("routes")
+}
+
+model RouteLocation {
+  id         String   @id @default(uuid()) @db.Uuid
+  route_id   String   @db.Uuid
+  location_id String  @db.Uuid
+  stop_order Int
+  created_at DateTime @default(now())
+
+  route    Route    @relation(fields: [route_id], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [location_id], references: [id], onDelete: Cascade)
+
+  @@index([route_id])
+  @@index([location_id])
+  @@unique([route_id, stop_order])
+  @@unique([route_id, location_id])
+  @@map("route_locations")
+}
+
+model Request {
+  id               String   @id @default(uuid()) @db.Uuid
+  person_id        String   @db.Uuid
+  location_id      String   @db.Uuid
+  taken_by_user_id String   @db.Uuid
+  status           RequestStatus @default(REQUESTED)
+  created_at       DateTime @default(now())
+  notes            String?
+
+  person      Person        @relation(fields: [person_id], references: [id], onDelete: Restrict)
+  location    Location      @relation(fields: [location_id], references: [id], onDelete: Restrict)
+  takenByUser User          @relation("RequestTakenBy", fields: [taken_by_user_id], references: [id], onDelete: Restrict)
+  items       RequestItem[]
+
+  @@index([person_id])
+  @@index([location_id])
+  @@index([location_id, status])
+  @@index([taken_by_user_id])
+  @@map("requests")
+}
+
+model RequestItem {
+  id                    String   @id @default(uuid()) @db.Uuid
+  request_id            String   @db.Uuid
+  description           String
+  quantity_requested    Int
+  quantity_fulfilled    Int      @default(0)
+  quantity_delivered    Int      @default(0)
+  fulfilled_by_user_id  String?  @db.Uuid
+  fulfilled_at          DateTime?
+  created_at            DateTime @default(now())
+
+  request         Request @relation(fields: [request_id], references: [id], onDelete: Cascade)
+  fulfilledByUser User?   @relation("RequestItemFulfilledBy", fields: [fulfilled_by_user_id], references: [id], onDelete: SetNull)
+  deliveryAttempts DeliveryAttempt[]
+
+  @@index([request_id])
+  @@index([fulfilled_by_user_id])
+  @@map("request_items")
+}
+
+model DeliveryAttempt {
+  id              String          @id @default(uuid()) @db.Uuid
+  request_item_id String          @db.Uuid
+  user_id         String          @db.Uuid
+  attempted_at    DateTime
+  outcome         DeliveryOutcome
+  notes           String?
+  created_at      DateTime        @default(now())
+
+  requestItem RequestItem @relation(fields: [request_item_id], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [user_id], references: [id], onDelete: Restrict)
+
+  @@index([request_item_id])
+  @@index([user_id])
+  @@index([attempted_at])
+  @@map("delivery_attempts")
+}
+
+model Observation {
+  id                  String   @id @default(uuid()) @db.Uuid
+  person_id           String   @db.Uuid
+  location_id         String   @db.Uuid
+  observed_by_user_id String   @db.Uuid
+  observed_at         DateTime
+  notes               String
+  created_at          DateTime @default(now())
+
+  person         Person   @relation(fields: [person_id], references: [id], onDelete: Restrict)
+  location       Location @relation(fields: [location_id], references: [id], onDelete: Restrict)
+  observedByUser User     @relation(fields: [observed_by_user_id], references: [id], onDelete: Restrict)
+
+  @@index([person_id])
+  @@index([location_id])
+  @@index([observed_by_user_id])
+  @@index([observed_at])
+  @@map("observations")
 }

@@ -1,9 +1,5 @@
-<script setup lang="ts">
-import AppLayout from "./components/AppLayout.vue";
-</script>
-
 <template>
-  <AppLayout>
+  <main class="min-h-screen bg-slate-50">
     <router-view />
-  </AppLayout>
+  </main>
 </template>
