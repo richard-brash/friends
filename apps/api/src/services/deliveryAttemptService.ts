@@ -1,4 +1,9 @@
-import { DeliveryOutcome, PrismaClient, RequestStatus } from "@prisma/client";
+import {
+  DeliveryOutcome,
+  EncounterType,
+  PrismaClient,
+  RequestStatus,
+} from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -15,6 +20,8 @@ export class DeliveryAttemptServiceError extends Error {
 export type CreateDeliveryAttemptInput = {
   requestItemId: string;
   outcome: DeliveryOutcome;
+  routeId?: string;
+  locationName?: string;
   notes?: string;
 };
 
@@ -33,7 +40,14 @@ export async function createDeliveryAttempt(
         request: {
           select: {
             id: true,
+            person_id: true,
+            status: true,
             taken_by_user_id: true,
+            location: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },
@@ -57,25 +71,43 @@ export async function createDeliveryAttempt(
       return;
     }
 
-    const updatedItem = await tx.requestItem.update({
+    await tx.requestItem.update({
       where: { id: requestItem.id },
       data: {
         quantity_delivered: {
           increment: 1,
         },
       },
-      select: {
-        quantity_requested: true,
-        quantity_delivered: true,
-        request_id: true,
+    });
+
+    const remainingItems = await tx.requestItem.count({
+      where: {
+        request_id: requestItem.request.id,
+        quantity_delivered: {
+          lt: prisma.requestItem.fields.quantity_requested,
+        },
       },
     });
 
-    if (updatedItem.quantity_delivered >= updatedItem.quantity_requested) {
+    if (remainingItems === 0 && requestItem.request.status !== RequestStatus.DELIVERED) {
       await tx.request.update({
-        where: { id: updatedItem.request_id },
+        where: { id: requestItem.request.id },
         data: {
           status: RequestStatus.DELIVERED,
+        },
+      });
+
+      await tx.encounter.create({
+        data: {
+          person_id: requestItem.request.person_id,
+          route_id: input.routeId,
+          request_id: requestItem.request.id,
+          location_name: input.locationName ?? requestItem.request.location.name,
+          type: EncounterType.DELIVERY,
+          metadata: {
+            source: "delivery-attempt",
+            requestItemId: requestItem.id,
+          },
         },
       });
     }

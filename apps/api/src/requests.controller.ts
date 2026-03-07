@@ -24,7 +24,10 @@ function parseRequestStatus(value: string): RequestStatus | null {
 @Controller()
 export class RequestsController {
   @Get('requests')
-  async listRequests(@Query('status') status?: string) {
+  async listRequests(
+    @Query('status') status?: string,
+    @Query('routeId') routeId?: string,
+  ) {
     const rawStatus = status?.trim();
     if (!rawStatus) {
       throw new BadRequestException('status query parameter is required');
@@ -35,7 +38,7 @@ export class RequestsController {
       throw new BadRequestException('invalid request status');
     }
 
-    return listRequestsByStatus(parsedStatus);
+    return listRequestsByStatus(parsedStatus, routeId);
   }
 
   @Patch('requests/:id/status')

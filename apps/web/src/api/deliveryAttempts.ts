@@ -10,10 +10,16 @@ export async function createDeliveryAttempt(
   requestItemId: string,
   outcome: DeliveryOutcome,
   userId: string,
+  options?: {
+    routeId?: string;
+    locationName?: string;
+  },
 ): Promise<void> {
   await apiClient.post("/delivery-attempts", {
     requestItemId,
     outcome,
     userId,
+    routeId: options?.routeId,
+    locationName: options?.locationName,
   });
 }

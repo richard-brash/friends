@@ -16,9 +16,25 @@ export type WarehouseRequestSummary = {
 
 export async function listRequestsByStatus(
   status: RequestStatus,
+  routeId?: string,
 ): Promise<WarehouseRequestSummary[]> {
+  const normalizedRouteId = routeId?.trim();
+
   const requests = await prisma.request.findMany({
-    where: { status },
+    where: {
+      status,
+      ...(normalizedRouteId
+        ? {
+            location: {
+              routeLocations: {
+                some: {
+                  route_id: normalizedRouteId,
+                },
+              },
+            },
+          }
+        : {}),
+    },
     orderBy: { created_at: "asc" },
     select: {
       id: true,

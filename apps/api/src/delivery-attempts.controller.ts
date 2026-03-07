@@ -47,6 +47,8 @@ function validateDeliveryAttemptBody(body: unknown): ValidationResult {
 
   const requestItemId = toNonEmptyString(body.requestItemId);
   const outcome = parseOutcome(body.outcome);
+  const routeId = toNonEmptyString(body.routeId) ?? undefined;
+  const locationName = toNonEmptyString(body.locationName) ?? undefined;
   const notes = toNonEmptyString(body.notes) ?? undefined;
 
   if (!requestItemId) {
@@ -66,6 +68,8 @@ function validateDeliveryAttemptBody(body: unknown): ValidationResult {
     data: {
       requestItemId,
       outcome,
+      routeId,
+      locationName,
       notes,
     },
   };

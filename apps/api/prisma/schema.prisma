@@ -22,6 +22,10 @@ enum DeliveryOutcome {
   LOCATION_EMPTY
 }
 
+enum EncounterType {
+  DELIVERY
+}
+
 model Organization {
   id         String   @id @default(uuid()) @db.Uuid
   name       String
@@ -93,6 +97,7 @@ model Person {
   aliases         PersonAlias[]
   locationHistory PersonLocation[]
   requests        Request[]
+  encounters      Encounter[]
   observations    Observation[]
 
   @@index([organization_id])
@@ -161,6 +166,7 @@ model Route {
 
   organization Organization   @relation(fields: [organization_id], references: [id])
   stops        RouteLocation[]
+  encounters   Encounter[]
 
   @@index([organization_id])
   @@map("routes")
@@ -196,6 +202,7 @@ model Request {
   location    Location      @relation(fields: [location_id], references: [id], onDelete: Restrict)
   takenByUser User          @relation("RequestTakenBy", fields: [taken_by_user_id], references: [id], onDelete: Restrict)
   items       RequestItem[]
+  encounters  Encounter[]
 
   @@index([person_id])
   @@index([location_id])
@@ -241,6 +248,27 @@ model DeliveryAttempt {
   @@index([user_id])
   @@index([attempted_at])
   @@map("delivery_attempts")
+}
+
+model Encounter {
+  id            String        @id @default(uuid()) @db.Uuid
+  person_id     String        @db.Uuid
+  route_id      String?       @db.Uuid
+  request_id    String?       @db.Uuid
+  location_name String?
+  type          EncounterType
+  notes         String?
+  metadata      Json?
+  created_at    DateTime      @default(now())
+
+  person  Person   @relation(fields: [person_id], references: [id], onDelete: Restrict)
+  route   Route?   @relation(fields: [route_id], references: [id], onDelete: SetNull)
+  request Request? @relation(fields: [request_id], references: [id], onDelete: SetNull)
+
+  @@index([person_id, created_at])
+  @@index([route_id, created_at])
+  @@index([request_id])
+  @@map("encounters")
 }
 
 model Observation {

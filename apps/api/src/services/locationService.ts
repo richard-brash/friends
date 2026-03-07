@@ -5,6 +5,8 @@ const prisma = new PrismaClient();
 export type LocationPerson = {
   id: string;
   displayName: string | null;
+  lastEncounterAt: string | null;
+  lastEncounterLocationName: string | null;
 };
 
 export type LocationRequestItem = {
@@ -79,7 +81,7 @@ export async function getLocationById(
   }
 
   const seenPeople = new Set<string>();
-  const people: LocationPerson[] = [];
+  const peopleBase: Array<{ id: string; displayName: string | null }> = [];
 
   for (const personLocation of location.personLocations) {
     if (seenPeople.has(personLocation.person_id)) {
@@ -87,11 +89,57 @@ export async function getLocationById(
     }
 
     seenPeople.add(personLocation.person_id);
-    people.push({
+    peopleBase.push({
       id: personLocation.person.id,
       displayName: personLocation.person.display_name,
     });
   }
+
+  const latestEncountersByPerson = new Map<
+    string,
+    { createdAt: string; locationName: string | null }
+  >();
+
+  if (peopleBase.length > 0) {
+    const personIds = peopleBase.map((person) => person.id);
+    const encounters = await prisma.encounter.findMany({
+      where: {
+        person_id: {
+          in: personIds,
+        },
+      },
+      select: {
+        person_id: true,
+        created_at: true,
+        location_name: true,
+      },
+      orderBy: {
+        created_at: "desc",
+      },
+    });
+
+    for (const encounter of encounters) {
+      if (latestEncountersByPerson.has(encounter.person_id)) {
+        continue;
+      }
+
+      latestEncountersByPerson.set(encounter.person_id, {
+        createdAt: encounter.created_at.toISOString(),
+        locationName: encounter.location_name,
+      });
+    }
+  }
+
+  const people: LocationPerson[] = peopleBase.map((person) => {
+    const latestEncounter = latestEncountersByPerson.get(person.id);
+
+    return {
+      id: person.id,
+      displayName: person.displayName,
+      lastEncounterAt: latestEncounter?.createdAt ?? null,
+      lastEncounterLocationName: latestEncounter?.locationName ?? null,
+    };
+  });
 
   const requests: LocationRequest[] = location.requests
     .map((request) => ({

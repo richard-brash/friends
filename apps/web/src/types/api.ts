@@ -22,6 +22,8 @@ export type PersonSummary = {
   id: string;
   displayName: string | null;
   lastSeenAt?: string | null;
+  lastEncounterAt?: string | null;
+  lastEncounterLocationName?: string | null;
 };
 
 export type RequestItem = {

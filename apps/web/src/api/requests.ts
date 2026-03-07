@@ -12,9 +12,12 @@ export type WarehouseRequest = {
   items: WarehouseRequestItem[];
 };
 
-export async function getRequestedQueue(): Promise<WarehouseRequest[]> {
+export async function getRequestedQueue(routeId?: string): Promise<WarehouseRequest[]> {
   const { data } = await apiClient.get<WarehouseRequest[]>("/requests", {
-    params: { status: "REQUESTED" },
+    params: {
+      status: "REQUESTED",
+      ...(routeId ? { routeId } : {}),
+    },
   });
   return data;
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { createDeliveryAttempt } from "../../api/deliveryAttempts";
 import { useToast } from "../../composables/useToast";
@@ -20,6 +20,8 @@ const location = ref<LocationDetail | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const submittingItemIds = ref<Set<string>>(new Set());
+const confirmingDeliveryItemId = ref<string | null>(null);
+let confirmDeliveryTimeout: ReturnType<typeof setTimeout> | null = null;
 const { showToast } = useToast();
 
 const locationId = computed(() => {
@@ -53,6 +55,20 @@ function formatLastSeen(value?: string | null): string | null {
 
   const days = Math.round((Date.now() - timestamp) / (1000 * 60 * 60 * 24));
   return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(-days, "day");
+}
+
+function getLastSeenLabel(person: PersonSummary): string {
+  const relativeTime = formatLastSeen(person.lastEncounterAt);
+  if (!relativeTime) {
+    return "New contact";
+  }
+
+  const locationName = person.lastEncounterLocationName?.trim();
+  if (!locationName) {
+    return `Last seen: ${relativeTime}`;
+  }
+
+  return `Last seen: ${relativeTime} - ${locationName}`;
 }
 
 const people = computed<PersonSummary[]>(() => location.value?.people ?? []);
@@ -125,6 +141,63 @@ function getStatusBadgeClass(status: RequestSummary["status"]): string {
   return "bg-slate-100 text-slate-700";
 }
 
+function clearDeliveryConfirmationTimeout(): void {
+  if (!confirmDeliveryTimeout) {
+    return;
+  }
+
+  clearTimeout(confirmDeliveryTimeout);
+  confirmDeliveryTimeout = null;
+}
+
+function resetDeliveryConfirmation(): void {
+  clearDeliveryConfirmationTimeout();
+  confirmingDeliveryItemId.value = null;
+}
+
+function startDeliveryConfirmation(requestItemId: string): void {
+  confirmingDeliveryItemId.value = requestItemId;
+  clearDeliveryConfirmationTimeout();
+  confirmDeliveryTimeout = setTimeout(() => {
+    confirmingDeliveryItemId.value = null;
+    confirmDeliveryTimeout = null;
+  }, 3000);
+}
+
+function handleDeliveryButtonClick(requestItemId: string): void {
+  if (confirmingDeliveryItemId.value === requestItemId) {
+    void submitDeliveryAttempt(requestItemId, "DELIVERED");
+    return;
+  }
+
+  startDeliveryConfirmation(requestItemId);
+}
+
+function handleDocumentClick(event: Event): void {
+  if (!confirmingDeliveryItemId.value) {
+    return;
+  }
+
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    resetDeliveryConfirmation();
+    return;
+  }
+
+  if (target.closest('[data-delivery-confirm-button="true"]')) {
+    return;
+  }
+
+  resetDeliveryConfirmation();
+}
+
+function getDeliveryContext(): { routeId?: string; locationName?: string } {
+  return {
+    routeId: activeRoute.value?.id,
+    locationName: location.value?.name,
+  };
+}
+
 async function submitDeliveryAttempt(requestItemId: string, outcome: "DELIVERED" | "PERSON_NOT_FOUND") {
   if (submittingItemIds.value.has(requestItemId)) {
     return;
@@ -138,13 +211,15 @@ async function submitDeliveryAttempt(requestItemId: string, outcome: "DELIVERED"
   const next = new Set(submittingItemIds.value);
   next.add(requestItemId);
   submittingItemIds.value = next;
+  resetDeliveryConfirmation();
 
   try {
-    await createDeliveryAttempt(requestItemId, outcome, currentUser.value.id);
+    await createDeliveryAttempt(requestItemId, outcome, currentUser.value.id, getDeliveryContext());
     showToast(outcome === "DELIVERED" ? "Delivery recorded" : "Delivery attempt recorded");
     await loadLocation();
   } catch {
     error.value = "Failed to record delivery attempt.";
+    showToast("Failed to record delivery");
   } finally {
     const updated = new Set(submittingItemIds.value);
     updated.delete(requestItemId);
@@ -179,13 +254,14 @@ async function submitDeliverAll(request: RequestSummary): Promise<void> {
 
   try {
     for (const item of request.items) {
-      await createDeliveryAttempt(item.id, "DELIVERED", currentUser.value.id);
+      await createDeliveryAttempt(item.id, "DELIVERED", currentUser.value.id, getDeliveryContext());
     }
 
     showToast("Delivery recorded");
     await loadLocation();
   } catch {
     error.value = "Failed to record delivery attempt.";
+    showToast("Failed to record delivery");
   } finally {
     const updated = new Set(submittingItemIds.value);
     for (const item of request.items) {
@@ -217,6 +293,15 @@ async function loadLocation(): Promise<void> {
 watch(locationId, () => {
   void loadLocation();
 }, { immediate: true });
+
+onMounted(() => {
+  document.addEventListener("click", handleDocumentClick);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleDocumentClick);
+  clearDeliveryConfirmationTimeout();
+});
 </script>
 
 <template>
@@ -264,9 +349,7 @@ watch(locationId, () => {
             class="min-h-[44px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
           >
             <p class="text-base font-medium text-slate-900">{{ person.displayName ?? "Unknown person" }}</p>
-            <p v-if="formatLastSeen(person.lastSeenAt)" class="mt-1 text-sm text-slate-600">
-              Last seen: {{ formatLastSeen(person.lastSeenAt) }}
-            </p>
+            <p class="mt-1 text-sm text-slate-600">{{ getLastSeenLabel(person) }}</p>
           </article>
         </div>
         <p v-else class="rounded-xl bg-white p-4 text-slate-600 shadow-sm">No people recorded here yet.</p>
@@ -318,12 +401,13 @@ watch(locationId, () => {
                   <div class="grid grid-cols-2 gap-2">
                     <button
                       v-if="request.status === 'READY'"
+                      data-delivery-confirm-button="true"
                       type="button"
                       class="min-h-[44px] rounded-lg bg-emerald-600 px-3 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                       :disabled="submittingItemIds.has(item.id) || !currentUser"
-                      @click="submitDeliveryAttempt(item.id, 'DELIVERED')"
+                      @click="handleDeliveryButtonClick(item.id)"
                     >
-                      Deliver
+                      {{ confirmingDeliveryItemId === item.id ? "Confirm Delivery" : "Deliver" }}
                     </button>
                     <button
                       v-if="request.status === 'READY'"
