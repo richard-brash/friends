@@ -9,8 +9,6 @@
             :to="`/routes/${runningRoute.id}`"
             class="mt-1 inline-flex cursor-pointer text-sm font-medium text-slate-600 underline-offset-2 hover:text-sky-900 hover:underline"
           >
-            <span class="mr-1" aria-hidden="true">📍</span>
-            {{ runningRoute.name }}
           </RouterLink>
         </div>
 
@@ -36,7 +34,7 @@
     </main>
 
     <footer class="border-t border-slate-200 bg-white px-4 py-4 text-center text-xs text-slate-500 sm:px-6">
-      <p>Friend Helper MVP v0.2</p>
+      <p>Friend Helper MVP v0.1.1</p>
       <p class="mt-1">© 2026 BrashTEK, BeMoreCaring</p>
     </footer>
 
