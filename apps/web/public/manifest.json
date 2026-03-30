@@ -1,10 +1,10 @@
 {
   "name": "Friend Helper",
-  "short_name": "FriendHelper",
+  "short_name": "Friend Helper",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2c3e50",
+  "background_color": "#F4643E",
+  "theme_color": "#F4643E",
   "icons": [
     {
       "src": "/icon-192.png",
