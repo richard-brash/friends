@@ -42,7 +42,7 @@
     </main>
 
     <footer class="border-t border-slate-200 bg-white px-4 py-4 text-center text-xs text-slate-500 sm:px-6">
-      <p>v{{ versionString }}</p>
+      <p>Friend Helper: {{ versionString }}</p>
       <p class="mt-1">© 2026 BrashTEK, BeMoreCaring</p>
     </footer>
 

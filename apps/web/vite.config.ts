@@ -4,12 +4,26 @@ import tailwindcss from "@tailwindcss/vite";
 import { execSync } from "child_process";
 import pkg from "./package.json";
 
-let gitCommit = "unknown";
-try {
-  gitCommit = execSync("git rev-parse HEAD").toString().trim();
-} catch {
-  // git not available or not a git repo
+function resolveCommitSha(): string {
+  const fromEnv =
+    process.env.RAILWAY_GIT_COMMIT_SHA
+    || process.env.SOURCE_COMMIT
+    || process.env.GITHUB_SHA
+    || process.env.VERCEL_GIT_COMMIT_SHA;
+
+  if (fromEnv && fromEnv.trim().length > 0) {
+    return fromEnv.trim();
+  }
+
+  try {
+    return execSync("git rev-parse HEAD").toString().trim();
+  } catch {
+    // git metadata might not be available in remote build environments
+    return "";
+  }
 }
+
+const gitCommit = resolveCommitSha();
 
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
