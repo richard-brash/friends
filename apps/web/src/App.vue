@@ -42,7 +42,7 @@
     </main>
 
     <footer class="border-t border-slate-200 bg-white px-4 py-4 text-center text-xs text-slate-500 sm:px-6">
-      <p>Friend Helper MVP {{ versionString }}</p>
+      <p>v{{ versionString }}</p>
       <p class="mt-1">© 2026 BrashTEK, BeMoreCaring</p>
     </footer>
 
@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { onMounted, ref } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
 import Toast from "./components/Toast.vue";
 import InstallPromptBanner from "./components/InstallPromptBanner.vue";
@@ -64,7 +64,11 @@ import { getVersionString } from "./lib/version";
 const { isToastVisible, toastMessage } = useToast();
 const route = useRoute();
 const router = useRouter();
-const versionString = computed(() => getVersionString());
+const versionString = ref("");
+
+onMounted(() => {
+  versionString.value = getVersionString();
+});
 
 async function handleSignOut(): Promise<void> {
   await signOut();
