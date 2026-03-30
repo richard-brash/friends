@@ -1,4 +1,5 @@
 import { PrismaClient, RequestStatus } from "@prisma/client";
+import { buildRequestHistory, type RequestHistoryEntry } from "./requestHistory";
 
 const prisma = new PrismaClient();
 
@@ -14,11 +15,13 @@ export type LocationRequestItem = {
   description: string;
   quantityRequested: number;
   quantityDelivered: number;
+  status: "OPEN" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CLOSED_UNABLE";
 };
 
 export type LocationRequest = {
   id: string;
   status: RequestStatus;
+  history: RequestHistoryEntry[];
   person: {
     displayName: string | null;
   };
@@ -31,6 +34,32 @@ export type LocationDetails = {
   people: LocationPerson[];
   requests: LocationRequest[];
 };
+
+export type LocationOption = {
+  id: string;
+  name: string;
+};
+
+export async function listLocations(orgId?: string): Promise<LocationOption[]> {
+  const locations = await prisma.location.findMany({
+    where: {
+      is_active: true,
+      ...(orgId ? { organization_id: orgId } : {}),
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
+  return locations.map((location) => ({
+    id: location.id,
+    name: location.name,
+  }));
+}
 
 export async function getLocationById(
   locationId: string,
@@ -58,6 +87,7 @@ export async function getLocationById(
         select: {
           id: true,
           status: true,
+          created_at: true,
           person: {
             select: {
               display_name: true,
@@ -69,6 +99,22 @@ export async function getLocationById(
               description: true,
               quantity_requested: true,
               quantity_delivered: true,
+              status: true,
+              fulfillmentEvents: {
+                select: {
+                  event_type: true,
+                  created_at: true,
+                },
+                orderBy: { created_at: "asc" },
+              },
+              deliveryAttempts: {
+                select: {
+                  outcome: true,
+                  attempted_at: true,
+                  notes: true,
+                },
+                orderBy: { attempted_at: "asc" },
+              },
             },
           },
         },
@@ -145,6 +191,7 @@ export async function getLocationById(
     .map((request) => ({
       id: request.id,
       status: request.status,
+      history: buildRequestHistory(request),
       person: {
         displayName: request.person.display_name,
       },
@@ -153,6 +200,7 @@ export async function getLocationById(
         description: item.description,
         quantityRequested: item.quantity_requested,
         quantityDelivered: item.quantity_delivered,
+            status: item.status,
       })),
     }));
 

@@ -31,6 +31,13 @@ export type RequestItem = {
   description: string;
   quantityRequested: number;
   quantityDelivered?: number;
+  status?: "OPEN" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CLOSED_UNABLE";
+};
+
+export type RequestHistoryEntry = {
+  timestamp: string;
+  title: string;
+  detail?: string;
 };
 
 export type RequestSummary = {
@@ -40,6 +47,7 @@ export type RequestSummary = {
     displayName: string | null;
   };
   items: RequestItem[];
+  history: RequestHistoryEntry[];
 };
 
 export type LocationDetail = {
@@ -47,4 +55,9 @@ export type LocationDetail = {
   name: string;
   people: PersonSummary[];
   requests: RequestSummary[];
+};
+
+export type LocationOption = {
+  id: string;
+  name: string;
 };

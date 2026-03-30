@@ -246,7 +246,6 @@ async function onSubmit(): Promise<void> {
     await createEncounter({
       person: { displayName: personName.value.trim() },
       locationId: locationId.value,
-      takenByUserId: currentUser.value.id,
       items: items.value.map((item) => ({
         description: item.modifier?.trim()
           ? `${item.description} (${item.modifier.trim()})`

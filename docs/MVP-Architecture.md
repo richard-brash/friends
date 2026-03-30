@@ -90,6 +90,13 @@ Core Entities:
 - Need
 - FulfillmentEvent
 
+Model semantics:
+- Encounters record real-world interactions with friends and may produce zero or more needs.
+- Needs are individual requested items and are created from encounters.
+- FulfillmentEvents are append-only lifecycle records for needs and may optionally reference an encounter.
+- Locations are explicitly selected by users (no GPS auto-capture).
+- Routes are UI-only grouping of locations and are not part of the persisted domain model.
+
 The atomic unit of value in the system is:
 
 Friend + Need + Fulfillment State
@@ -154,24 +161,39 @@ Friend + Need + Fulfillment State
 Allowed transitions:
 
 open
-→ in_review
-→ sourcing
 → ready
 → out_for_delivery
 → delivered
 
-OR
+and
 
 open
 → attempted_not_found
+→ open
+
+or
+
+open
 → closed_unable
 
 Rules:
 
-- No backward transitions
+- needs.status is a derived snapshot of the latest fulfillment_event
 - delivered is terminal
 - closed_unable is terminal
 - Every status change creates a fulfillment_event record
+
+Status mapping from fulfillment event type:
+- created → open
+- ready → ready
+- out_for_delivery → out_for_delivery
+- delivered → delivered
+- attempted_not_found → open
+- closed_unable → closed_unable
+
+Derived state:
+- Friend expected location is derived from the last encounter location.
+- Need status is derived from the latest fulfillment event.
 
 ---
 

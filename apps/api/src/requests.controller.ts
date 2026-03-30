@@ -9,6 +9,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { RequestStatus } from '@prisma/client';
+import { CurrentUser } from './common/decorators/current-user.decorator';
+import type { RequestContext } from './common/types/request-context';
 import {
   listRequestsByStatus,
   updateRequestStatus,
@@ -29,22 +31,24 @@ export class RequestsController {
     @Query('routeId') routeId?: string,
   ) {
     const rawStatus = status?.trim();
-    if (!rawStatus) {
-      throw new BadRequestException('status query parameter is required');
+
+    if (rawStatus) {
+      const parsedStatus = parseRequestStatus(rawStatus);
+      if (!parsedStatus) {
+        throw new BadRequestException('invalid request status');
+      }
+
+      return listRequestsByStatus(parsedStatus, routeId);
     }
 
-    const parsedStatus = parseRequestStatus(rawStatus);
-    if (!parsedStatus) {
-      throw new BadRequestException('invalid request status');
-    }
-
-    return listRequestsByStatus(parsedStatus, routeId);
+    return listRequestsByStatus(undefined, routeId);
   }
 
   @Patch('requests/:id/status')
   async patchRequestStatus(
     @Param('id') requestId: string,
     @Body() body: { status?: unknown },
+    @CurrentUser() user: RequestContext,
   ) {
     const normalizedRequestId = requestId.trim();
     if (!normalizedRequestId) {
@@ -58,7 +62,7 @@ export class RequestsController {
       throw new BadRequestException('status is required and must be valid');
     }
 
-    const updated = await updateRequestStatus(normalizedRequestId, parsedStatus);
+    const updated = await updateRequestStatus(normalizedRequestId, parsedStatus, user.userId);
     if (!updated) {
       throw new NotFoundException('Request not found');
     }

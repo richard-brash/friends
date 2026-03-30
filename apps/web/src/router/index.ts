@@ -2,14 +2,23 @@ import { createRouter, createWebHistory } from "vue-router";
 import RouteList from "../features/routes/RouteList.vue";
 import RouteDetail from "../features/routes/RouteDetail.vue";
 import LocationPage from "../features/locations/LocationPage.vue";
-import EncounterForm from "../features/encounters/EncounterForm.vue";
+import NewEncounter from "../features/encounters/NewEncounter.vue";
 import WarehouseQueue from "../features/warehouse/WarehouseQueue.vue";
 import Dashboard from "../features/dashboard/Dashboard.vue";
 import HelpPage from "../features/help/HelpPage.vue";
+import SettingsPage from "../features/settings/SettingsPage.vue";
+import LoginPage from "../features/auth/LoginPage.vue";
+import { authReady, authSession, initializeAuth } from "../stores/auth";
 
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
+    {
+      path: "/login",
+      name: "login",
+      component: LoginPage,
+      meta: { public: true },
+    },
     {
       path: "/",
       name: "route-list",
@@ -28,7 +37,7 @@ export const router = createRouter({
     {
       path: "/locations/:id/encounter",
       name: "encounter-form",
-      component: EncounterForm,
+      component: NewEncounter,
     },
     {
       path: "/warehouse",
@@ -45,5 +54,32 @@ export const router = createRouter({
       name: "help",
       component: HelpPage,
     },
+    {
+      path: "/settings",
+      name: "settings",
+      component: SettingsPage,
+    },
   ],
+});
+
+router.beforeEach(async (to) => {
+  if (!authReady.value) {
+    await initializeAuth();
+  }
+
+  const isPublic = Boolean(to.meta.public);
+  const isAuthenticated = Boolean(authSession.value);
+
+  if (!isAuthenticated && !isPublic) {
+    return {
+      path: "/login",
+      query: to.fullPath !== "/" ? { redirect: to.fullPath } : undefined,
+    };
+  }
+
+  if (isAuthenticated && to.path === "/login") {
+    return "/";
+  }
+
+  return true;
 });

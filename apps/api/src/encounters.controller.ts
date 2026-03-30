@@ -5,6 +5,8 @@ import {
   Post,
   Body,
 } from '@nestjs/common';
+import { CurrentUser } from './common/decorators/current-user.decorator';
+import type { RequestContext } from './common/types/request-context';
 import {
   createEncounter,
   EncounterServiceError,
@@ -12,7 +14,7 @@ import {
 } from './services/encounterService';
 
 type ValidationResult =
-  | { ok: true; data: EncounterInput }
+  | { ok: true; data: Omit<EncounterInput, 'takenByUserId'> }
   | { ok: false; message: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -34,21 +36,14 @@ function validateEncounterBody(body: unknown): ValidationResult {
   }
 
   const personValue = body.person;
+  const friendIdRaw = body.friendId ?? body.friend_id;
+  const friendPreferredNameRaw = body.preferredName ?? body.preferred_name;
   const locationId = toNonEmptyString(body.locationId);
-  const takenByUserId = toNonEmptyString(body.takenByUserId);
-  const itemsValue = body.items;
-  const observationRaw = body.observation;
-
-  if (!isRecord(personValue)) {
-    return { ok: false, message: 'person is required' };
-  }
+  const itemsValue = Array.isArray(body.items) ? body.items : body.needs;
+  const observationRaw = body.observation ?? body.notes;
 
   if (!locationId) {
     return { ok: false, message: 'locationId is required' };
-  }
-
-  if (!takenByUserId) {
-    return { ok: false, message: 'takenByUserId is required' };
   }
 
   if (!Array.isArray(itemsValue) || itemsValue.length === 0) {
@@ -62,7 +57,7 @@ function validateEncounterBody(body: unknown): ValidationResult {
       return { ok: false, message: 'each item must be an object' };
     }
 
-    const description = toNonEmptyString(item.description);
+    const description = toNonEmptyString(item.description ?? item.label);
     const quantity = item.quantity;
 
     if (!description) {
@@ -76,14 +71,17 @@ function validateEncounterBody(body: unknown): ValidationResult {
     parsedItems.push({ description, quantity });
   }
 
-  const personId = toNonEmptyString(personValue.id);
-  const displayName = toNonEmptyString(personValue.displayName) ?? undefined;
-  const alias = toNonEmptyString(personValue.alias) ?? undefined;
+  const personId = toNonEmptyString(friendIdRaw) ?? (isRecord(personValue) ? toNonEmptyString(personValue.id) : null);
+  const displayName =
+    toNonEmptyString(friendPreferredNameRaw) ??
+    (isRecord(personValue) ? toNonEmptyString(personValue.displayName) : null) ??
+    undefined;
+  const alias = isRecord(personValue) ? toNonEmptyString(personValue.alias) ?? undefined : undefined;
 
   if (!personId && !displayName) {
     return {
       ok: false,
-      message: 'person.displayName is required when person.id is not provided',
+      message: 'friendId is required unless preferredName is provided',
     };
   }
 
@@ -98,7 +96,6 @@ function validateEncounterBody(body: unknown): ValidationResult {
         alias,
       },
       locationId,
-      takenByUserId,
       items: parsedItems,
       observation,
     },
@@ -108,14 +105,20 @@ function validateEncounterBody(body: unknown): ValidationResult {
 @Controller()
 export class EncountersController {
   @Post('encounters')
-  async createEncounter(@Body() body: unknown) {
+  async createEncounter(
+    @Body() body: unknown,
+    @CurrentUser() user: RequestContext,
+  ) {
     const validation = validateEncounterBody(body);
     if (validation.ok === false) {
       throw new BadRequestException(validation.message);
     }
 
     try {
-      return await createEncounter(validation.data);
+      return await createEncounter({
+        ...validation.data,
+        takenByUserId: user.userId,
+      });
     } catch (error) {
       if (error instanceof EncounterServiceError) {
         throw new HttpException(error.message, error.statusCode);

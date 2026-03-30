@@ -1,17 +1,21 @@
 import { apiClient } from "./client";
 
 export type EncounterItemInput = {
-  description: string;
+  label: string;
   quantity: number;
 };
 
 export type CreateEncounterPayload = {
-  person: {
-    displayName: string;
+  friendId?: string;
+  friend_id?: string;
+  person?: {
+    id?: string;
+    displayName?: string;
   };
   locationId: string;
-  takenByUserId: string;
-  items: EncounterItemInput[];
+  needs?: EncounterItemInput[];
+  items?: Array<{ description: string; quantity: number }>;
+  notes?: string;
   observation?: string;
 };
 

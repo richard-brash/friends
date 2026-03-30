@@ -24,6 +24,24 @@ enum DeliveryOutcome {
 
 enum EncounterType {
   DELIVERY
+  INTERACTION
+}
+
+enum NeedStatus {
+  OPEN
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CLOSED_UNABLE
+}
+
+enum FulfillmentEventType {
+  CREATED
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  ATTEMPTED_NOT_FOUND
+  CLOSED_UNABLE
 }
 
 model Organization {
@@ -31,10 +49,11 @@ model Organization {
   name       String
   created_at DateTime @default(now())
 
-  users     User[]
-  people    Person[]
-  locations Location[]
-  routes    Route[]
+  users          User[]
+  people         Person[]
+  locations      Location[]
+  routes         Route[]
+  quickPickItems QuickPickItem[]
 
   @@map("organizations")
 }
@@ -42,7 +61,9 @@ model Organization {
 model User {
   id              String   @id @default(uuid()) @db.Uuid
   organization_id String   @db.Uuid
-  email           String   @unique
+  auth_user_id    String?  @unique
+  phone_number    String?  @unique
+  email           String?  @unique
   name            String
   created_at      DateTime @default(now())
 
@@ -221,14 +242,17 @@ model RequestItem {
   quantity_delivered    Int      @default(0)
   fulfilled_by_user_id  String?  @db.Uuid
   fulfilled_at          DateTime?
+  status                NeedStatus @default(OPEN)
   created_at            DateTime @default(now())
 
-  request         Request @relation(fields: [request_id], references: [id], onDelete: Cascade)
-  fulfilledByUser User?   @relation("RequestItemFulfilledBy", fields: [fulfilled_by_user_id], references: [id], onDelete: SetNull)
+  request            Request             @relation(fields: [request_id], references: [id], onDelete: Cascade)
+  fulfilledByUser    User?               @relation("RequestItemFulfilledBy", fields: [fulfilled_by_user_id], references: [id], onDelete: SetNull)
+  fulfillmentEvents  FulfillmentEvent[]
   deliveryAttempts DeliveryAttempt[]
 
   @@index([request_id])
   @@index([fulfilled_by_user_id])
+  @@index([status])
   @@map("request_items")
 }
 
@@ -264,11 +288,43 @@ model Encounter {
   person  Person   @relation(fields: [person_id], references: [id], onDelete: Restrict)
   route   Route?   @relation(fields: [route_id], references: [id], onDelete: SetNull)
   request Request? @relation(fields: [request_id], references: [id], onDelete: SetNull)
+  fulfillmentEvents FulfillmentEvent[]
 
   @@index([person_id, created_at])
   @@index([route_id, created_at])
   @@index([request_id])
   @@map("encounters")
+}
+
+model FulfillmentEvent {
+  id          String               @id @default(uuid()) @db.Uuid
+  need_id     String               @db.Uuid
+  encounter_id String?             @db.Uuid
+  event_type  FulfillmentEventType
+  notes       String?
+  created_at  DateTime             @default(now())
+
+  need      RequestItem @relation(fields: [need_id], references: [id], onDelete: Cascade)
+  encounter Encounter?  @relation(fields: [encounter_id], references: [id], onDelete: SetNull)
+
+  @@index([need_id, created_at])
+  @@index([encounter_id])
+  @@map("fulfillment_events")
+}
+
+model QuickPickItem {
+  id              String   @id @default(uuid()) @db.Uuid
+  organization_id String   @db.Uuid
+  label           String
+  sort_order      Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@unique([organization_id, label])
+  @@index([organization_id, sort_order])
+  @@map("quick_pick_items")
 }
 
 model Observation {

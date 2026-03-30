@@ -6,6 +6,8 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
+import { CurrentUser } from './common/decorators/current-user.decorator';
+import type { RequestContext } from './common/types/request-context';
 import {
   getRouteById,
   getRoutesForOrganization,
@@ -14,8 +16,11 @@ import {
 @Controller()
 export class RoutesController {
   @Get('routes')
-  async listRoutes(@Query('organizationId') organizationId?: string) {
-    return getRoutesForOrganization(organizationId);
+  async listRoutes(
+    @Query('organizationId') organizationId: string | undefined,
+    @CurrentUser() user: RequestContext,
+  ) {
+    return getRoutesForOrganization(organizationId?.trim() || user.orgId);
   }
 
   @Get('routes/:id')

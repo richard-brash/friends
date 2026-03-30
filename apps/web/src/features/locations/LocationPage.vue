@@ -21,8 +21,10 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const submittingItemIds = ref<Set<string>>(new Set());
 const confirmingDeliveryItemId = ref<string | null>(null);
+const expandedHistoryRequestIds = ref<Set<string>>(new Set());
 let confirmDeliveryTimeout: ReturnType<typeof setTimeout> | null = null;
 const { showToast } = useToast();
+const deliveredExpanded = ref(false);
 
 const locationId = computed(() => {
   const value = route.params.id;
@@ -141,6 +143,40 @@ function getStatusBadgeClass(status: RequestSummary["status"]): string {
   return "bg-slate-100 text-slate-700";
 }
 
+function toggleHistory(requestId: string): void {
+  const next = new Set(expandedHistoryRequestIds.value);
+  if (next.has(requestId)) {
+    next.delete(requestId);
+  } else {
+    next.add(requestId);
+  }
+
+  expandedHistoryRequestIds.value = next;
+}
+
+function isHistoryExpanded(requestId: string): boolean {
+  return expandedHistoryRequestIds.value.has(requestId);
+}
+
+function formatHistoryTimestamp(value: string): string {
+  const timestamp = new Date(value);
+  if (Number.isNaN(timestamp.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(timestamp);
+}
+
+function getRequestHistory(request: RequestSummary) {
+  return request.history ?? [];
+}
+
 function clearDeliveryConfirmationTimeout(): void {
   if (!confirmDeliveryTimeout) {
     return;
@@ -198,7 +234,7 @@ function getDeliveryContext(): { routeId?: string; locationName?: string } {
   };
 }
 
-async function submitDeliveryAttempt(requestItemId: string, outcome: "DELIVERED" | "PERSON_NOT_FOUND") {
+async function submitDeliveryAttempt(requestItemId: string, outcome: "DELIVERED" | "ATTEMPTED_NOT_FOUND") {
   if (submittingItemIds.value.has(requestItemId)) {
     return;
   }
@@ -214,7 +250,7 @@ async function submitDeliveryAttempt(requestItemId: string, outcome: "DELIVERED"
   resetDeliveryConfirmation();
 
   try {
-    await createDeliveryAttempt(requestItemId, outcome, currentUser.value.id, getDeliveryContext());
+    await createDeliveryAttempt(requestItemId, outcome, getDeliveryContext());
     showToast(outcome === "DELIVERED" ? "Delivery recorded" : "Delivery attempt recorded");
     await loadLocation();
   } catch {
@@ -254,7 +290,7 @@ async function submitDeliverAll(request: RequestSummary): Promise<void> {
 
   try {
     for (const item of request.items) {
-      await createDeliveryAttempt(item.id, "DELIVERED", currentUser.value.id, getDeliveryContext());
+      await createDeliveryAttempt(item.id, "DELIVERED", getDeliveryContext());
     }
 
     showToast("Delivery recorded");
@@ -336,7 +372,7 @@ onBeforeUnmount(() => {
           }"
           class="inline-flex min-h-[44px] items-center rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
         >
-          New Encounter
+          New Request
         </RouterLink>
       </div>
 
@@ -414,10 +450,39 @@ onBeforeUnmount(() => {
                       type="button"
                       class="min-h-[44px] rounded-lg bg-amber-500 px-3 py-3 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-slate-300"
                       :disabled="submittingItemIds.has(item.id) || !currentUser"
-                      @click="submitDeliveryAttempt(item.id, 'PERSON_NOT_FOUND')"
+                      @click="submitDeliveryAttempt(item.id, 'ATTEMPTED_NOT_FOUND')"
                     >
                       Not Found
                     </button>
+                  </div>
+                </div>
+
+                <div class="rounded-lg border border-slate-200 bg-slate-50">
+                  <button
+                    type="button"
+                    class="flex w-full items-center justify-between gap-2 px-3 py-3 text-left"
+                    @click="toggleHistory(request.id)"
+                  >
+                    <span class="text-sm font-semibold text-slate-800">
+                      History
+                      <span class="ml-1 font-normal text-slate-500">({{ getRequestHistory(request).length }})</span>
+                    </span>
+                    <span class="text-slate-400 transition-transform" :class="isHistoryExpanded(request.id) ? 'rotate-180' : ''">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                      </svg>
+                    </span>
+                  </button>
+
+                  <div v-if="isHistoryExpanded(request.id)" class="border-t border-slate-200 px-3 py-3">
+                    <ul v-if="getRequestHistory(request).length" class="space-y-3">
+                      <li v-for="entry in getRequestHistory(request)" :key="`${request.id}-${entry.timestamp}-${entry.title}-${entry.detail ?? ''}`">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ formatHistoryTimestamp(entry.timestamp) }}</p>
+                        <p class="mt-1 text-sm font-medium text-slate-800">{{ entry.title }}</p>
+                        <p v-if="entry.detail" class="mt-1 text-sm text-slate-600">{{ entry.detail }}</p>
+                      </li>
+                    </ul>
+                    <p v-else class="text-sm text-slate-500">No history recorded yet.</p>
                   </div>
                 </div>
               </li>
@@ -430,41 +495,89 @@ onBeforeUnmount(() => {
 
         <div class="my-6 border-t border-slate-200"></div>
 
-        <h2 class="mb-3 text-xl font-semibold text-slate-900">Delivered</h2>
-        <div v-if="deliveredRequestsByPerson.length" class="space-y-4">
-          <article
-            v-for="entry in deliveredRequestsByPerson"
-            :key="entry.key"
-            class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-          >
-            <h3 class="text-base font-semibold text-slate-900">{{ entry.name }}</h3>
-            <p class="mt-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Needs:</p>
-            <ul class="mt-2 space-y-2">
-              <li
-                v-for="request in entry.requests"
-                :key="request.id"
-                class="rounded-xl bg-slate-50 p-3"
-              >
-                <div class="mb-2 flex items-center justify-end">
-                  <span
-                    class="inline-flex min-h-[24px] items-center rounded-full px-2 py-1 text-xs font-semibold"
-                    :class="getStatusBadgeClass(request.status)"
-                  >
-                    [ {{ request.status }} ]
-                  </span>
-                </div>
-                <p
-                  v-for="(item, itemIndex) in request.items"
-                  :key="`${request.id}-${itemIndex}-${item.description}`"
-                  class="text-base text-slate-800"
+        <button
+          type="button"
+          class="mb-3 flex w-full items-center justify-between gap-2 text-left"
+          @click="deliveredExpanded = !deliveredExpanded"
+        >
+          <h2 class="text-xl font-semibold text-slate-900">
+            Delivered
+            <span v-if="deliveredRequestsByPerson.length" class="ml-1 text-base font-normal text-slate-500">
+              ({{ deliveredRequestsByPerson.length }})
+            </span>
+          </h2>
+          <span class="text-slate-400 transition-transform" :class="deliveredExpanded ? 'rotate-180' : ''">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+            </svg>
+          </span>
+        </button>
+
+        <template v-if="deliveredExpanded">
+          <div v-if="deliveredRequestsByPerson.length" class="space-y-4">
+            <article
+              v-for="entry in deliveredRequestsByPerson"
+              :key="entry.key"
+              class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            >
+              <h3 class="text-base font-semibold text-slate-900">{{ entry.name }}</h3>
+              <p class="mt-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Needs:</p>
+              <ul class="mt-2 space-y-2">
+                <li
+                  v-for="request in entry.requests"
+                  :key="request.id"
+                  class="space-y-2 rounded-xl bg-slate-50 p-3"
                 >
-                  {{ item.description }} ({{ item.quantityRequested }})
-                </p>
-              </li>
-            </ul>
-          </article>
-        </div>
-        <p v-else class="rounded-xl bg-white p-4 text-slate-600 shadow-sm">No delivered requests yet at this location.</p>
+                  <div class="mb-2 flex items-center justify-end">
+                    <span
+                      class="inline-flex min-h-[24px] items-center rounded-full px-2 py-1 text-xs font-semibold"
+                      :class="getStatusBadgeClass(request.status)"
+                    >
+                      [ {{ request.status }} ]
+                    </span>
+                  </div>
+                  <p
+                    v-for="(item, itemIndex) in request.items"
+                    :key="`${request.id}-${itemIndex}-${item.description}`"
+                    class="text-base text-slate-800"
+                  >
+                    {{ item.description }} ({{ item.quantityRequested }})
+                  </p>
+
+                  <div class="rounded-lg border border-slate-200 bg-white">
+                    <button
+                      type="button"
+                      class="flex w-full items-center justify-between gap-2 px-3 py-3 text-left"
+                      @click="toggleHistory(request.id)"
+                    >
+                      <span class="text-sm font-semibold text-slate-800">
+                        History
+                        <span class="ml-1 font-normal text-slate-500">({{ getRequestHistory(request).length }})</span>
+                      </span>
+                      <span class="text-slate-400 transition-transform" :class="isHistoryExpanded(request.id) ? 'rotate-180' : ''">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                        </svg>
+                      </span>
+                    </button>
+
+                    <div v-if="isHistoryExpanded(request.id)" class="border-t border-slate-200 px-3 py-3">
+                      <ul v-if="getRequestHistory(request).length" class="space-y-3">
+                        <li v-for="entry in getRequestHistory(request)" :key="`${request.id}-${entry.timestamp}-${entry.title}-${entry.detail ?? ''}`">
+                          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ formatHistoryTimestamp(entry.timestamp) }}</p>
+                          <p class="mt-1 text-sm font-medium text-slate-800">{{ entry.title }}</p>
+                          <p v-if="entry.detail" class="mt-1 text-sm text-slate-600">{{ entry.detail }}</p>
+                        </li>
+                      </ul>
+                      <p v-else class="text-sm text-slate-500">No history recorded yet.</p>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </article>
+          </div>
+          <p v-else class="rounded-xl bg-white p-4 text-slate-600 shadow-sm">No delivered requests yet at this location.</p>
+        </template>
       </section>
     </template>
   </section>

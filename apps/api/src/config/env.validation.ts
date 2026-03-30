@@ -2,6 +2,7 @@ import { plainToInstance } from 'class-transformer';
 import {
   IsEnum,
   IsNumber,
+  IsOptional,
   IsString,
   validateSync,
   Min,
@@ -29,6 +30,13 @@ export class EnvironmentVariables {
   // Database connection
   @IsString()
   DATABASE_URL: string;
+
+  @IsString()
+  SUPABASE_URL: string;
+
+  @IsOptional()
+  @IsString()
+  DEFAULT_ORGANIZATION_NAME?: string = 'Friend Helper Outreach';
 }
 
 export function validate(config: Record<string, unknown>) {

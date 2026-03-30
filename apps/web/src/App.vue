@@ -2,17 +2,22 @@
   <div class="min-h-screen bg-slate-50">
     <header class="border-b border-slate-200 bg-white">
       <div class="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-3 sm:px-6">
-        <div>
+        <div class="flex items-start justify-between gap-3">
           <p class="text-lg font-semibold text-slate-900">Friend Helper</p>
-          <RouterLink
-            v-if="runningRoute"
-            :to="`/routes/${runningRoute.id}`"
-            class="mt-1 inline-flex cursor-pointer text-sm font-medium text-slate-600 underline-offset-2 hover:text-sky-900 hover:underline"
-          >
-          </RouterLink>
+          <div class="text-right">
+            <p v-if="currentUser" class="text-sm font-medium text-slate-700">{{ currentUser.name }}</p>
+            <button
+              v-if="currentUser"
+              type="button"
+              class="mt-1 text-sm font-medium text-slate-600 underline-offset-2 hover:text-sky-900 hover:underline"
+              @click="handleSignOut"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
 
-        <nav class="flex items-center gap-4 sm:gap-6">
+        <nav v-if="route.name !== 'login'" class="flex items-center gap-4 sm:gap-6">
           <RouterLink to="/" class="text-sm font-medium text-slate-700 hover:text-slate-900">
             Routes
           </RouterLink>
@@ -24,6 +29,9 @@
           </RouterLink>
           <RouterLink to="/help" class="text-sm font-medium text-slate-700 hover:text-slate-900">
             Help
+          </RouterLink>
+          <RouterLink to="/settings" class="text-sm font-medium text-slate-700 hover:text-slate-900">
+            Settings
           </RouterLink>
         </nav>
       </div>
@@ -39,16 +47,24 @@
     </footer>
 
     <Toast :visible="isToastVisible" :message="toastMessage" />
+    <InstallPromptBanner />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { RouterView } from "vue-router";
+import { RouterView, useRoute, useRouter } from "vue-router";
 import Toast from "./components/Toast.vue";
+import InstallPromptBanner from "./components/InstallPromptBanner.vue";
 import { useToast } from "./composables/useToast";
-import { activeRoute, getActiveRoute } from "./stores/routeContext";
+import { signOut } from "./stores/auth";
+import { currentUser } from "./stores/user";
 
 const { isToastVisible, toastMessage } = useToast();
-const runningRoute = computed(() => activeRoute.value ?? getActiveRoute());
+const route = useRoute();
+const router = useRouter();
+
+async function handleSignOut(): Promise<void> {
+  await signOut();
+  await router.push("/login");
+}
 </script>

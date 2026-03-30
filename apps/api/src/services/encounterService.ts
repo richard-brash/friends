@@ -1,4 +1,5 @@
-import { PrismaClient, RequestStatus } from "@prisma/client";
+import { EncounterType, FulfillmentEventType, PrismaClient, RequestStatus } from "@prisma/client";
+import { applyFulfillmentEventInTransaction } from "./fulfillmentEventService";
 
 const prisma = new PrismaClient();
 
@@ -32,6 +33,7 @@ export type EncounterInput = {
 export type EncounterRequestResponse = {
   id: string;
   status: RequestStatus;
+  encounterId: string;
   personId: string;
   locationId: string;
   takenByUserId: string;
@@ -42,6 +44,7 @@ export type EncounterRequestResponse = {
     quantityRequested: number;
     quantityFulfilled: number;
     quantityDelivered: number;
+    status: string;
   }>;
 };
 
@@ -54,7 +57,7 @@ export async function createEncounter(
     const [location, takenByUser] = await Promise.all([
       tx.location.findUnique({
         where: { id: input.locationId },
-        select: { id: true, organization_id: true },
+        select: { id: true, name: true, organization_id: true },
       }),
       tx.user.findUnique({
         where: { id: input.takenByUserId },
@@ -149,15 +152,42 @@ export async function createEncounter(
       },
     });
 
-    await tx.requestItem.createMany({
-      data: input.items.map((item) => ({
+    const encounter = await tx.encounter.create({
+      data: {
+        person_id: personId,
         request_id: request.id,
-        description: item.description,
-        quantity_requested: item.quantity,
-        quantity_fulfilled: 0,
-        quantity_delivered: 0,
-      })),
+        location_name: location.name,
+        type: EncounterType.INTERACTION,
+        notes: input.observation?.trim() || null,
+        metadata: {
+          source: "encounter-create",
+        },
+      },
+      select: { id: true },
     });
+
+    for (const item of input.items) {
+      for (let index = 0; index < item.quantity; index += 1) {
+        const createdNeed = await tx.requestItem.create({
+          data: {
+            request_id: request.id,
+            description: item.description,
+            quantity_requested: 1,
+            quantity_fulfilled: 0,
+            quantity_delivered: 0,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        await applyFulfillmentEventInTransaction(tx, {
+          needId: createdNeed.id,
+          eventType: FulfillmentEventType.CREATED,
+          encounterId: encounter.id,
+        });
+      }
+    }
 
     if (input.observation?.trim()) {
       await tx.observation.create({
@@ -187,6 +217,7 @@ export async function createEncounter(
             quantity_requested: true,
             quantity_fulfilled: true,
             quantity_delivered: true,
+            status: true,
           },
           orderBy: { created_at: "asc" },
         },
@@ -200,6 +231,7 @@ export async function createEncounter(
     return {
       id: requestWithItems.id,
       status: requestWithItems.status,
+      encounterId: encounter.id,
       personId: requestWithItems.person_id,
       locationId: requestWithItems.location_id,
       takenByUserId: requestWithItems.taken_by_user_id,
@@ -210,6 +242,7 @@ export async function createEncounter(
         quantityRequested: item.quantity_requested,
         quantityFulfilled: item.quantity_fulfilled,
         quantityDelivered: item.quantity_delivered,
+        status: item.status,
       })),
     };
   });

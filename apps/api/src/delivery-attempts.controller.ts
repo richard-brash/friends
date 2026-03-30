@@ -5,6 +5,8 @@ import {
   HttpException,
   Post,
 } from '@nestjs/common';
+import { CurrentUser } from './common/decorators/current-user.decorator';
+import type { RequestContext } from './common/types/request-context';
 import { DeliveryOutcome } from '@prisma/client';
 import {
   createDeliveryAttempt,
@@ -13,7 +15,7 @@ import {
 } from './services/deliveryAttemptService';
 
 type ValidationResult =
-  | { ok: true; data: CreateDeliveryAttemptInput }
+  | { ok: true; data: Omit<CreateDeliveryAttemptInput, 'userId'> }
   | { ok: false; message: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -30,9 +32,14 @@ function toNonEmptyString(value: unknown): string | null {
 }
 
 function parseOutcome(value: unknown): DeliveryOutcome | null {
-  const normalized = toNonEmptyString(value)?.toUpperCase();
+  const raw = toNonEmptyString(value);
+  const normalized = raw?.toUpperCase();
   if (!normalized) {
     return null;
+  }
+
+  if (normalized === 'ATTEMPTED_NOT_FOUND') {
+    return DeliveryOutcome.PERSON_NOT_FOUND;
   }
 
   return Object.values(DeliveryOutcome).includes(normalized as DeliveryOutcome)
@@ -78,14 +85,20 @@ function validateDeliveryAttemptBody(body: unknown): ValidationResult {
 @Controller()
 export class DeliveryAttemptsController {
   @Post('delivery-attempts')
-  async createDeliveryAttempt(@Body() body: unknown) {
+  async createDeliveryAttempt(
+    @Body() body: unknown,
+    @CurrentUser() user: RequestContext,
+  ) {
     const validation = validateDeliveryAttemptBody(body);
     if (validation.ok === false) {
       throw new BadRequestException(validation.message);
     }
 
     try {
-      await createDeliveryAttempt(validation.data);
+      await createDeliveryAttempt({
+        ...validation.data,
+        userId: user.userId,
+      });
       return { success: true };
     } catch (error) {
       if (error instanceof DeliveryAttemptServiceError) {

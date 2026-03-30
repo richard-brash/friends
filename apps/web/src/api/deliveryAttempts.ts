@@ -2,6 +2,7 @@ import { apiClient } from "./client";
 
 export type DeliveryOutcome =
   | "DELIVERED"
+  | "ATTEMPTED_NOT_FOUND"
   | "PERSON_NOT_FOUND"
   | "DECLINED"
   | "LOCATION_EMPTY";
@@ -9,7 +10,6 @@ export type DeliveryOutcome =
 export async function createDeliveryAttempt(
   requestItemId: string,
   outcome: DeliveryOutcome,
-  userId: string,
   options?: {
     routeId?: string;
     locationName?: string;
@@ -18,7 +18,6 @@ export async function createDeliveryAttempt(
   await apiClient.post("/delivery-attempts", {
     requestItemId,
     outcome,
-    userId,
     routeId: options?.routeId,
     locationName: options?.locationName,
   });
