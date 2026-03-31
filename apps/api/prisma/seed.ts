@@ -151,6 +151,38 @@ async function main(): Promise<void> {
     },
   });
 
+  const adminRole = await prisma.role.upsert({
+    where: { name: "admin" },
+    update: {},
+    create: { name: "admin" },
+  });
+
+  await prisma.role.upsert({
+    where: { name: "manager" },
+    update: {},
+    create: { name: "manager" },
+  });
+
+  await prisma.role.upsert({
+    where: { name: "volunteer" },
+    update: {},
+    create: { name: "volunteer" },
+  });
+
+  await prisma.userRole.upsert({
+    where: {
+      user_id_role_id: {
+        user_id: defaultUser.id,
+        role_id: adminRole.id,
+      },
+    },
+    update: {},
+    create: {
+      user_id: defaultUser.id,
+      role_id: adminRole.id,
+    },
+  });
+
   const routeByName = new Map<string, { id: string }>();
   const locationByName = new Map<string, { id: string }>();
 

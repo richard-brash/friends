@@ -30,7 +30,11 @@
           <RouterLink to="/help" class="text-sm font-medium text-slate-700 hover:text-slate-900">
             Help
           </RouterLink>
-          <RouterLink to="/settings" class="text-sm font-medium text-slate-700 hover:text-slate-900">
+          <RouterLink
+            v-if="canManageSettings"
+            to="/settings"
+            class="text-sm font-medium text-slate-700 hover:text-slate-900"
+          >
             Settings
           </RouterLink>
         </nav>
@@ -52,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
 import Toast from "./components/Toast.vue";
 import InstallPromptBanner from "./components/InstallPromptBanner.vue";
@@ -65,6 +69,10 @@ const { isToastVisible, toastMessage } = useToast();
 const route = useRoute();
 const router = useRouter();
 const versionString = ref("");
+const canManageSettings = computed(() => {
+  const role = currentUser.value?.role;
+  return role === "admin" || role === "manager";
+});
 
 onMounted(() => {
   versionString.value = getVersionString();

@@ -1,28 +1,33 @@
 import { ref } from "vue";
-import type { Session } from "@supabase/supabase-js";
-import { getSupabaseClient } from "../lib/supabase";
-import { setApiAccessToken } from "../api/client";
+import axios from "axios";
+import { apiClient } from "../api/client";
+import type { CurrentUser } from "../api/me";
 import { loadCurrentUser, setCurrentUser } from "./user";
 
-export const authSession = ref<Session | null>(null);
+export const isAuthenticated = ref(false);
 export const authReady = ref(false);
 export const authError = ref<string | null>(null);
 
 let initialized = false;
 
-async function syncCurrentUser(session: Session | null): Promise<void> {
-  authSession.value = session;
-  setApiAccessToken(session?.access_token ?? null);
+function clearAuthState(): void {
+  isAuthenticated.value = false;
+  authError.value = null;
+  setCurrentUser(null);
+}
 
-  if (!session) {
-    setCurrentUser(null);
-    return;
-  }
-
+async function syncCurrentUser(): Promise<void> {
   try {
     await loadCurrentUser();
+    isAuthenticated.value = true;
     authError.value = null;
   } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      clearAuthState();
+      return;
+    }
+
+    isAuthenticated.value = false;
     setCurrentUser(null);
     authError.value = error instanceof Error ? error.message : "Failed to load current user.";
   }
@@ -35,82 +40,39 @@ export async function initializeAuth(): Promise<void> {
   }
 
   try {
-    const supabase = getSupabaseClient();
-    const { data } = await supabase.auth.getSession();
-    await syncCurrentUser(data.session ?? null);
-
-    supabase.auth.onAuthStateChange((_event, session) => {
-      void syncCurrentUser(session);
-    });
-
+    await syncCurrentUser();
     initialized = true;
   } catch (error) {
     authError.value = error instanceof Error ? error.message : "Authentication is not configured.";
-    authSession.value = null;
-    setCurrentUser(null);
-    setApiAccessToken(null);
+    clearAuthState();
   } finally {
     authReady.value = true;
   }
 }
 
-export async function sendPhoneOtp(phoneNumber: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.auth.signInWithOtp({
-    phone: phoneNumber,
-  });
-
-  if (error) {
-    throw error;
-  }
-}
-
-export async function verifyPhoneOtp(phoneNumber: string, token: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.auth.verifyOtp({
-    phone: phoneNumber,
-    token,
-    type: "sms",
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  await syncCurrentUser(data.session ?? null);
-}
-
 export async function sendEmailOtp(email: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.auth.signInWithOtp({ email });
-
-  if (error) {
-    throw error;
-  }
+  await apiClient.post("/auth/request-email-code", {
+    email,
+  });
 }
 
 export async function verifyEmailOtp(email: string, token: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.auth.verifyOtp({
+  const { data } = await apiClient.post<{ user: CurrentUser }>("/auth/verify-email-code", {
     email,
     token,
-    type: "email",
   });
 
-  if (error) {
-    throw error;
-  }
-
-  await syncCurrentUser(data.session ?? null);
+  isAuthenticated.value = true;
+  authError.value = null;
+  setCurrentUser(data.user);
 }
 
 export async function signOut(): Promise<void> {
   try {
-    const supabase = getSupabaseClient();
-    await supabase.auth.signOut();
+    await apiClient.post("/auth/logout", undefined, { skipAuthRefresh: true } as never);
   } catch {
     // no-op
   }
 
-  await syncCurrentUser(null);
+  clearAuthState();
 }

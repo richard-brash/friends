@@ -44,12 +44,22 @@ enum FulfillmentEventType {
   CLOSED_UNABLE
 }
 
+enum InviteStatus {
+  PENDING
+  SENT
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
 model Organization {
   id         String   @id @default(uuid()) @db.Uuid
   name       String
   created_at DateTime @default(now())
 
   users          User[]
+  memberships    UserMembership[]
+  invites        Invite[]
   people         Person[]
   locations      Location[]
   routes         Route[]
@@ -69,6 +79,9 @@ model User {
 
   organization              Organization    @relation(fields: [organization_id], references: [id])
   userRoles                 UserRole[]
+  memberships               UserMembership[]
+  invites_sent              Invite[]        @relation("InvitedByUser")
+  invites_accepted          Invite[]        @relation("AcceptedByUser")
   observedPersonLocations   PersonLocation[] @relation("PersonLocationObservedBy")
   takenRequests             Request[]        @relation("RequestTakenBy")
   fulfilledRequestItems     RequestItem[]    @relation("RequestItemFulfilledBy")
@@ -103,6 +116,47 @@ model UserRole {
   @@index([user_id])
   @@index([role_id])
   @@map("user_roles")
+}
+
+model UserMembership {
+  id              String   @id @default(uuid()) @db.Uuid
+  user_id         String   @db.Uuid
+  organization_id String   @db.Uuid
+  status          String   @default("active")
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  user         User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, organization_id])
+  @@index([user_id])
+  @@index([organization_id])
+  @@map("user_memberships")
+}
+
+model Invite {
+  id              String   @id @default(uuid()) @db.Uuid
+  organization_id String   @db.Uuid
+  channel         String   @default("email")
+  destination     String
+  status          InviteStatus @default(PENDING)
+  token_hash      String?  @unique
+  invited_by_user_id String? @db.Uuid
+  accepted_by_user_id String? @db.Uuid
+  expires_at      DateTime?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  invitedByUser   User?        @relation("InvitedByUser", fields: [invited_by_user_id], references: [id], onDelete: SetNull)
+  acceptedByUser  User?        @relation("AcceptedByUser", fields: [accepted_by_user_id], references: [id], onDelete: SetNull)
+
+  @@unique([organization_id, destination])
+  @@index([organization_id])
+  @@index([status])
+  @@index([expires_at])
+  @@map("invites")
 }
 
 model Person {

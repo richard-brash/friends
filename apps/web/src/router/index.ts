@@ -8,7 +8,8 @@ import Dashboard from "../features/dashboard/Dashboard.vue";
 import HelpPage from "../features/help/HelpPage.vue";
 import SettingsPage from "../features/settings/SettingsPage.vue";
 import LoginPage from "../features/auth/LoginPage.vue";
-import { authReady, authSession, initializeAuth } from "../stores/auth";
+import { authReady, initializeAuth, isAuthenticated } from "../stores/auth";
+import { currentUser } from "../stores/user";
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -58,6 +59,7 @@ export const router = createRouter({
       path: "/settings",
       name: "settings",
       component: SettingsPage,
+      meta: { requiredRoles: ["admin", "manager"] },
     },
   ],
 });
@@ -68,17 +70,28 @@ router.beforeEach(async (to) => {
   }
 
   const isPublic = Boolean(to.meta.public);
-  const isAuthenticated = Boolean(authSession.value);
+  const authenticated = Boolean(isAuthenticated.value);
 
-  if (!isAuthenticated && !isPublic) {
+  if (!authenticated && !isPublic) {
     return {
       path: "/login",
       query: to.fullPath !== "/" ? { redirect: to.fullPath } : undefined,
     };
   }
 
-  if (isAuthenticated && to.path === "/login") {
+  if (authenticated && to.path === "/login") {
     return "/";
+  }
+
+  const requiredRoles = Array.isArray(to.meta.requiredRoles)
+    ? (to.meta.requiredRoles as Array<"admin" | "manager" | "volunteer">)
+    : [];
+
+  if (requiredRoles.length > 0) {
+    const role = currentUser.value?.role;
+    if (!role || !requiredRoles.includes(role)) {
+      return "/";
+    }
   }
 
   return true;

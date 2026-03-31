@@ -24,6 +24,9 @@ export class MeController {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    return {
+      ...user,
+      role: userContext.role,
+    };
   }
 }

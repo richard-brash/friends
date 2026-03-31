@@ -6,6 +6,7 @@ export type CurrentUser = {
   email: string | null;
   phone_number?: string | null;
   organization_id: string;
+  role: "admin" | "manager" | "volunteer";
 };
 
 export async function getCurrentUser(): Promise<CurrentUser> {

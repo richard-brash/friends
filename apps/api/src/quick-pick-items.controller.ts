@@ -12,10 +12,12 @@ import {
   Query,
 } from "@nestjs/common";
 import { CurrentUser } from "./common/decorators/current-user.decorator";
+import { Roles } from "./common/decorators/roles.decorator";
 import type { RequestContext } from "./common/types/request-context";
 import { QuickPickItemService } from "./services/quickPickItemService";
 
 @Controller("quick-pick-items")
+@Roles("admin", "manager")
 export class QuickPickItemsController {
   constructor(private readonly service: QuickPickItemService) {}
 

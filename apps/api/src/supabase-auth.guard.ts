@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ACCESS_TOKEN_COOKIE, parseCookieHeader } from './auth.constants';
 import { IS_PUBLIC_KEY } from './common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 
@@ -25,16 +26,29 @@ export class SupabaseAuthGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<{ headers: Record<string, string | undefined>; user?: unknown }>();
-    const authorization = request.headers.authorization ?? request.headers.Authorization;
+    const request = context.switchToHttp().getRequest<{
+      headers: Record<string, string | undefined>;
+      user?: unknown;
+    }>();
+    const authorization =
+      request.headers.authorization ?? request.headers.Authorization;
+    const cookies = parseCookieHeader(request.headers.cookie);
 
     if (!authorization || !authorization.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing bearer token');
+      const cookieToken = cookies[ACCESS_TOKEN_COOKIE]?.trim();
+
+      if (!cookieToken) {
+        throw new UnauthorizedException('Missing authentication token');
+      }
+
+      request.user =
+        await this.authService.authenticateAccessToken(cookieToken);
+      return true;
     }
 
     const token = authorization.slice('Bearer '.length).trim();
     if (!token) {
-      throw new UnauthorizedException('Missing bearer token');
+      throw new UnauthorizedException('Missing authentication token');
     }
 
     request.user = await this.authService.authenticateAccessToken(token);

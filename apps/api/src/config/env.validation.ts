@@ -36,6 +36,30 @@ export class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  SUPABASE_SERVICE_ROLE_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  SUPABASE_INVITE_REDIRECT_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  RESEND_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  INVITE_FROM_EMAIL?: string;
+
+  @IsOptional()
+  @IsString()
+  INVITE_LOGIN_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  AUTH_ADMIN_EMAILS?: string;
+
+  @IsOptional()
+  @IsString()
   DEFAULT_ORGANIZATION_NAME?: string = 'Friend Helper Outreach';
 }
 

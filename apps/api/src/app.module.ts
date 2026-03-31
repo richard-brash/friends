@@ -16,9 +16,15 @@ import { MeController } from './me.controller';
 import { DashboardController } from './dashboard.controller';
 import { FriendsController } from './friends.controller';
 import { QuickPickItemsController } from './quick-pick-items.controller';
+import { AuthController } from './auth.controller';
+import { InvitesController } from './invites.controller';
 import { QuickPickItemService } from './services/quickPickItemService';
 import { AuthService } from './auth.service';
+import { InvitesService } from './invites.service';
+import { UserAccessController } from './user-access.controller';
+import { UserAccessService } from './user-access.service';
 import { SupabaseAuthGuard } from './supabase-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
 
 @Module({
   imports: [
@@ -43,14 +49,23 @@ import { SupabaseAuthGuard } from './supabase-auth.guard';
     DashboardController,
     FriendsController,
     QuickPickItemsController,
+    AuthController,
+    InvitesController,
+    UserAccessController,
   ],
   providers: [
     AppService,
     QuickPickItemService,
     AuthService,
+    InvitesService,
+    UserAccessService,
     {
       provide: APP_GUARD,
       useClass: SupabaseAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

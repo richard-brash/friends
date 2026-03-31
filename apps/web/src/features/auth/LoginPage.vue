@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import { authError, sendEmailOtp, verifyEmailOtp } from "../../stores/auth";
 
@@ -18,6 +19,12 @@ const error = ref<string | null>(null);
 const message = ref<string | null>(null);
 
 onMounted(() => {
+  const routeEmail = typeof route.query.email === "string" ? route.query.email.trim() : "";
+  if (routeEmail) {
+    email.value = routeEmail;
+    return;
+  }
+
   const saved = localStorage.getItem(REMEMBERED_EMAIL_KEY);
   if (saved) {
     email.value = saved;
@@ -34,6 +41,35 @@ function forgetEmail(): void {
   hasRememberedEmail.value = false;
 }
 
+function getApiErrorMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data;
+
+    if (typeof data === "string" && data.trim()) {
+      return data;
+    }
+
+    if (data && typeof data === "object" && "message" in data) {
+      const message = (data as { message?: unknown }).message;
+      if (typeof message === "string" && message.trim()) {
+        return message;
+      }
+      if (Array.isArray(message)) {
+        const first = message.find((entry) => typeof entry === "string" && entry.trim());
+        if (typeof first === "string") {
+          return first;
+        }
+      }
+    }
+
+    if (typeof err.message === "string" && err.message.trim()) {
+      return err.message;
+    }
+  }
+
+  return fallback;
+}
+
 async function requestCode(): Promise<void> {
   submitting.value = true;
   error.value = null;
@@ -45,7 +81,7 @@ async function requestCode(): Promise<void> {
     message.value = "Code sent. Check your email.";
     step.value = "code";
   } catch (err) {
-    error.value = err instanceof Error ? err.message : "Failed to send code.";
+    error.value = getApiErrorMessage(err, "Failed to send code.");
   } finally {
     submitting.value = false;
   }
@@ -60,7 +96,7 @@ async function verifyCode(): Promise<void> {
     const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/";
     await router.push(redirect);
   } catch (err) {
-    error.value = err instanceof Error ? err.message : "Invalid code.";
+    error.value = getApiErrorMessage(err, "Invalid code.");
   } finally {
     submitting.value = false;
   }
@@ -71,7 +107,7 @@ async function verifyCode(): Promise<void> {
   <section class="mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-md items-center p-4 sm:p-6">
     <div class="w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <h1 class="text-2xl font-bold tracking-tight text-slate-900">Sign in</h1>
-      <p class="mt-2 text-sm text-slate-600">Use your email to receive a one-time login code.</p>
+      <p class="mt-2 text-sm text-slate-600">Use your invited email to receive a one-time login code.</p>
 
       <form class="mt-5 space-y-4" @submit.prevent="step === 'input' ? requestCode() : verifyCode()">
         <div>
@@ -104,7 +140,7 @@ async function verifyCode(): Promise<void> {
             v-model="otpCode"
             inputmode="numeric"
             autocomplete="one-time-code"
-            placeholder="123456"
+            placeholder="Enter your code"
             class="w-full rounded-xl border border-slate-300 px-4 py-3 text-base text-slate-900 outline-none focus:border-sky-500"
           />
         </div>
