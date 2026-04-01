@@ -10,7 +10,7 @@ export function buildAuthCookieOptions(
 ): CookieOptions {
   return {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: isProduction ? 'none' : 'lax',
     secure: isProduction,
     path: '/',
     ...(typeof maxAge === 'number' ? { maxAge } : {}),
