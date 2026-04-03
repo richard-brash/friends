@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -31,7 +31,7 @@ export async function getRoutesForOrganization(
   if (!resolvedOrganizationId) {
     const organization = await prisma.organization.findFirst({
       select: { id: true },
-      orderBy: { created_at: 'asc' },
+      orderBy: { created_at: "asc" },
     });
     resolvedOrganizationId = organization?.id;
   }
@@ -49,7 +49,7 @@ export async function getRoutesForOrganization(
         select: { stops: true },
       },
     },
-    orderBy: { name: 'asc' },
+    orderBy: { name: "asc" },
   });
 
   return routes.map((route) => ({
@@ -59,23 +59,14 @@ export async function getRoutesForOrganization(
   }));
 }
 
-export async function getRouteById(
-  routeId: string,
-  organizationId?: string,
-): Promise<RouteDetails | null> {
-  const normalizedOrganizationId = organizationId?.trim();
-  const route = await prisma.route.findFirst({
-    where: {
-      id: routeId,
-      ...(normalizedOrganizationId
-        ? { organization_id: normalizedOrganizationId }
-        : {}),
-    },
+export async function getRouteById(routeId: string): Promise<RouteDetails | null> {
+  const route = await prisma.route.findUnique({
+    where: { id: routeId },
     select: {
       id: true,
       name: true,
       stops: {
-        orderBy: { stop_order: 'asc' },
+        orderBy: { stop_order: "asc" },
         select: {
           stop_order: true,
           location: {
