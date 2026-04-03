@@ -47,7 +47,7 @@
 
     <footer class="border-t border-slate-200 bg-white px-4 py-4 text-center text-xs text-slate-500 sm:px-6">
       <p>Friend Helper: {{ versionString }}</p>
-      <p class="mt-1">© 2026 BrashTEK, BeMoreCaring</p>
+      <p class="mt-1">© 2026 The City Well, BeMoreCaring</p>
     </footer>
 
     <Toast :visible="isToastVisible" :message="toastMessage" />
