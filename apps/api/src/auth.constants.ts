@@ -13,6 +13,7 @@ export function buildAuthCookieOptions(
     sameSite: isProduction ? 'none' : 'lax',
     secure: isProduction,
     path: '/',
+    ...(isProduction ? { partitioned: true } : {}),
     ...(typeof maxAge === 'number' ? { maxAge } : {}),
   };
 }
