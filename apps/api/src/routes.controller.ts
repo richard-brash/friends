@@ -1,11 +1,4 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  NotFoundException,
-  Param,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
 import { CurrentUser } from './common/decorators/current-user.decorator';
 import type { RequestContext } from './common/types/request-context';
 import {
@@ -16,21 +9,21 @@ import {
 @Controller()
 export class RoutesController {
   @Get('routes')
-  async listRoutes(
-    @Query('organizationId') organizationId: string | undefined,
-    @CurrentUser() user: RequestContext,
-  ) {
-    return getRoutesForOrganization(organizationId?.trim() || user.orgId);
+  async listRoutes(@CurrentUser() user: RequestContext) {
+    return getRoutesForOrganization(user.orgId);
   }
 
   @Get('routes/:id')
-  async getRoute(@Param('id') routeId: string) {
+  async getRoute(
+    @Param('id') routeId: string,
+    @CurrentUser() user: RequestContext,
+  ) {
     const normalizedRouteId = routeId.trim();
     if (!normalizedRouteId) {
-      throw new BadRequestException('route id is required');
+      throw new NotFoundException('Route not found');
     }
 
-    const route = await getRouteById(normalizedRouteId);
+    const route = await getRouteById(normalizedRouteId, user.orgId);
     if (!route) {
       throw new NotFoundException('Route not found');
     }
