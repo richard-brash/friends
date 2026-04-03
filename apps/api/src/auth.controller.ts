@@ -58,9 +58,17 @@ export class AuthController {
   ) {
     const result = await this.authService.verifyEmailCode(dto.email, dto.token);
 
-    this.applySessionCookies(response, result.accessToken, result.refreshToken, result.expiresIn);
+    this.applySessionCookies(
+      response,
+      result.accessToken,
+      result.refreshToken,
+      result.expiresIn,
+    );
 
-    return { user: result.user };
+    return {
+      user: result.user,
+      accessToken: result.accessToken,
+    };
   }
 
   @Public()
@@ -78,9 +86,17 @@ export class AuthController {
     }
 
     const result = await this.authService.refreshSession(refreshToken);
-    this.applySessionCookies(response, result.accessToken, result.refreshToken, result.expiresIn);
+    this.applySessionCookies(
+      response,
+      result.accessToken,
+      result.refreshToken,
+      result.expiresIn,
+    );
 
-    return { ok: true };
+    return {
+      ok: true,
+      accessToken: result.accessToken,
+    };
   }
 
   @Public()
@@ -125,7 +141,13 @@ export class AuthController {
 
   private clearSessionCookies(response: Response): void {
     const isProduction = process.env.NODE_ENV === 'production';
-    response.clearCookie(ACCESS_TOKEN_COOKIE, buildAccessTokenCookieOptions(isProduction));
-    response.clearCookie(REFRESH_TOKEN_COOKIE, buildRefreshTokenCookieOptions(isProduction));
+    response.clearCookie(
+      ACCESS_TOKEN_COOKIE,
+      buildAccessTokenCookieOptions(isProduction),
+    );
+    response.clearCookie(
+      REFRESH_TOKEN_COOKIE,
+      buildRefreshTokenCookieOptions(isProduction),
+    );
   }
 }

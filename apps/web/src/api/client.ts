@@ -1,11 +1,70 @@
 import axios from "axios";
 
+const TOKEN_STORAGE_KEY = "fh_access_token_fallback";
+
+let bearerAccessToken: string | null = null;
+
+function readStoredToken(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.sessionStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredToken(token: string | null): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (token) {
+      window.sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+    } else {
+      window.sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // no-op
+  }
+}
+
+bearerAccessToken = readStoredToken();
+
+export function setAccessToken(token: string | null): void {
+  bearerAccessToken = token?.trim() || null;
+  writeStoredToken(bearerAccessToken);
+}
+
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
+});
+
+apiClient.interceptors.request.use((config) => {
+  if (bearerAccessToken && !config.headers?.Authorization) {
+    const headers = config.headers;
+
+    if (headers && typeof (headers as { set?: unknown }).set === "function") {
+      (headers as { set: (key: string, value: string) => void }).set(
+        "Authorization",
+        `Bearer ${bearerAccessToken}`,
+      );
+    } else {
+      config.headers = {
+        ...(headers || {}),
+        Authorization: `Bearer ${bearerAccessToken}`,
+      } as typeof config.headers;
+    }
+  }
+
+  return config;
 });
 
 let refreshPromise: Promise<void> | null = null;
@@ -36,8 +95,12 @@ apiClient.interceptors.response.use(
 
     if (!refreshPromise) {
       refreshPromise = apiClient
-        .post("/auth/refresh", undefined, { skipAuthRefresh: true } as never)
-        .then(() => undefined)
+        .post<{ accessToken?: string }>("/auth/refresh", undefined, { skipAuthRefresh: true } as never)
+        .then(({ data }) => {
+          if (data?.accessToken) {
+            setAccessToken(data.accessToken);
+          }
+        })
         .finally(() => {
           refreshPromise = null;
         });
@@ -47,6 +110,7 @@ apiClient.interceptors.response.use(
       await refreshPromise;
       return await apiClient(originalRequest);
     } catch {
+      setAccessToken(null);
       return Promise.reject(error);
     }
   },

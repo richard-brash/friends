@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import axios from "axios";
-import { apiClient } from "../api/client";
+import { apiClient, setAccessToken } from "../api/client";
 import type { CurrentUser } from "../api/me";
 import { loadCurrentUser, setCurrentUser } from "./user";
 
@@ -11,6 +11,7 @@ export const authError = ref<string | null>(null);
 let initialized = false;
 
 function clearAuthState(): void {
+  setAccessToken(null);
   isAuthenticated.value = false;
   authError.value = null;
   setCurrentUser(null);
@@ -57,10 +58,14 @@ export async function sendEmailOtp(email: string): Promise<void> {
 }
 
 export async function verifyEmailOtp(email: string, token: string): Promise<void> {
-  const { data } = await apiClient.post<{ user: CurrentUser }>("/auth/verify-email-code", {
+  const { data } = await apiClient.post<{ user: CurrentUser; accessToken?: string }>("/auth/verify-email-code", {
     email,
     token,
   });
+
+  if (data.accessToken) {
+    setAccessToken(data.accessToken);
+  }
 
   isAuthenticated.value = true;
   authError.value = null;
