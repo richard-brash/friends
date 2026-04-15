@@ -1,5 +1,8 @@
 # Outreach Platform MVP
-## Architectural Blueprint v0.1
+## Architectural Blueprint v0.2
+
+> **Last updated:** April 15, 2026 — reflects implemented state as of commit `4d06eb8`.
+> Decisions and historical context live in `docs/decisions/`.
 
 ---
 
@@ -50,9 +53,15 @@ NestJS API
 PostgreSQL Database
 
 Authentication:
-- Google OAuth
-- JWT with org_id and role
-- Role-based access control
+- Supabase Email OTP (magic code — no passwords, no OAuth)
+- Sessions via httpOnly cookies (`fh_access_token`, `fh_refresh_token`)
+- Bearer token fallback stored in sessionStorage for environments where cookies are blocked (e.g. mobile WebViews)
+- Token carries `org_id` and `role` claims; resolved server-side on every request
+- Invite-based onboarding — users cannot self-register without a valid invite
+- Bootstrap admins provisioned via `AUTH_ADMIN_EMAILS` env var (bypasses invite requirement)red in sessionStorage for environments where cookies are blocked (e.g. mobile WebViews)
+- Token carries `org_id` and `role` claims; resolved server-side on every request
+- Invite-based onboarding — users cannot self-register without a valid invite
+- Bootstrap admins provisioned via `AUTH_ADMIN_EMAILS` env var (bypasses invite requirement)
 
 ---
 
@@ -63,15 +72,15 @@ There are TWO separate identity domains:
 ## Authentication Identity
 Represents system users.
 - Volunteers
-- Managers
-- Admins
-
-Stored in: users table
+Stored in: `users` table (+ `user_roles`, `user_memberships`, `roles`)
 
 ## Service Identity
-Represents individuals being served (“Friends”).
+Represents individuals being served ("Friends" in the UI).
 
-Stored in: friends table
+Stored in: `people` table (referred to as "Friends" in the UI, "Person" in code and schema)
+Represents individuals being served ("Friends" in the UI).
+
+Stored in: `people` table (referred to as "Friends" in the UI, "Person" in code and schema)
 
 These identities are intentionally separate.
 
@@ -81,78 +90,229 @@ A person may exist in both domains but they are not structurally coupled.
 
 # 5. Domain Model Overview
 
-Core Entities:
-
-- Organization
-- User
-- Friend
+Core E (+ Role, UserRole, UserMembership)
+- Person ("Friend" in UI)
 - Encounter
-- Need
+- Request / RequestItem ("Need" in architecture docs)
 - FulfillmentEvent
+- Invite
 
 Model semantics:
-- Encounters record real-world interactions with friends and may produce zero or more needs.
-- Needs are individual requested items and are created from encounters.
-- FulfillmentEvents are append-only lifecycle records for needs and may optionally reference an encounter.
+- Encounters record real-world interactions with people and may produce zero or more requests.
+- Requests contain one or more RequestItems (individual needed items).
+- FulfillmentEvents are append-only lifecycle records for RequestItems and may optionally reference an encounter.
 - Locations are explicitly selected by users (no GPS auto-capture).
-- Routes are UI-only grouping of locations and are not part of the persisted domain model.
+- Routes are a UI-only grouping of locations for delivery runs.
+- Invites gate new user registration; only invited emails (or bootstrap admins) can create accounts.
+- UserMembership tracks active/inactive org membership, separate from role assignment.
 
 The atomic unit of value in the system is:
 
-Friend + Need + Fulfillment State
+Person + Requesta UI-only grouping of locations for delivery runs.
+- Invites gate new user registration; only invited emails (or bootstrap admins) can create accounts.
+- UserMembership tracks active/inactive org membership, separate from role assignment.
 
----
+The atomic unit of value in the system is:
 
-# 6. Database Schema (Authoritative Definition)
+> The canonical source of truth is `apps/api/prisma/schema.prisma`. This section reflects the current implemented schema.
 
 ## organizations
 - id (UUID, PK)
 - name (TEXT NOT NULL)
-- created_at (TIMESTAMP DEFAULT now())
+- created_at (TIMESTAMP)
 
 ## users
 - id (UUID, PK)
-- org_id (UUID FK organizations)
-- email (TEXT UNIQUE NOT NULL)
-- role (ENUM: admin, manager, volunteer)
-- created_at (TIMESTAMP DEFAULT now())
+- organization_id (UUID FK organizations)
+- auth_user_id (TEXT UNIQUE) — Supabase Auth UID
+- email (TEXT UNIQUE)
+- phone_number (TEXT UNIQUE)
+- name (TEXT NOT NULL)
+- created_at (TIMESTAMP)
 
-## friends
+## roles
 - id (UUID, PK)
-- org_id (UUID FK organizations)
-- preferred_name (TEXT)
-- aliases (JSONB DEFAULT [])
-- identifying_notes (TEXT)
-- consent_scope (ENUM: verbal, limited, none)
-- created_at (TIMESTAMP DEFAULT now())
+- name (TEXT UNIQUE) — one of: admin, manager, volunteer
+- created_at (TIMESTAMP)
+
+## user_roles
+- id (UUID, PK)
+- user_id (UUID FK users)
+- role_id (UUID FK roles)
+- created_at (TIMESTAMP)
+- UNIQUE(user_id, role_id)
+
+## user_memberships
+- id (UUID, PK)
+- user_id (UUID FK users)
+- organization_id (UUID FK organizations)
+- status (TEXT DEFAULT 'active')
+- created_at / updated_at
+- UNIQUE(user_id, organization_id)
+
+## invites
+- id (UUID, PK)
+- organization_id (UUID FK organizations)
+- channel (TEXT) — 'email' or 'sms'
+- destination (TEXT) — email address or phone
+- status (ENUM: PENDING, SENT, ACCEPTED, EXPIRED, REVOKED)
+- token_hash (TEXT UNIQUE)
+- invited_by_user_id (UUID FK users, nullable)
+- accepted_by_user_id (UUID FK users, nullable)
+- expires_at (TIMESTAMP, nullable)
+- created_at / updated_at
+
+## people
+- id (UUID, PK)
+- organization_id (UUID FK organizations)
+- display_name (TEXT)
+- normalized_name (TEXT)
+- last_seen_at (TIMESTAMP)
+- notes (TEXT)
+- created_at (TIMESTAMP)
 
 ## encounters
 - id (UUID, PK)
-- org_id (UUID FK organizations)
-- friend_id (UUID FK friends)
-- user_id (UUID FK users)
-- location_text (TEXT)
+- type (ENUM: DELIVERY, INTERACTION)
+- organization_id (UUID FK organizations)
+- person_id (UUID FK people)
+- route_id (UUID FK routes, nullable)
 - occurred_at (TIMESTAMP)
-- created_at (TIMESTAMP DEFAULT now())
+- notes (TEXT)
+- created_at (TIMESTAMP)
 
-## needs
+## requests
 - id (UUID, PK)
-- org_id (UUID FK organizations)
-- friend_id (UUID FK friends)
-- category (TEXT)
+- person_id (UUID FK people)
+- location_id (UUID FK locations)
+- taken_by_user_id (UUID FK users)
+- status (ENUM: REQUESTED, PREPARING, READY, DELIVERED, CANCELLED)
+- notes (TEXT)
+- created_at (TIMESTAMP)
+
+## request_items
+- id (UUID, PK)
+- request_id (UUID FK requests)
 - description (TEXT)
-- priority (ENUM: low, medium, high)
-- status (ENUM: see lifecycle below)
-- created_at (TIMESTAMP DEFAULT now())
+- quantity_requested (INT)
+- quantity_fulfilled (INT)
+- quantity_delivered (INT)
+- fulfilled_by_user_id (UUID FK users, nullable)
+- fulfilled_at (TIMESTAMP, nullable)
+- status (ENUM: OPEN, READY, OUT_FOR_DELIVERY, DELIVERED, CLOSED_UNABLE)
+- created_at (TIMESTAMP)
 
 ## fulfillment_events
 - id (UUID, PK)
-- org_id (UUID FK organizations)
-- need_id (UUID FK needs)
-- encounter_id (UUID NULL FK encounters)
-- event_type (TEXT)
+- request_item_id (UUID FK request_items)
+- event_type (ENUM: CREATED, READY, OUT_FOR_DELIVERY, DELIVERED, ATTEMPTED_NOT_FOUND, CLOSED_UNABLE)
 - notes (TEXT)
-- created_at (TIMESTAMP DEFAULT now())
+- created_at (TIMESTAMP)
+
+## locations
+- id (UUID, PK)
+- organization_id (UUID FK organizations)
+- name (TEXT)
+- description (TEXT)
+- is_active (BOOLEAN)
+- latitude / longitude (DECIMAL, optional)
+- created_at (TIMESTAMP)
+
+## routes
+- id (UUID, PK)
+- organization_id (UUID FK organizations)
+- name (TEXT)
+- description (TEXT)
+- created_at (TIMESTAMP)
+
+## quick_pick_items
+- id (UUID, PK)
+- organization_id (UUID FK organizations)
+- label (TEXT)
+- created_at (TIMESTAMPED, EXPIRED, REVOKED)
+- token_hash (TEXT UNIQUE)
+- invited_by_user_id (UUID FK users, nullable)
+- accepted_by_user_id (UUID FK users, nullable)
+- expires_at (TIMESTAMP, nullable)
+- created_at / updated_at
+
+## people
+- id (UUID, PK)
+- organization_id (UUID FK organizations)
+- display_name (TEXT)
+- normalized_name (TEXT)
+- last_seen_at (TIMESTAMP)
+- notes (TEXT)
+- created_at (TIMESTAMP)
+
+## encounters
+- id (UUID, PK)
+- type (ENUM: DELIVERY, INTERACTION)
+- organization_id (UUID FK organizations)
+- person_id (UUID FK people)
+- route_id (UUID FK routes, nullable)
+- occurred_at (TIMESTAMP)
+- notes (TEXT)
+- created_at (TIMESTAMP)
+
+## requests
+- id (UUID, PK)
+- person_id (UUID FK people)
+- location_id (UUID FK locations)
+- taken_by_user_id (UUID FK users)
+- status (ENUM: REQUESTED, PREPARING, READY, DELIVERED, CANCELLED)
+- notes (TEXT)
+- created_at (TIMESTAMP)
+
+## request_items
+- id (UUID, PK)
+- request_id (UUID FK requests)
+- description (TEXT)
+- quantity_requested (INT)
+- quantity_fulfilled (INT)
+- quantity_delivered (INT)
+- fulfilled_by_user_id (UUID FK users, nullable)
+- fulfilled_at (TIMESTAMP, nullable)
+- status (ENUM: OPEN, READY, OUT_FOR_DELIVERY, DELIVERED, CLOSED_UNABLE)
+- created_at (TIMESTAMP)
+
+## fulfillment_events
+- id (UUID, PK)
+- request_item (grant/revoke roles, view all org members)
+- Send and manage invites
+- Change any request/item status
+- Access Settings page
+- No hard delete
+
+## manager
+- View all org data
+- Send and manage invites
+- Manage requests and items
+- Change request/item status
+- Access Settings page
+- Cannot manage user roles
+- Cannot delete records
+
+## volunteer
+- Create person record
+- Log encounters
+- Create requests and items
+- Mark delivered or attempted_not_found
+- Cannot delete
+- Cannot manage users or roles
+- Cannot access Settings page
+
+Role assignment is managed via the Settings → User Access panel (admin only).
+Roles are stored in the `user_roles` junction table. A user may hold multiple roles;
+the system resolves to the highest-privilege role for access control (admin > manager > volunteer).
+- description (TEXT)
+- created_at (TIMESTAMP)
+
+## quick_pick_items
+- id (UUID, PK)
+- organization_id (UUID FK organizations)
+- label (TEXT)
+- created_at (TIMESTAMP)
 
 ---
 
@@ -192,54 +352,97 @@ Status mapping from fulfillment event type:
 - closed_unable → closed_unable
 
 Derived state:
-- Friend expected location is derived from the last encounter location.
-- Need status is derived from the latest fulfillment event.
 
----
+## Authentication
+POST /auth/request-email-code   — send OTP to email
+POST /auth/verify-email-code    — verify OTP, set session cookies
+POST /auth/refresh              — refresh session using refresh cookie
+POST /auth/logout               — clear session cookies
+GET  /auth/me                   — return authenticated user + role
+GET  /me                        — alias for current user context
 
-# 8. Role Permissions
+## People ("Friends")
+GET    /friends?search=
+POST   /friends
+GET    /friends/:id
+PATCH  /friends/:id
 
-## admin
-- Full read/write access
-- Manage users
-- Change any need status
-- No hard delete
+## Encounters
+POST   /encounters
+GET    /encounters
 
-## manager
-- View all data
-- Manage needs
-- Change status
-- Cannot delete records
+## Requests
+GET    /requests
+POST   /requests
+PATCH  /requests/:id
 
+## Delivery Attempts
+POST   /delivery-attempts
+GET    /delivery-attempts
+
+## Routes & Locations
+GET    /routes
+GET    /routes/:id
+GET    /locations
+GET    /locations/:id
+
+## Invites (admin/manager only)
+GET    /invites
+POST   /invites
+POST   /invites/:id/resend
+DELETE /invites/:id/cancel
+DELETE /invites/:id
+
+## User Access (admin/manager read; admin write)
+GET    /user-access
+POST   /user-access/:userId/roles
+DELETE /user-access/:userId/roles/:roleName
+PUT    /user-access/:userId/roles
+
+## Quick Pick Items (admin/manager only)
+GET    /quick-pick-items
+POST   /quick-pick-items
+PATCH  /quick-pick-items/:id
+DELETE /quick-pick-items/:id
+POST   /quick-pick-items/seed-defaults
+
+## Dashboard
+GET    /dashboard
+
+## Health
+GET    /health
 ## volunteer
-- Create friend
-- Create encounter
-- Create need
-- Mark delivered
-- Mark attempted_not_found
-- Cannot delete
-- Cannot manage users
+- Create person record
+- Log encounters
+- Create requests and items
+- Mark delivered or attempted_not_found
+- Cannot del (Route List)
+- List of active routes
+- Open request counts per location
 
----
+## Route Detail / Location Page
+- People at this location
+- Open requests
+- Log encounter button
 
-# 9. MVP User Flows
+## Encounter Form
+- Person search / create
+- Notes
+- Quick-pick item buttons
+- Submit
 
-## Field Flow
+## Warehouse Queue
+- List of open/preparing requests
+- Status transition buttons (Preparing → Ready → Out for Delivery → Delivered)
 
-1. Login
-2. Search Friend
-3. If not found → Create Friend
-4. Log Encounter
-5. Add Need (optional)
-6. Done
+## Settings (admin/manager only)
+- Quick Pick Items — manage preset item buttons
+- Invite Management — send, track, resend, cancel invites
+- User Access — view all org users, grant/revoke roles
 
-Target time: < 30 seconds
-
----
-
-## Pre-Route Flow
-
-1. Manager views Open Needs
+## Login
+- Email input → OTP code input
+- Invite-gated (unknown emails are rejected at OTP request time)s
 2. Move to sourcing / ready
 3. Mark out_for_delivery
 
@@ -265,13 +468,17 @@ All manual timestamps must be auditable.
 
 ---
 
-# 10. API Surface (Minimal Contract)
+# 10. API Surface
 
 ## Authentication
-POST /auth/login
-GET  /auth/me
+POST /auth/request-email-code   — send OTP to email
+POST /auth/verify-email-code    — verify OTP, set session cookies
+POST /auth/refresh              — refresh session using refresh cookie
+POST /auth/logout               — clear session cookies
+GET  /auth/me                   — return authenticated user + role
+GET  /me                        — alias for current user context
 
-## Friends
+## People ("Friends")
 GET    /friends?search=
 POST   /friends
 GET    /friends/:id
@@ -279,50 +486,80 @@ PATCH  /friends/:id
 
 ## Encounters
 POST   /encounters
-GET    /friends/:id/encounters
+GET    /encounters
 
-## Needs
-POST   /needs
-GET    /needs?status=
-PATCH  /needs/:id/status
+## Requests
+GET    /requests
+POST   /requests
+PATCH  /requests/:id
 
-## Fulfillment
-POST   /needs/:id/events
+## Delivery Attempts
+POST   /delivery-attempts
+GET    /delivery-attempts
 
-No additional endpoints in MVP.
+## Routes & Locations
+GET    /routes
+GET    /routes/:id
+GET    /locations
+GET    /locations/:id
+
+## Invites (admin/manager only)
+GET    /invites
+POST   /invites
+POST   /invites/:id/resend
+DELETE /invites/:id/cancel
+DELETE /invites/:id
+
+## User Access (admin/manager read; admin write)
+GET    /user-access
+POST   /user-access/:userId/roles
+DELETE /user-access/:userId/roles/:roleName
+PUT    /user-access/:userId/roles
+
+## Quick Pick Items (admin/manager only)
+GET    /quick-pick-items
+POST   /quick-pick-items
+PATCH  /quick-pick-items/:id
+DELETE /quick-pick-items/:id
+POST   /quick-pick-items/seed-defaults
+
+## Dashboard
+GET    /dashboard
+
+## Health
+GET    /health
 
 ---
 
 # 11. Frontend Screens
 
-## Dashboard
-- Search input
-- Open needs count
-- Ready count
-- Add Friend button
+## Dashboard (Route List)
+- List of active routes
+- Open request counts per location
 
-## Friend Profile
-- Header: name, aliases, consent
-- Tabs: Encounters | Needs
-- + Log Encounter button
+## Route Detail / Location Page
+- People at this location
+- Open requests
+- Log encounter button
 
-## Log Encounter
-- Location text
+## Encounter Form
+- Person search / create
 - Notes
-- Save
-- Save & Add Need
-
-## Add Need
-- Category dropdown
-- Description
-- Priority toggle
+- Quick-pick item buttons
 - Submit
 
-## Need Detail
-- Friend name
-- Description
-- Status badge
-- State transition buttons
+## Warehouse Queue
+- List of open/preparing requests
+- Status transition buttons (Preparing → Ready → Out for Delivery → Delivered)
+
+## Settings (admin/manager only)
+- Quick Pick Items — manage preset item buttons
+- Invite Management — send, track, resend, cancel invites
+- User Access — view all org users, grant/revoke roles
+
+## Login
+- Email input → OTP code input
+- Invite-gated (unknown emails are rejected at OTP request time)
 
 ---
 
