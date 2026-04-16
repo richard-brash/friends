@@ -8,7 +8,7 @@ type ActionType = "mark-unavailable" | "mark-available" | "mark-picked";
 
 const props = defineProps<{
   item: WarehouseRequestItem;
-  requestStatus: "REQUESTED" | "PREPARING" | "READY" | "DELIVERED" | "CANCELLED";
+  requestStatus: "REQUESTED" | "PREPARING" | "READY" | "DELIVERED" | "CANCELLED" | "CLOSED_UNABLE";
   userRole: UserRole;
   isNew?: boolean;
 }>();
