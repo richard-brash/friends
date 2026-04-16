@@ -1,4 +1,4 @@
-import { FulfillmentEventType, PrismaClient, RequestStatus } from "@prisma/client";
+                                                                                                                import { FulfillmentEventType, NeedStatus, PrismaClient, RequestStatus } from "@prisma/client";
 import { applyFulfillmentEventInTransaction } from "./fulfillmentEventService";
 import { buildRequestHistory, type RequestHistoryEntry } from "./requestHistory";
 
@@ -8,6 +8,7 @@ export type WarehouseRequestItem = {
   id: string;
   description: string;
   quantityRequested: number;
+  status: string;
 };
 
 export type WarehouseRequestSummary = {
@@ -61,6 +62,7 @@ export async function listRequestsByStatus(
           id: true,
           description: true,
           quantity_requested: true,
+          status: true,
           fulfillmentEvents: {
             select: {
               event_type: true,
@@ -92,6 +94,7 @@ export async function listRequestsByStatus(
       id: item.id,
       description: item.description,
       quantityRequested: item.quantity_requested,
+      status: item.status,
     })),
     history: buildRequestHistory(request),
   }));
@@ -110,6 +113,7 @@ export async function updateRequestStatus(
         items: {
           select: {
             id: true,
+            status: true,
           },
         },
       },
@@ -121,6 +125,16 @@ export async function updateRequestStatus(
 
     if (status === RequestStatus.READY) {
       for (const item of request.items) {
+        // Skip items already handled by warehouse
+        if (
+          item.status === NeedStatus.READY ||
+          item.status === NeedStatus.UNAVAILABLE ||
+          item.status === NeedStatus.DELIVERED ||
+          item.status === NeedStatus.CLOSED_UNABLE
+        ) {
+          continue;
+        }
+
         await applyFulfillmentEventInTransaction(tx, {
           needId: item.id,
           eventType: FulfillmentEventType.READY,
@@ -135,6 +149,22 @@ export async function updateRequestStatus(
               increment: 1,
             },
           },
+        });
+      }
+    }
+
+    if (status === RequestStatus.CLOSED_UNABLE) {
+      for (const item of request.items) {
+        if (
+          item.status === NeedStatus.DELIVERED ||
+          item.status === NeedStatus.CLOSED_UNABLE
+        ) {
+          continue;
+        }
+
+        await applyFulfillmentEventInTransaction(tx, {
+          needId: item.id,
+          eventType: FulfillmentEventType.CLOSED_UNABLE,
         });
       }
     }
@@ -157,4 +187,133 @@ export async function updateRequestStatus(
     id: updatedRequest.id,
     status: updatedRequest.status,
   };
+}
+
+export async function addRequestItem(
+  requestId: string,
+  description: string,
+  quantityRequested: number,
+): Promise<{ id: string } | null> {
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    select: { id: true, status: true },
+  });
+
+  if (!request) return null;
+
+  if (request.status !== RequestStatus.REQUESTED && request.status !== RequestStatus.PREPARING) {
+    throw new Error("REQUEST_NOT_EDITABLE");
+  }
+
+  const item = await prisma.$transaction(async (tx) => {
+    const created = await tx.requestItem.create({
+      data: {
+        request_id: requestId,
+        description,
+        quantity_requested: quantityRequested,
+      },
+      select: { id: true },
+    });
+
+    await applyFulfillmentEventInTransaction(tx, {
+      needId: created.id,
+      eventType: FulfillmentEventType.CREATED,
+    });
+
+    return created;
+  });
+
+  return { id: item.id };
+}
+
+export async function updateRequestItem(
+  requestId: string,
+  itemId: string,
+  description: string,
+  quantityRequested: number,
+): Promise<{ id: string } | null> {
+  const item = await prisma.requestItem.findUnique({
+    where: { id: itemId },
+    select: { id: true, request_id: true, status: true },
+  });
+
+  if (!item || item.request_id !== requestId) return null;
+
+  if (item.status !== NeedStatus.OPEN && item.status !== NeedStatus.READY) {
+    throw new Error("ITEM_NOT_EDITABLE");
+  }
+
+  await prisma.requestItem.update({
+    where: { id: itemId },
+    data: { description, quantity_requested: quantityRequested },
+  });
+
+  return { id: itemId };
+}
+
+const ACTION_TO_EVENT: Record<string, FulfillmentEventType> = {
+  "mark-unavailable": FulfillmentEventType.UNAVAILABLE,
+  "mark-available": FulfillmentEventType.UNAVAILABLE_REVERSED,
+  "close-unable": FulfillmentEventType.CLOSED_UNABLE,
+};
+
+export async function pickItem(
+  requestId: string,
+  itemId: string,
+  actorUserId: string,
+): Promise<{ id: string; status: NeedStatus } | null> {
+  const item = await prisma.requestItem.findUnique({
+    where: { id: itemId },
+    select: { id: true, request_id: true, status: true },
+  });
+
+  if (!item || item.request_id !== requestId) return null;
+  if (item.status !== NeedStatus.OPEN) throw new Error("ITEM_NOT_PICKABLE");
+
+  const result = await prisma.$transaction(async (tx) => {
+    const event = await applyFulfillmentEventInTransaction(tx, {
+      needId: itemId,
+      eventType: FulfillmentEventType.READY,
+    });
+
+    await tx.requestItem.update({
+      where: { id: itemId },
+      data: {
+        fulfilled_by_user_id: actorUserId,
+        fulfilled_at: new Date(),
+        quantity_fulfilled: { increment: 1 },
+      },
+    });
+
+    return event;
+  });
+
+  return { id: result.needId, status: result.status };
+}
+
+export async function applyNeedAction(
+  requestId: string,
+  itemId: string,
+  action: string,
+  notes: string,
+): Promise<{ id: string; status: NeedStatus } | null> {
+  const eventType = ACTION_TO_EVENT[action];
+  if (!eventType) throw new Error("UNKNOWN_ACTION");
+
+  const item = await prisma.requestItem.findUnique({
+    where: { id: itemId },
+    select: { id: true, request_id: true },
+  });
+
+  if (!item || item.request_id !== requestId) return null;
+
+  const result = await prisma.$transaction((tx) =>
+    applyFulfillmentEventInTransaction(tx, {
+      needId: itemId,
+      eventType,
+      notes: notes || undefined,
+    }),
+  );
+
+  return { id: result.needId, status: result.status };
 }

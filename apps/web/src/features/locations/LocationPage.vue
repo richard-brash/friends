@@ -6,7 +6,9 @@ import { useToast } from "../../composables/useToast";
 import { getLocation } from "../../api/locations";
 import { currentUser } from "../../stores/user";
 import { activeRoute } from "../../stores/routeContext";
-import type { LocationDetail, PersonSummary, RequestSummary } from "../../types/api";
+import type { LocationDetail, PersonSummary, RequestItem, RequestSummary } from "../../types/api";
+import ItemActionSheet from "../../components/ItemActionSheet.vue";
+import { addRequestItem, applyItemAction, updateRequestItem, closeRequest, type NeedStatus, type WarehouseRequestItem } from "../../api/requests";
 
 type RequestsByPerson = {
   key: string;
@@ -25,6 +27,113 @@ const expandedHistoryRequestIds = ref<Set<string>>(new Set());
 let confirmDeliveryTimeout: ReturnType<typeof setTimeout> | null = null;
 const { showToast } = useToast();
 const deliveredExpanded = ref(false);
+
+type SheetState =
+  | { open: false }
+  | { open: true; item: WarehouseRequestItem; requestId: string; requestStatus: RequestSummary["status"]; isNew: boolean };
+
+const sheet = ref<SheetState>({ open: false });
+
+const NEW_ITEM_PLACEHOLDER: WarehouseRequestItem = {
+  id: "",
+  description: "",
+  quantityRequested: 1,
+  status: "OPEN",
+};
+
+function toSheetItem(item: RequestItem): WarehouseRequestItem {
+  return {
+    id: item.id,
+    description: item.description,
+    quantityRequested: item.quantityRequested,
+    status: (item.status ?? "OPEN") as NeedStatus,
+  };
+}
+
+function hasAvailableActions(
+  item: WarehouseRequestItem,
+  requestStatus: RequestSummary["status"],
+): boolean {
+  if (requestStatus === "DELIVERED" || requestStatus === "CANCELLED" || requestStatus === "CLOSED_UNABLE") return false;
+  const role = currentUser.value?.role ?? "volunteer";
+  const editable = requestStatus === "REQUESTED" || requestStatus === "PREPARING";
+  if (editable) return true;
+  if ((role === "manager" || role === "admin") && item.status === "UNAVAILABLE") return true;
+  if ((role === "manager" || role === "admin") && item.status === "OPEN") return true;
+  return false;
+}
+
+function openSheet(item: WarehouseRequestItem, request: RequestSummary): void {
+  sheet.value = {
+    open: true,
+    item,
+    requestId: request.id,
+    requestStatus: request.status,
+    isNew: false,
+  };
+}
+
+function openAddItem(request: RequestSummary): void {
+  sheet.value = {
+    open: true,
+    item: { ...NEW_ITEM_PLACEHOLDER },
+    requestId: request.id,
+    requestStatus: request.status,
+    isNew: true,
+  };
+}
+
+function closeSheet(): void {
+  sheet.value = { open: false };
+}
+
+async function onSheetSave(payload: { description: string; quantity: number }): Promise<void> {
+  if (!sheet.value.open) return;
+  const { requestId, isNew, item } = sheet.value;
+  closeSheet();
+  try {
+    if (isNew) {
+      await addRequestItem(requestId, { description: payload.description, quantity: payload.quantity });
+      showToast("Item added");
+    } else {
+      await updateRequestItem(requestId, item.id, { description: payload.description, quantity: payload.quantity });
+      showToast("Item updated");
+    }
+    await loadLocation();
+  } catch {
+    showToast("Failed to save item");
+  }
+}
+
+async function onSheetAction(payload: { type: string; notes: string }): Promise<void> {
+  if (!sheet.value.open) return;
+  const { requestId, item } = sheet.value;
+  closeSheet();
+  try {
+    await applyItemAction(requestId, item.id, { action: payload.type, notes: payload.notes });
+    const labels: Record<string, string> = {
+      "mark-unavailable": "Item marked unavailable",
+      "mark-available": "Item marked available",
+      "mark-picked": "Item marked picked",
+    };
+    showToast(labels[payload.type] ?? "Done");
+    await loadLocation();
+  } catch {
+    showToast("Failed to update item");
+  }
+}
+
+async function onCloseUnable(requestId: string): Promise<void> {
+  const confirmed = window.confirm("Close this request — unable to find person?");
+  if (!confirmed) return;
+  try {
+    await closeRequest(requestId);
+    showToast("Request closed");
+    await loadLocation();
+  } catch {
+    showToast("Failed to close request");
+  }
+}
 
 const locationId = computed(() => {
   const value = route.params.id;
@@ -424,6 +533,13 @@ onBeforeUnmount(() => {
                     >
                       Deliver All
                     </button>
+                    <button
+                      type="button"
+                      class="min-h-[44px] rounded-lg border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
+                      @click="onCloseUnable(request.id)"
+                    >
+                      Can't Find Person
+                    </button>
                   </div>
                 </div>
                 <div
@@ -431,9 +547,45 @@ onBeforeUnmount(() => {
                   :key="`${request.id}-${item.id}-${itemIndex}`"
                   class="rounded-lg border border-slate-200 p-3"
                 >
-                  <p class="mb-3 text-base text-slate-800">
-                    {{ item.description }} ({{ item.quantityRequested }})
-                  </p>
+                  <component
+                    :is="hasAvailableActions(toSheetItem(item), request.status) ? 'button' : 'div'"
+                    v-bind="hasAvailableActions(toSheetItem(item), request.status) ? { type: 'button' } : {}"
+                    class="mb-3 flex w-full items-center justify-between gap-2 text-left"
+                    :class="hasAvailableActions(toSheetItem(item), request.status) ? 'cursor-pointer' : ''"
+                    @click="hasAvailableActions(toSheetItem(item), request.status) ? openSheet(toSheetItem(item), request) : undefined"
+                  >
+                    <span class="text-base text-slate-800">{{ item.description }} ({{ item.quantityRequested }})</span>
+                    <div class="flex shrink-0 items-center gap-2">
+                      <span
+                        v-if="item.status && item.status !== 'OPEN'"
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+                        :class="{
+                          'bg-emerald-100 text-emerald-800': item.status === 'READY',
+                          'bg-sky-100 text-sky-800': item.status === 'OUT_FOR_DELIVERY',
+                          'bg-slate-100 text-slate-700': item.status === 'DELIVERED',
+                          'bg-rose-100 text-rose-700': item.status === 'CLOSED_UNABLE',
+                          'bg-orange-100 text-orange-800': item.status === 'UNAVAILABLE',
+                        }"
+                      >
+                        {{
+                          item.status === 'READY' ? 'Ready' :
+                          item.status === 'OUT_FOR_DELIVERY' ? 'Out for delivery' :
+                          item.status === 'DELIVERED' ? 'Delivered' :
+                          item.status === 'CLOSED_UNABLE' ? 'Closed' :
+                          item.status === 'UNAVAILABLE' ? 'Unavailable' : ''
+                        }}
+                      </span>
+                      <svg
+                        v-if="hasAvailableActions(toSheetItem(item), request.status)"
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 shrink-0 text-slate-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                      </svg>
+                    </div>
+                  </component>
                   <div class="grid grid-cols-2 gap-2">
                     <button
                       v-if="request.status === 'READY'"
@@ -456,6 +608,18 @@ onBeforeUnmount(() => {
                     </button>
                   </div>
                 </div>
+
+                <button
+                  v-if="request.status === 'REQUESTED' || request.status === 'PREPARING'"
+                  type="button"
+                  class="mt-2 flex w-full items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-3 py-2.5 text-sm font-medium text-slate-500 hover:border-slate-400 hover:text-slate-700"
+                  @click="openAddItem(request)"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                  </svg>
+                  Add item
+                </button>
 
                 <div class="rounded-lg border border-slate-200 bg-slate-50">
                   <button
@@ -580,5 +744,17 @@ onBeforeUnmount(() => {
         </template>
       </section>
     </template>
+    <Teleport to="body">
+      <ItemActionSheet
+        v-if="sheet.open"
+        :item="sheet.item"
+        :request-status="sheet.requestStatus"
+        :user-role="currentUser?.role ?? 'volunteer'"
+        :is-new="sheet.isNew"
+        @save="onSheetSave"
+        @action="onSheetAction"
+        @close="closeSheet"
+      />
+    </Teleport>
   </section>
 </template>

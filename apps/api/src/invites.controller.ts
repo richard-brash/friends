@@ -68,7 +68,11 @@ export class InvitesController {
     @Param('inviteId') inviteId: string,
     @CurrentUser() user: RequestContext,
   ) {
-    const { invite } = await this.invitesService.resendInvite(user.orgId, inviteId, user.userId);
+    const { invite } = await this.invitesService.resendInvite(
+      user.orgId,
+      inviteId,
+      user.userId,
+    );
 
     return {
       message: `Invite resent to ${invite.destination}`,

@@ -31,7 +31,7 @@ export type RequestItem = {
   description: string;
   quantityRequested: number;
   quantityDelivered?: number;
-  status?: "OPEN" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CLOSED_UNABLE";
+  status?: "OPEN" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CLOSED_UNABLE" | "UNAVAILABLE" | "UNAVAILABLE_REVERSED";
 };
 
 export type RequestHistoryEntry = {
@@ -42,7 +42,7 @@ export type RequestHistoryEntry = {
 
 export type RequestSummary = {
   id: string;
-  status: "REQUESTED" | "PREPARING" | "READY" | "DELIVERED" | "CANCELLED";
+  status: "REQUESTED" | "PREPARING" | "READY" | "DELIVERED" | "CANCELLED" | "CLOSED_UNABLE";
   person?: {
     displayName: string | null;
   };

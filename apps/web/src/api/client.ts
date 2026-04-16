@@ -10,7 +10,7 @@ function readStoredToken(): string | null {
   }
 
   try {
-    return window.sessionStorage.getItem(TOKEN_STORAGE_KEY);
+    return window.localStorage.getItem(TOKEN_STORAGE_KEY);
   } catch {
     return null;
   }
@@ -23,9 +23,9 @@ function writeStoredToken(token: string | null): void {
 
   try {
     if (token) {
-      window.sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+      window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
     } else {
-      window.sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+      window.localStorage.removeItem(TOKEN_STORAGE_KEY);
     }
   } catch {
     // no-op

@@ -31,6 +31,8 @@ const EVENT_TO_STATUS: Record<FulfillmentEventType, NeedStatus> = {
   [FulfillmentEventType.DELIVERED]: NeedStatus.DELIVERED,
   [FulfillmentEventType.ATTEMPTED_NOT_FOUND]: NeedStatus.OPEN,
   [FulfillmentEventType.CLOSED_UNABLE]: NeedStatus.CLOSED_UNABLE,
+  [FulfillmentEventType.UNAVAILABLE]: NeedStatus.UNAVAILABLE,
+  [FulfillmentEventType.UNAVAILABLE_REVERSED]: NeedStatus.OPEN,
 };
 
 export async function applyFulfillmentEvent(

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { markRequestReady, getRequests, type WarehouseRequest } from "../../api/requests";
+import { markRequestReady, closeRequest, getRequests, type WarehouseRequest, type WarehouseRequestItem } from "../../api/requests";
 import { getRoutes } from "../../api/routes";
 import type { RouteSummary } from "../../types/api";
 import { useToast } from "../../composables/useToast";
+import { currentUser } from "../../stores/user";
+import ItemActionSheet from "../../components/ItemActionSheet.vue";
 
-type StatusFilter = "" | "REQUESTED" | "PREPARING" | "READY" | "DELIVERED" | "CANCELLED";
+type StatusFilter = "" | "REQUESTED" | "PREPARING" | "READY" | "DELIVERED" | "CANCELLED" | "CLOSED_UNABLE";
 
 const STATUS_LABELS: Record<StatusFilter, string> = {
   "": "All Statuses",
@@ -14,6 +16,7 @@ const STATUS_LABELS: Record<StatusFilter, string> = {
   READY: "Ready for Delivery",
   DELIVERED: "Delivered",
   CANCELLED: "Cancelled",
+  CLOSED_UNABLE: "Closed — Unable",
 };
 
 const queue = ref<WarehouseRequest[]>([]);
@@ -26,6 +29,101 @@ const error = ref<string | null>(null);
 const updatingIds = ref<Set<string>>(new Set());
 const expandedHistoryRequestIds = ref<Set<string>>(new Set());
 const { showToast } = useToast();
+
+type SheetState =
+  | { open: false }
+  | { open: true; item: WarehouseRequestItem; requestId: string; requestStatus: WarehouseRequest["status"]; isNew: false }
+  | { open: true; item: WarehouseRequestItem; requestId: string; requestStatus: WarehouseRequest["status"]; isNew: true };
+
+const sheet = ref<SheetState>({ open: false });
+
+const NEW_ITEM_PLACEHOLDER: WarehouseRequestItem = {
+  id: "",
+  description: "",
+  quantityRequested: 1,
+  status: "OPEN",
+};
+
+function hasAvailableActions(
+  item: WarehouseRequestItem,
+  requestStatus: WarehouseRequest["status"],
+): boolean {
+  if (requestStatus === "DELIVERED" || requestStatus === "CANCELLED" || requestStatus === "CLOSED_UNABLE") return false;
+  const role = currentUser.value?.role ?? "volunteer";
+  const editable = requestStatus === "REQUESTED" || requestStatus === "PREPARING";
+  if (editable) return true;
+  if ((role === "manager" || role === "admin") && item.status === "UNAVAILABLE") return true;
+  if ((role === "manager" || role === "admin") && item.status === "OPEN") return true;
+  return false;
+}
+
+function openSheet(item: WarehouseRequestItem, request: WarehouseRequest): void {
+  sheet.value = {
+    open: true,
+    item,
+    requestId: request.id,
+    requestStatus: request.status,
+    isNew: false,
+  };
+}
+
+function openAddItem(request: WarehouseRequest): void {
+  sheet.value = {
+    open: true,
+    item: { ...NEW_ITEM_PLACEHOLDER },
+    requestId: request.id,
+    requestStatus: request.status,
+    isNew: true,
+  };
+}
+
+function closeSheet(): void {
+  sheet.value = { open: false };
+}
+
+async function onSheetSave(payload: { description: string; quantity: number }): Promise<void> {
+  if (!sheet.value.open) return;
+  const { requestId, isNew, item } = sheet.value;
+  closeSheet();
+
+  try {
+    if (isNew) {
+      await import("../../api/requests").then(({ addRequestItem }) =>
+        addRequestItem(requestId, { description: payload.description, quantity: payload.quantity }),
+      );
+      showToast("Item added");
+    } else {
+      await import("../../api/requests").then(({ updateRequestItem }) =>
+        updateRequestItem(requestId, item.id, { description: payload.description, quantity: payload.quantity }),
+      );
+      showToast("Item updated");
+    }
+    await loadQueue();
+  } catch {
+    showToast("Failed to save item");
+  }
+}
+
+async function onSheetAction(payload: { type: string; notes: string }): Promise<void> {
+  if (!sheet.value.open) return;
+  const { requestId, item } = sheet.value;
+  closeSheet();
+
+  try {
+    await import("../../api/requests").then(({ applyItemAction }) =>
+      applyItemAction(requestId, item.id, { action: payload.type, notes: payload.notes }),
+    );
+    const labels: Record<string, string> = {
+      "mark-unavailable": "Item marked unavailable",
+      "mark-available": "Item marked available",
+      "mark-picked": "Item marked picked",
+    };
+    showToast(labels[payload.type] ?? "Done");
+    await loadQueue();
+  } catch {
+    showToast("Failed to update item");
+  }
+}
 
 type ParsedNeedDetails = {
   base: string;
@@ -138,6 +236,7 @@ function getStatusBadgeClass(status: WarehouseRequest["status"]): string {
     READY: "bg-emerald-100 text-emerald-800",
     DELIVERED: "bg-slate-100 text-slate-700",
     CANCELLED: "bg-rose-100 text-rose-700",
+    CLOSED_UNABLE: "bg-rose-100 text-rose-700",
   };
 
   return map[status] ?? "bg-slate-100 text-slate-700";
@@ -186,7 +285,6 @@ async function onMarkReady(requestId: string): Promise<void> {
 
   try {
     await markRequestReady(requestId);
-    // If filtering to REQUESTED only, remove from view; otherwise reload to get updated status
     if (selectedStatus.value === "REQUESTED") {
       queue.value = queue.value.filter((request) => request.id !== requestId);
     } else {
@@ -196,6 +294,29 @@ async function onMarkReady(requestId: string): Promise<void> {
     showToast("Request marked ready");
   } catch {
     error.value = "Failed to update request status.";
+  } finally {
+    const updated = new Set(updatingIds.value);
+    updated.delete(requestId);
+    updatingIds.value = updated;
+  }
+}
+
+async function onCloseUnable(requestId: string): Promise<void> {
+  const confirmed = window.confirm("Close this request — unable to find person? This will close all open items.");
+  if (!confirmed) return;
+
+  if (updatingIds.value.has(requestId)) return;
+
+  const next = new Set(updatingIds.value);
+  next.add(requestId);
+  updatingIds.value = next;
+
+  try {
+    await closeRequest(requestId);
+    queue.value = queue.value.filter((r) => r.id !== requestId);
+    showToast("Request closed");
+  } catch {
+    error.value = "Failed to close request.";
   } finally {
     const updated = new Set(updatingIds.value);
     updated.delete(requestId);
@@ -314,25 +435,79 @@ watch([selectedRouteId, selectedStatus], () => {
           <li
             v-for="(item, itemIndex) in request.items"
             :key="`${request.id}-${itemIndex}-${item.description}`"
-            class="rounded-xl bg-slate-50 px-3 py-3"
           >
-            <p class="text-base text-slate-800">
-              {{ parseNeedDetails(item.description).base }} ({{ item.quantityRequested }})
-            </p>
-            <div
-              v-if="parseNeedDetails(item.description).modifiers.length"
-              class="mt-2 flex flex-wrap gap-1"
+            <component
+              :is="hasAvailableActions(item, request.status) ? 'button' : 'div'"
+              v-bind="hasAvailableActions(item, request.status) ? { type: 'button' } : {}"
+              class="w-full rounded-xl bg-slate-50 px-3 py-3 text-left"
+              :class="hasAvailableActions(item, request.status) ? 'hover:bg-slate-100 active:bg-slate-200 cursor-pointer' : ''"
+              @click="hasAvailableActions(item, request.status) ? openSheet(item, request) : undefined"
             >
-              <span
-                v-for="modifier in parseNeedDetails(item.description).modifiers"
-                :key="`${item.description}-${modifier}`"
-                class="rounded-full bg-sky-100 px-2 py-1 text-xs font-medium text-sky-800"
-              >
-                {{ modifier }}
-              </span>
-            </div>
+              <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                  <p class="text-base text-slate-800">
+                    {{ parseNeedDetails(item.description).base }} ({{ item.quantityRequested }})
+                  </p>
+                  <div
+                    v-if="parseNeedDetails(item.description).modifiers.length"
+                    class="mt-2 flex flex-wrap gap-1"
+                  >
+                    <span
+                      v-for="modifier in parseNeedDetails(item.description).modifiers"
+                      :key="`${item.description}-${modifier}`"
+                      class="rounded-full bg-sky-100 px-2 py-1 text-xs font-medium text-sky-800"
+                    >
+                      {{ modifier }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex shrink-0 items-center gap-2">
+                  <span
+                    v-if="item.status !== 'OPEN'"
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+                    :class="{
+                      'bg-emerald-100 text-emerald-800': item.status === 'READY',
+                      'bg-sky-100 text-sky-800': item.status === 'OUT_FOR_DELIVERY',
+                      'bg-slate-100 text-slate-700': item.status === 'DELIVERED',
+                      'bg-rose-100 text-rose-700': item.status === 'CLOSED_UNABLE',
+                      'bg-orange-100 text-orange-800': item.status === 'UNAVAILABLE',
+                    }"
+                  >
+                    {{
+                      item.status === 'READY' ? 'Ready' :
+                      item.status === 'OUT_FOR_DELIVERY' ? 'Out for delivery' :
+                      item.status === 'DELIVERED' ? 'Delivered' :
+                      item.status === 'CLOSED_UNABLE' ? 'Closed' :
+                      item.status === 'UNAVAILABLE' ? 'Unavailable' : ''
+                    }}
+                  </span>
+                  <svg
+                    v-if="hasAvailableActions(item, request.status)"
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 shrink-0 text-slate-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+            </component>
           </li>
         </ul>
+
+        <!-- Add item -->
+        <button
+          v-if="request.status === 'REQUESTED' || request.status === 'PREPARING'"
+          type="button"
+          class="mt-2 flex w-full items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-3 py-2.5 text-sm font-medium text-slate-500 hover:border-slate-400 hover:text-slate-700"
+          @click="openAddItem(request)"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+          </svg>
+          Add item
+        </button>
 
         <!-- History accordion -->
         <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50">
@@ -363,16 +538,28 @@ watch([selectedRouteId, selectedStatus], () => {
           </div>
         </div>
 
-        <!-- Action: Mark Ready (only for REQUESTED) -->
-        <button
-          v-if="request.status === 'REQUESTED'"
-          type="button"
-          class="mt-4 min-h-[44px] w-full rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-          :disabled="updatingIds.has(request.id)"
-          @click="onMarkReady(request.id)"
+        <!-- Action: Mark Ready / Close Unable (only for REQUESTED/PREPARING) -->
+        <div
+          v-if="request.status === 'REQUESTED' || request.status === 'PREPARING'"
+          class="mt-4 flex gap-2"
         >
-          {{ updatingIds.has(request.id) ? "Updating..." : "Mark Ready" }}
-        </button>
+          <button
+            type="button"
+            class="min-h-[44px] flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            :disabled="updatingIds.has(request.id)"
+            @click="onMarkReady(request.id)"
+          >
+            {{ updatingIds.has(request.id) ? "Updating..." : "Mark Ready" }}
+          </button>
+          <button
+            type="button"
+            class="min-h-[44px] rounded-xl border border-rose-300 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="updatingIds.has(request.id)"
+            @click="onCloseUnable(request.id)"
+          >
+            Can't Find Person
+          </button>
+        </div>
       </article>
     </div>
 
@@ -380,4 +567,18 @@ watch([selectedRouteId, selectedStatus], () => {
       No requests found for the selected filters.
     </p>
   </section>
+
+  <!-- Item action sheet (teleported to body to escape card stacking context) -->
+  <Teleport to="body">
+    <ItemActionSheet
+      v-if="sheet.open"
+      :item="sheet.item"
+      :request-status="sheet.requestStatus"
+      :user-role="currentUser?.role ?? 'volunteer'"
+      :is-new="sheet.isNew"
+      @save="onSheetSave"
+      @action="onSheetAction"
+      @close="closeSheet"
+    />
+  </Teleport>
 </template>

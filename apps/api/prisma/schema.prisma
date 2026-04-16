@@ -13,6 +13,7 @@ enum RequestStatus {
   READY
   DELIVERED
   CANCELLED
+  CLOSED_UNABLE
 }
 
 enum DeliveryOutcome {
@@ -33,6 +34,8 @@ enum NeedStatus {
   OUT_FOR_DELIVERY
   DELIVERED
   CLOSED_UNABLE
+  UNAVAILABLE
+  UNAVAILABLE_REVERSED
 }
 
 enum FulfillmentEventType {
@@ -42,6 +45,8 @@ enum FulfillmentEventType {
   DELIVERED
   ATTEMPTED_NOT_FOUND
   CLOSED_UNABLE
+  UNAVAILABLE
+  UNAVAILABLE_REVERSED
 }
 
 enum InviteStatus {

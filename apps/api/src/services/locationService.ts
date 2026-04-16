@@ -15,7 +15,7 @@ export type LocationRequestItem = {
   description: string;
   quantityRequested: number;
   quantityDelivered: number;
-  status: "OPEN" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CLOSED_UNABLE";
+  status: "OPEN" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CLOSED_UNABLE" | "UNAVAILABLE" | "UNAVAILABLE_REVERSED";
 };
 
 export type LocationRequest = {

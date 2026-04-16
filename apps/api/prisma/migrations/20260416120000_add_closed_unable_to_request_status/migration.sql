@@ -1,0 +1,2 @@
+-- Add CLOSED_UNABLE to RequestStatus enum
+ALTER TYPE "RequestStatus" ADD VALUE IF NOT EXISTS 'CLOSED_UNABLE';
