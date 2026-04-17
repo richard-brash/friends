@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from './prisma/prisma.service';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
@@ -436,6 +436,20 @@ export class AuthService {
     }
 
     const bodyText = await response.text();
+
+    if (response.status >= 500) {
+      let detail: string;
+      try {
+        const parsed = JSON.parse(bodyText) as { msg?: string; message?: string };
+        detail = parsed.msg || parsed.message || bodyText || 'Unknown error';
+      } catch {
+        detail = bodyText || 'Unknown error';
+      }
+      throw new ServiceUnavailableException(
+        `Email service unavailable — ${detail}`,
+      );
+    }
+
     throw new UnauthorizedException(
       `Supabase ${operation} failed (${response.status}): ${bodyText || 'Unknown error'}`,
     );

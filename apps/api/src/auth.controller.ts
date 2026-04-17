@@ -68,6 +68,7 @@ export class AuthController {
     return {
       user: result.user,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     };
   }
 
@@ -77,9 +78,11 @@ export class AuthController {
   async refreshSession(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
+    @Body() body?: { refreshToken?: string },
   ) {
     const cookies = parseCookieHeader(request.headers.cookie);
-    const refreshToken = cookies[REFRESH_TOKEN_COOKIE]?.trim();
+    const refreshToken =
+      cookies[REFRESH_TOKEN_COOKIE]?.trim() || body?.refreshToken?.trim();
 
     if (!refreshToken) {
       throw new BadRequestException('Missing refresh token');
@@ -96,6 +99,7 @@ export class AuthController {
     return {
       ok: true,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     };
   }
 

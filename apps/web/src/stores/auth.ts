@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import axios from "axios";
-import { apiClient, setAccessToken } from "../api/client";
+import { apiClient, setAccessToken, setRefreshToken } from "../api/client";
 import type { CurrentUser } from "../api/me";
 import { loadCurrentUser, setCurrentUser } from "./user";
 
@@ -12,6 +12,7 @@ let initialized = false;
 
 function clearAuthState(): void {
   setAccessToken(null);
+  setRefreshToken(null);
   isAuthenticated.value = false;
   authError.value = null;
   setCurrentUser(null);
@@ -28,8 +29,16 @@ async function syncCurrentUser(): Promise<void> {
       return;
     }
 
-    isAuthenticated.value = false;
-    setCurrentUser(null);
+    // A 5xx from /me is most likely an auth guard failure (e.g. expired token that
+    // wasn't caught as a 401). Clear the stored token so the refresh flow can run
+    // on the next page load, rather than leaving a stale Bearer token in memory.
+    if (axios.isAxiosError(error) && error.response && error.response.status >= 500) {
+      clearAuthState();
+    } else {
+      isAuthenticated.value = false;
+      setCurrentUser(null);
+    }
+
     authError.value = error instanceof Error ? error.message : "Failed to load current user.";
   }
 }
@@ -58,13 +67,16 @@ export async function sendEmailOtp(email: string): Promise<void> {
 }
 
 export async function verifyEmailOtp(email: string, token: string): Promise<void> {
-  const { data } = await apiClient.post<{ user: CurrentUser; accessToken?: string }>("/auth/verify-email-code", {
+  const { data } = await apiClient.post<{ user: CurrentUser; accessToken?: string; refreshToken?: string }>("/auth/verify-email-code", {
     email,
     token,
   });
 
   if (data.accessToken) {
     setAccessToken(data.accessToken);
+  }
+  if (data.refreshToken) {
+    setRefreshToken(data.refreshToken);
   }
 
   isAuthenticated.value = true;

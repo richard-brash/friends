@@ -1,8 +1,10 @@
 import axios from "axios";
 
 const TOKEN_STORAGE_KEY = "fh_access_token_fallback";
+const REFRESH_TOKEN_STORAGE_KEY = "fh_refresh_token_fallback";
 
 let bearerAccessToken: string | null = null;
+let storedRefreshToken: string | null = null;
 
 function readStoredToken(): string | null {
   if (typeof window === "undefined") {
@@ -32,11 +34,43 @@ function writeStoredToken(token: string | null): void {
   }
 }
 
+function readStoredRefreshToken(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    return window.localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredRefreshToken(token: string | null): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    if (token) {
+      window.localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, token);
+    } else {
+      window.localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // no-op
+  }
+}
+
 bearerAccessToken = readStoredToken();
+storedRefreshToken = readStoredRefreshToken();
 
 export function setAccessToken(token: string | null): void {
   bearerAccessToken = token?.trim() || null;
   writeStoredToken(bearerAccessToken);
+}
+
+export function setRefreshToken(token: string | null): void {
+  storedRefreshToken = token?.trim() || null;
+  writeStoredRefreshToken(storedRefreshToken);
 }
 
 export const apiClient = axios.create({
@@ -95,10 +129,17 @@ apiClient.interceptors.response.use(
 
     if (!refreshPromise) {
       refreshPromise = apiClient
-        .post<{ accessToken?: string }>("/auth/refresh", undefined, { skipAuthRefresh: true } as never)
+        .post<{ accessToken?: string; refreshToken?: string }>(
+          "/auth/refresh",
+          storedRefreshToken ? { refreshToken: storedRefreshToken } : undefined,
+          { skipAuthRefresh: true } as never,
+        )
         .then(({ data }) => {
           if (data?.accessToken) {
             setAccessToken(data.accessToken);
+          }
+          if (data?.refreshToken) {
+            setRefreshToken(data.refreshToken);
           }
         })
         .finally(() => {

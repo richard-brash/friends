@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  HttpException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -41,8 +42,7 @@ export class SupabaseAuthGuard implements CanActivate {
         throw new UnauthorizedException('Missing authentication token');
       }
 
-      request.user =
-        await this.authService.authenticateAccessToken(cookieToken);
+      request.user = await this.verifyToken(cookieToken);
       return true;
     }
 
@@ -51,7 +51,18 @@ export class SupabaseAuthGuard implements CanActivate {
       throw new UnauthorizedException('Missing authentication token');
     }
 
-    request.user = await this.authService.authenticateAccessToken(token);
+    request.user = await this.verifyToken(token);
     return true;
+  }
+
+  private async verifyToken(token: string) {
+    try {
+      return await this.authService.authenticateAccessToken(token);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid or expired authentication token');
+    }
   }
 }
